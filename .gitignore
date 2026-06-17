@@ -1,0 +1,14 @@
+node_modules
+dist
+.env
+.vercel
+
+
+package-lock.json
+pnpm-lock.yaml
+bun.lock
+yarn.lock
+firebase-admin-config.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.gitignore
