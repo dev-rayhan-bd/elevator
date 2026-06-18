@@ -56,7 +56,7 @@ const applyToBecomeVendor = async (userId: string, vendorData: any) => {
       status: 'pending',
       vendor: {
         ...vendorData,
-        isProfileCompleted: true,
+        // isProfileCompleted: true,
         profileScore: 40 
       }
     },
