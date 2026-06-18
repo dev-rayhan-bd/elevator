@@ -1,19 +1,38 @@
 import { Model, Types } from 'mongoose';
 
 export type TUserRole = 'user' | 'vendor' | 'admin' | 'superAdmin';
-export type TUserStatus = 'pending' | 'active' | 'blocked';
+
+export interface TVendorAvailability {
+  day: string; // e.g., 'Monday'
+  isOpen: boolean;
+  startTime?: string;
+  endTime?: string;
+}
 
 export interface TVendorDetails {
   businessName: string;
   ownerName: string;
   whatsappNumber?: string;
-  location: string;
+  location: {
+    address: string;
+    city: string;
+    area: string;
+    zipCode?: string;
+  };
+  lat: number;
+  long: number;
   businessDetails: string;
   experienceYears: number;
+  teamSize?: number;
   socialLinks?: { instagram?: string; facebook?: string; website?: string };
+   googleMapLink?: string;
   categories: string[];
-  documents: string[];
+  documents: string[]; // URLs
+  portfolio: string[]; // Image Gallery URLs
+  availability: TVendorAvailability[];
+  profileScore: number; // 0-100
   isVerifiedBadge: boolean;
+      isProfileCompleted: boolean;
 }
 
 export interface TUser {
@@ -24,20 +43,26 @@ export interface TUser {
   phone: string;
   password?: string;
   image?: string;
+  lat?: number;
+  long?: number;
   role: TUserRole;
-  status: TUserStatus;
-  isPhoneVerified: boolean;
+  status: 'pending' | 'active' | 'blocked';
+  isOtpVerified: boolean;
   otp?: string | null;
   otpExpires?: Date | null;
-  acceptedTerms: boolean;
+  acceptedTerms?: boolean;
   vendor?: TVendorDetails;
   isDeleted: boolean;
-  isOtpVerified: boolean;
+    passwordChangedAt?: Date;
 
 }
 
 export interface IUserMethods {
-  isPasswordMatched(plainTextPassword: string, hashedPassword: string): Promise<boolean>;
+  isPasswordMatched(plain: string, hashed: string): Promise<boolean>;
 }
 
-export type TUserModel = Model<TUser, Record<string, never>, IUserMethods>;
+
+export interface UserModel extends Model<TUser, Record<string, never>, IUserMethods> {
+  isUserExistsById(id: string): Promise<TUser>;
+  isJWTIssuedBeforePasswordChanged(passwordChangedAt: Date, jwtIssuedTimestamp: number): boolean;
+}

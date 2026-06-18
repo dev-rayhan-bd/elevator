@@ -1,36 +1,29 @@
 import express from 'express';
-import auth from '../../middleware/auth';
-import { USER_ROLE } from '../Auth/auth.constant';
+import validateRequest from '../../middleware/validateRequest';
 import { AdminControllers } from './admin.controller';
+import { AdminValidation } from './admin.validation';
+import auth from '../../middleware/auth';
 
 const router = express.Router();
 
-router.get(
-  '/stats',
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
-  AdminControllers.getDashboardStats
+router.post('/login', validateRequest(AdminValidation.loginSchema), AdminControllers.loginAdmin);
+
+
+router.post(
+  '/create-admin', 
+  auth('superAdmin'), 
+  validateRequest(AdminValidation.createAdminSchema), 
+  AdminControllers.createAdmin
 );
 router.get(
-  '/graphs',
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
-  AdminControllers.getAdminGraphs
-);
-router.get(
-  '/user-management/stats',
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
-  AdminControllers.getUserManagementStats
+  '/pending-vendors', 
+  auth('admin', 'superAdmin'), 
+  AdminControllers.getPendingVendors
 );
 
-router.delete(
-  '/admin-delete-user/:id',
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin), 
-  AdminControllers.adminDeleteUser
+router.patch(
+  '/approve-vendor/:id', 
+  auth('admin', 'superAdmin'), 
+  AdminControllers.approveVendor
 );
-
-router.get(
-  '/content-monitor',
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
-  AdminControllers.getUnifiedContentMonitor
-);
-router.patch('/approve/:id', auth(USER_ROLE.admin, USER_ROLE.superAdmin), AdminControllers.approveUser);
 export const AdminRoutes = router;

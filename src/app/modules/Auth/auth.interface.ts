@@ -1,7 +1,6 @@
 export type TLoginUser = {
-  email?: string;
-  phone?: string;
-  password?: string;
+  identifier: string; // Email or Phone
+  password: string;
 };
 
 export type TVerifyOtp = {
@@ -9,18 +8,8 @@ export type TVerifyOtp = {
   otp: string;
 };
 
-export type TRefreshToken = {
-  refreshToken: string;
-};
-
 export type TForgetPassword = {
-  email?: string;
-  phone?: string;
-};
-
-export type TChangePassword = {
-  oldPassword: string;
-  newPassword: string;
+  phone: string;
 };
 
 export type TResetPassword = {

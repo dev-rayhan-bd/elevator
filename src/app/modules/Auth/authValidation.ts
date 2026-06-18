@@ -1,36 +1,46 @@
 import { z } from 'zod';
 
 export const AuthValidation = {
-  registerUserSchema: z.object({
-
+   registerSchema: z.object({
+    body: z.object({
       firstName: z.string(),
       lastName: z.string(),
       email: z.string().email(),
       phone: z.string(),
-      password: z.string().min(6),
+      password: z.string().min(8),
       acceptedTerms: z.literal(true),
-
+      role: z.enum(['user', 'vendor']),
+    }),
   }),
+
+
   loginSchema: z.object({
 
-      email: z.string().optional(),
-      phone: z.string().optional(),
-      password: z.string(),
- 
+      identifier: z.string({ required_error: "Email or Phone is required" }),
+      password: z.string({ required_error: "Password is required" }),
+   
   }),
-  phoneLoginRequestSchema: z.object({
-   phone: z.string() ,
+changePasswordSchema: z.object({
+    oldPassword: z.string().min(1, "Old password is required"),
+    newPassword: z.string().min(8, "New password must be 8 characters"),
   }),
   verifyOtpSchema: z.object({
-   phone: z.string(), otp: z.string().length(6)
+    phone: z.string(),
+    otp: z.string().length(6),
   }),
-  changePasswordSchema: z.object({
-oldPassword: z.string(), newPassword: z.string().min(6),
-  }),
+
   forgotPasswordSchema: z.object({
-    email: z.string().email()
+    phone: z.string(),
   }),
+
   resetPasswordSchema: z.object({
-    id: z.string(), newPassword: z.string().min(6)
+    phone: z.string(),
+    otp: z.string().length(6),
+    newPassword: z.string().min(8),
   }),
+
+  refreshTokenValidationSchema: z.object({
+    refreshToken: z.string({ required_error: 'Refresh Token is required!' }),
+  }),
+
 };

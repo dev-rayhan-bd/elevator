@@ -7,6 +7,8 @@ import termsRouter from '../modules/Terms/terms.route';
 import { FaqRoutes } from '../modules/FAQ/faq.routes';
 import { ContactRoutes } from '../modules/ContactUs/contact.route';
 import { NotificationRoutes } from '../modules/Notification/notification.routes';
+import { ReviewRoutes } from '../modules/Review/review.routes';
+import { AdminRoutes } from '../modules/Admin/admin.routes';
 
 
 
@@ -46,6 +48,8 @@ const moduleRoutes = [
   },
 
   { path: '/notification', route: NotificationRoutes },  
+  { path: '/reviews', route: ReviewRoutes },
+  { path: '/admin', route: AdminRoutes },
 
 ];
 

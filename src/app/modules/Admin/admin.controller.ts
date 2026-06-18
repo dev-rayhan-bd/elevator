@@ -1,67 +1,51 @@
-import { Request, Response } from "express";
-import catchAsync from "../../utils/catchAsync";
-import sendResponse from "../../utils/sendResponse";
-import { AdminServices } from "./admin.services";
+import catchAsync from '../../utils/catchAsync';
+import sendResponse from '../../utils/sendResponse';
+import { AdminServices } from './admin.services';
 import httpStatus from 'http-status';
 
-const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
-  const result = await AdminServices.getAdminDashboardStatsFromDB();
-  
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Admin Dashboard data retrieved successfully',
-    data: result,
-  });
-});
-const getAdminGraphs = catchAsync(async (req: Request, res: Response) => {
-  const { range } = req.query; // 7d, 30d, 90d
-  const result = await AdminServices.getAdminGraphDataFromDB(range as string);
+const loginAdmin = catchAsync(async (req, res) => {
+  const result = await AdminServices.loginAdminFromDB(req.body);
+  const { refreshToken, accessToken, admin } = result;
+
+  res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Graph analytics data retrieved successfully',
-    data: result,
-  });
-});
-const getUserManagementStats = catchAsync(async (req: Request, res: Response) => {
-  const result = await AdminServices.getUserManagementStatsFromDB();
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'User management stats retrieved',
-    data: result,
+    message: 'Admin Login Successful',
+    data: { accessToken, admin },
   });
 });
 
-const adminDeleteUser = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params; 
-  
-  await AdminServices.adminDeleteUserFromDB(id as string);
+const createAdmin = catchAsync(async (req, res) => {
+  const result = await AdminServices.createAdminInDB(req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Admin account created successfully',
+    data: result,
+  });
+});
+const approveVendor = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await AdminServices.approveVendorRequest(id);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "User and all associated data deleted successfully by admin",
-    data: null,
+    message: 'Vendor approved and role updated successfully.',
+    data: result,
   });
 });
-const getUnifiedContentMonitor = catchAsync(async (req: Request, res: Response) => {
-  const result = await AdminServices.getUnifiedContentMonitorFromDB(req.query);
+const getPendingVendors = catchAsync(async (req, res) => {
+
+  const result = await AdminServices.getPendingVendorsFromDB(req.query);
   
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Content monitor data with stats retrieved successfully',
+    message: 'Pending vendor requests retrieved.',
     data: result,
   });
 });
-const approveUser = catchAsync(async (req: Request, res: Response) => {
-  const userId=req.user.userId
-  const result = await AdminServices.approveUserAccountFromDB(req.params.id as string,userId as string);
-  sendResponse(res, { statusCode: 200, success: true, message: "User approved", data: result });
-});
-export const AdminControllers = {
-  getDashboardStats,getAdminGraphs,getUserManagementStats,adminDeleteUser,getUnifiedContentMonitor,approveUser
-};
+export const AdminControllers = { loginAdmin, createAdmin,approveVendor,getPendingVendors };
