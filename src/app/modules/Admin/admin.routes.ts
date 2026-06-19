@@ -1,29 +1,52 @@
 import express from 'express';
 import validateRequest from '../../middleware/validateRequest';
+import auth from '../../middleware/auth';
+import { upload } from '../../middleware/multer';
 import { AdminControllers } from './admin.controller';
 import { AdminValidation } from './admin.validation';
-import auth from '../../middleware/auth';
+import { USER_ROLE } from '../Auth/auth.constant';
 
 const router = express.Router();
 
-router.post('/login', validateRequest(AdminValidation.loginSchema), AdminControllers.loginAdmin);
 
+router.post('/login', validateRequest(AdminValidation.loginSchema), AdminControllers.loginAdmin);
+router.post('/forgot-password', validateRequest(AdminValidation.forgotPasswordSchema), AdminControllers.forgotPassword);
+router.post('/reset-password', validateRequest(AdminValidation.resetPasswordSchema), AdminControllers.resetPassword);
+
+
+router.patch(
+  '/update-profile',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  upload.single('image') as any, // Multer error fix
+  AdminControllers.updateProfile
+);
 
 router.post(
-  '/create-admin', 
-  auth('superAdmin'), 
-  validateRequest(AdminValidation.createAdminSchema), 
-  AdminControllers.createAdmin
+  '/change-password',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  validateRequest(AdminValidation.changePasswordSchema),
+  AdminControllers.changePassword
 );
+
+
 router.get(
-  '/pending-vendors', 
-  auth('admin', 'superAdmin'), 
+  '/pending-vendors',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   AdminControllers.getPendingVendors
 );
 
 router.patch(
-  '/approve-vendor/:id', 
-  auth('admin', 'superAdmin'), 
+  '/approve-vendor/:id',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   AdminControllers.approveVendor
 );
+
+
+router.post(
+  '/create-admin',
+  auth(USER_ROLE.superAdmin),
+  validateRequest(AdminValidation.createAdminSchema),
+  AdminControllers.createAdmin
+);
+router.post('/resendOtp', AdminControllers.resendOtp);
 export const AdminRoutes = router;

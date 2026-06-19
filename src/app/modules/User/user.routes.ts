@@ -11,7 +11,7 @@ router.get('/', auth('admin', 'superAdmin'), UserControllers.getAllUsers);
 router.patch('/update-me', auth('user', 'vendor'), upload.single('image') as any, UserControllers.updateProfile);
 router.patch(
   '/setup-profile',
-  auth('user'),
+  auth('user','vendor'),
   upload.single('image') as any,
   UserControllers.setupProfile
 );
@@ -28,6 +28,10 @@ router.post(
   auth('user'), 
   UserControllers.becomeVendorRequest
 );
-
+router.get(
+  '/me', 
+  auth('user', 'vendor', 'admin', 'superAdmin'), 
+  UserControllers.getMe 
+);
 router.patch('/manage-availability', auth('vendor'), UserControllers.updateAvailability);
 export const UserRoutes = router;

@@ -29,10 +29,12 @@ export interface TVendorDetails {
   categories: string[];
   documents: string[]; // URLs
   portfolio: string[]; // Image Gallery URLs
+ bookedDates: string[];
   availability: TVendorAvailability[];
   profileScore: number; // 0-100
   isVerifiedBadge: boolean;
       isProfileCompleted: boolean;
+      
 }
 
 export interface TUser {

@@ -1,7 +1,8 @@
 import QueryBuilder from '../../builder/QueryBuilder';
 import { User } from './user.model';
-
+import httpStatus from 'http-status'
 import AppError from '../../errors/AppError';
+import { Admin } from '../Admin/admin.model';
 
 const getAllUsersFromDB = async (query: Record<string, unknown>) => {
   const userQuery = new QueryBuilder(User.find({ isDeleted: false }), query)
@@ -65,4 +66,22 @@ const applyToBecomeVendor = async (userId: string, vendorData: any) => {
 
   return result;
 };
-export const UserServices = { getAllUsersFromDB, updateProfileInDB,manageAvailabilityInDB,applyToBecomeVendor };
+const getMeFromDB = async (userId: string, role: string) => {
+  let result = null;
+
+
+  if (role === 'admin' || role === 'superAdmin') {
+    result = await Admin.findById(userId);
+  } else {
+
+    result = await User.findById(userId);
+  }
+
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User profile not found!');
+  }
+
+  return result;
+};
+
+export const UserServices = { getAllUsersFromDB, updateProfileInDB,manageAvailabilityInDB,applyToBecomeVendor,getMeFromDB };

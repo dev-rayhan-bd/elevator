@@ -25,7 +25,7 @@ const availabilitySchema = z.array(
 
 
 export const updateUserValidationSchema = z.object({
-  body: z.object({
+
 
     data: z.string().transform((str) => JSON.parse(str)).pipe(
       z.object({
@@ -54,7 +54,7 @@ export const updateUserValidationSchema = z.object({
         }).optional(),
       })
     ),
-  }),
+
 });
 
 

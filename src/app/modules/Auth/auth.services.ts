@@ -12,7 +12,7 @@ import { TUser } from '../User/user.interface';
 
 
 
-const sendOtpToUser = async (user: any, plainOtp: string, title: string, identifier: string) => {
+export const sendOtpToUser = async (user: any, plainOtp: string, title: string, identifier: string) => {
 
   if (identifier.includes('@')) {
     const html = getEmailTemplate({

@@ -15,13 +15,22 @@ const adminSchema = new Schema<TAdmin, TAdminModel, IAdminMethods>(
     role: { type: String, enum: ['admin', 'superAdmin'], default: 'admin' },
     status: { type: String, enum: ['active', 'blocked'], default: 'active' },
     isDeleted: { type: Boolean, default: false },
+ otp: { type: String, select: 0 },     
+    otpExpires: { type: Date, select: 0 },
   },
   { timestamps: true }
 );
 
+// Pre-save hook for Hashing Password & OTP
 adminSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
-    this.password = await bcrypt.hash(this.password as string, Number(config.bcrypt_salt_rounds));
+  const saltRounds = Number(config.bcrypt_salt_rounds);
+
+  if (this.isModified('password') && this.password) {
+    this.password = await bcrypt.hash(this.password as string, saltRounds);
+  }
+ 
+  if (this.isModified('otp') && this.otp) {
+    this.otp = await bcrypt.hash(this.otp as string, saltRounds);
   }
   this.fullName = `${this.firstName} ${this.lastName}`;
   next();

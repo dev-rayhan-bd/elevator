@@ -74,4 +74,16 @@ const becomeVendorRequest = catchAsync(async (req, res) => {
     data: result,
   });
 });
-export const UserControllers = { getAllUsers, updateProfile,setupProfile,updatePortfolio ,updateAvailability,becomeVendorRequest};
+const getMe = catchAsync(async (req, res) => {
+  const { userId } = req.user; 
+    const role = req.user.role;
+  const result = await UserServices.getMeFromDB(userId,role);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Profile retrieved successfully',
+    data: result,
+  });
+});
+export const UserControllers = { getAllUsers, updateProfile,setupProfile,updatePortfolio ,updateAvailability,becomeVendorRequest,getMe};

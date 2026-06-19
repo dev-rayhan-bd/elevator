@@ -1,19 +1,94 @@
+import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { AdminServices } from './admin.services';
-import httpStatus from 'http-status';
+import uploadImage from '../../middleware/upload';
+import config from '../../config';
 
 const loginAdmin = catchAsync(async (req, res) => {
   const result = await AdminServices.loginAdminFromDB(req.body);
   const { refreshToken, accessToken, admin } = result;
 
-  res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true });
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: config.NODE_ENV === 'production',
+    sameSite: 'none',
+    maxAge: 30 * 24 * 60 * 60 * 1000,
+  });
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Admin Login Successful',
+    message: 'Admin logged in successfully',
     data: { accessToken, admin },
+  });
+});
+
+const updateProfile = catchAsync(async (req, res) => {
+  let imageUrl;
+  if (req.file) {
+    imageUrl = await uploadImage(req);
+  }
+
+  const data = req.body.data ? JSON.parse(req.body.data) : req.body;
+  const payload = { ...data, image: imageUrl };
+
+  const result = await AdminServices.updateAdminProfile(req.user.userId, payload);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Admin profile updated',
+    data: result,
+  });
+});
+
+const changePassword = catchAsync(async (req, res) => {
+  const result = await AdminServices.changeAdminPassword(req.user.userId, req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+const forgotPassword = catchAsync(async (req, res) => {
+  const result = await AdminServices.forgotPassword(req.body.identifier);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+const resetPassword = catchAsync(async (req, res) => {
+  const result = await AdminServices.resetPassword(req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+const approveVendor = catchAsync(async (req, res) => {
+  const result = await AdminServices.approveVendorRequest(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Vendor approved successfully',
+    data: result,
+  });
+});
+
+const getPendingVendors = catchAsync(async (req, res) => {
+  const result = await AdminServices.getPendingVendorsFromDB(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Pending vendors retrieved',
+    data: result,
   });
 });
 
@@ -22,30 +97,23 @@ const createAdmin = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: 'Admin account created successfully',
+    message: 'New Admin created successfully',
     data: result,
   });
 });
-const approveVendor = catchAsync(async (req, res) => {
-  const { id } = req.params;
-  const result = await AdminServices.approveVendorRequest(id);
+const resendOtp = catchAsync(async (req, res) => {
+  const result = await AdminServices.resendOTP(req.body.identifier);
+  sendResponse(res, { statusCode: 200, success: true, message: result.message, data: null });
+});
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Vendor approved and role updated successfully.',
-    data: result,
-  });
-});
-const getPendingVendors = catchAsync(async (req, res) => {
-
-  const result = await AdminServices.getPendingVendorsFromDB(req.query);
-  
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Pending vendor requests retrieved.',
-    data: result,
-  });
-});
-export const AdminControllers = { loginAdmin, createAdmin,approveVendor,getPendingVendors };
+export const AdminControllers = {
+  loginAdmin,
+  updateProfile,
+  changePassword,
+  forgotPassword,
+  resetPassword,
+  approveVendor,
+  getPendingVendors,
+  createAdmin,
+  resendOtp
+};

@@ -11,10 +11,36 @@ export const AdminValidation = {
       role: z.enum(['admin', 'superAdmin']).optional(),
     }),
   }),
+
   loginSchema: z.object({
-    body: z.object({
+
       identifier: z.string(), // email or phone
       password: z.string(),
-    }),
+  
+  }),
+   updateProfileSchema: z.object({
+
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+      phone: z.string().optional(),
+   
+  }),
+  changePasswordSchema: z.object({
+
+      oldPassword: z.string().min(1),
+      newPassword: z.string().min(8),
+ 
+  }),
+  forgotPasswordSchema: z.object({
+
+      identifier: z.string(), // email or phone
+
+  }),
+  resetPasswordSchema: z.object({
+
+      identifier: z.string(),
+      otp: z.string().length(6),
+      newPassword: z.string().min(8),
+
   }),
 };

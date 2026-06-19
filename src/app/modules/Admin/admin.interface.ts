@@ -13,6 +13,8 @@ export interface TAdmin {
   role: TAdminRole;
   status: 'active' | 'blocked';
   isDeleted: boolean;
+   otp?: string | null;      
+  otpExpires?: Date | null; 
 }
 
 export interface IAdminMethods {
