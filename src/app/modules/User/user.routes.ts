@@ -34,4 +34,9 @@ router.get(
   UserControllers.getMe 
 );
 router.patch('/manage-availability', auth('vendor'), UserControllers.updateAvailability);
+router.patch(
+  '/update-availability',
+  auth('vendor'), 
+  UserControllers.updateAvailabilityStatus
+);
 export const UserRoutes = router;

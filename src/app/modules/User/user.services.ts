@@ -83,5 +83,35 @@ const getMeFromDB = async (userId: string, role: string) => {
 
   return result;
 };
+const updateVendorAvailabilityInDB = async (
+  userId: string, 
+  payload: { date: string; status: string }
+) => {
+  const { date, status } = payload;
 
-export const UserServices = { getAllUsersFromDB, updateProfileInDB,manageAvailabilityInDB,applyToBecomeVendor,getMeFromDB };
+  const user = await User.findById(userId);
+  if (!user || user.role !== 'vendor') {
+    throw new AppError(404, 'Vendor not found');
+  }
+
+  let updateQuery;
+  const currentStatus = status.toLowerCase(); 
+
+  if (currentStatus === 'booked') {
+
+    updateQuery = { $addToSet: { 'vendor.bookedDates': date } };
+  } else if (currentStatus === 'available') {
+
+    updateQuery = { $pull: { 'vendor.bookedDates': date } };
+  } else {
+    throw new AppError(400, 'Invalid status. Use "booked" or "available"');
+  }
+
+  const result = await User.findByIdAndUpdate(userId, updateQuery, { 
+    new: true, 
+    runValidators: true 
+  });
+
+  return result;
+};
+export const UserServices = { getAllUsersFromDB, updateProfileInDB,manageAvailabilityInDB,applyToBecomeVendor,getMeFromDB,updateVendorAvailabilityInDB };

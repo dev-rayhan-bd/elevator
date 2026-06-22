@@ -37,25 +37,6 @@ export const sendOtpToUser = async (user: any, plainOtp: string, title: string, 
   }
 };
 
-// const registerUser = async (payload: any) => {
-//   const isExist = await User.findOne({ $or: [{ email: payload.email }, { phone: payload.phone }] });
-//   if (isExist) throw new AppError(httpStatus.CONFLICT, 'Email or Phone already exists');
-
-//   const plainOtp = Math.floor(100000 + Math.random() * 900000).toString();
-//   payload.otp = plainOtp;
-//   payload.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-//   payload.isOtpVerified = false;
-//   payload.status = payload.role === 'vendor' ? 'pending' : 'active';
-
-//   const newUser = await User.create(payload);
-//   try {
-//     await sendOTP(payload.phone, plainOtp);
-//     return newUser;
-//   } catch (error: any) {
-//     await User.findByIdAndDelete(newUser._id);
-//     throw new AppError(httpStatus.BAD_GATEWAY, `Twilio Error: ${error.message}`);
-//   }
-// };
 const registerUser = async (payload: TUser) => {
   const isExist = await User.findOne({ $or: [{ email: payload.email }, { phone: payload.phone }] });
   if (isExist) throw new AppError(409, 'Email or Phone already registered');
@@ -71,8 +52,27 @@ const registerUser = async (payload: TUser) => {
   const newUser = await User.create(payload);
 
   try {
-    await sendOTP(payload.phone, plainOtp);
+  const smsPromise = sendOTP(payload.phone!, plainOtp);
+
+   
+    const emailHtml = getEmailTemplate({
+      userName: payload.firstName,
+      title: "Verify Your Account",
+      body: "Welcome to WePlan! Use the verification code below to activate your account. You can find this code in your SMS as well.",
+      otpCode: plainOtp
+    });
+    
+    const emailPromise = sendEmail({
+      to: payload.email,
+      subject: "Your WePlan Verification Code",
+      html: emailHtml  
+    });
+
+    // (Parallel Execution)
+    await Promise.all([smsPromise, emailPromise]);
+
     return newUser;
+  
   } catch (error) {
     await User.findByIdAndDelete(newUser._id);
     throw new AppError(502, 'Failed to send OTP');

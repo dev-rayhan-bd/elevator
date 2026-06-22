@@ -3,6 +3,7 @@ import sendResponse from '../../utils/sendResponse';
 import { UserServices } from './user.services';
 import uploadImage from '../../middleware/upload';
 import  httpStatus  from 'http-status';
+import AppError from '../../errors/AppError';
 const getAllUsers = catchAsync(async (req, res) => {
   const result = await UserServices.getAllUsersFromDB(req.query);
   sendResponse(res, { statusCode: 200, success: true, message: 'Users retrieved', data: result });
@@ -86,4 +87,17 @@ const getMe = catchAsync(async (req, res) => {
     data: result,
   });
 });
-export const UserControllers = { getAllUsers, updateProfile,setupProfile,updatePortfolio ,updateAvailability,becomeVendorRequest,getMe};
+const updateAvailabilityStatus = catchAsync(async (req, res) => {
+  const result = await UserServices.updateVendorAvailabilityInDB(
+    req.user.userId,
+    req.body
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: `Date marked as ${req.body.status}`,
+    data: result,
+  });
+});
+export const UserControllers = { getAllUsers, updateProfile,setupProfile,updatePortfolio ,updateAvailability,becomeVendorRequest,getMe,updateAvailabilityStatus};
