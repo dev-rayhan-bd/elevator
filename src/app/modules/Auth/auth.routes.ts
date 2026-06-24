@@ -24,7 +24,7 @@ router.post('/refresh-token', AuthControllers.refreshToken);
 router.post('/forgotPass', AuthControllers.forgotPassword);
 router.post('/resetPass', AuthControllers.resetPassword);
 
-router.post('/regOtpVerify', AuthControllers.VerifyOtpForRegistration);
+router.post('/regOtpVerify', validateRequest(AuthValidation.verifyOtpSchema), AuthControllers.VerifyOtpForRegistration);
 router.post('/logout', auth(USER_ROLE.user, USER_ROLE.vendor, USER_ROLE.admin), AuthControllers.logout);
 
 

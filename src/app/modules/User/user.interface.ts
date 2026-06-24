@@ -55,8 +55,8 @@ export interface TUser {
   acceptedTerms?: boolean;
   vendor?: TVendorDetails;
   isDeleted: boolean;
-    passwordChangedAt?: Date;
-
+  passwordChangedAt?: Date;
+  fcmToken?: string | null;
 }
 
 export interface IUserMethods {

@@ -1,8 +1,9 @@
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
 import { getMessaging, Message } from 'firebase-admin/messaging';
 import { NotificationModel } from '../modules/Notification/notification.model';
-import { UserModel } from '../modules/User/user.model';
 import path from 'path';
+import { User } from '../modules/User/user.model';
+import { TUser } from '../modules/User/user.interface';
 
 // Firebase Initialize (Modular Style)
 const serviceAccount = require(path.join(process.cwd(), 'firebase-admin-config.json'));
@@ -20,23 +21,22 @@ export const sendNotification = async (
   type: string = 'general'
 ) => {
   try {
- 
+    // Persist notification to DB first
     await NotificationModel.create({
       user: userId,
       title,
       message,
-      type, 
+      type,
     });
 
+    // Use .lean<TUser>() for a plain JS object with full type safety
+    const user = await User.findById(userId).lean<TUser | null>();
 
-    const user = await UserModel.findById(userId);
-    
-    if (user && user.fcmToken) {
-
+    if (user?.fcmToken) {
       const payload: Message = {
         token: user.fcmToken,
         notification: {
-          title: title,
+          title,
           body: message,
         },
         // Android Specific Configuration
@@ -45,7 +45,7 @@ export const sendNotification = async (
           notification: {
             sound: 'default',
             clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-            channelId: 'default_channel', 
+            channelId: 'default_channel',
           },
         },
         // iOS/APNS Specific Configuration
@@ -58,14 +58,12 @@ export const sendNotification = async (
             },
           },
         },
-
         data: {
           click_action: 'FLUTTER_NOTIFICATION_CLICK',
-          type: type,
+          type,
         },
       };
 
-  
       await getMessaging().send(payload);
       console.log(`✅ Push notification sent to user: ${userId}`);
     } else {
@@ -83,9 +81,9 @@ export const sendNotificationToAdmins = async (
   type: string = 'general'
 ) => {
   try {
-    const admins = await UserModel.find({ 
+    const admins = await User.find({
       role: { $in: ['admin', 'superAdmin'] },
-      status: 'active' 
+      status: 'active',
     });
 
     if (admins.length > 0) {

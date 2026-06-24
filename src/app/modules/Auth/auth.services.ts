@@ -51,38 +51,60 @@ const registerUser = async (payload: TUser) => {
 
   const newUser = await User.create(payload);
 
-  try {
-  const smsPromise = sendOTP(payload.phone!, plainOtp);
+  // Send OTP via both channels independently – one failure won't block the other
+  let smsDelivered = false;
+  let emailDelivered = false;
 
-   
+  // SMS via Twilio
+  try {
+    await sendOTP(payload.phone!, plainOtp);
+    smsDelivered = true;
+    console.log('✅ OTP sent via SMS to:', payload.phone);
+  } catch (smsError: any) {
+    console.error('❌ SMS OTP failed:', smsError?.message || smsError);
+  }
+
+  // Email via Nodemailer
+  try {
     const emailHtml = getEmailTemplate({
       userName: payload.firstName,
-      title: "Verify Your Account",
-      body: "Welcome to WePlan! Use the verification code below to activate your account. You can find this code in your SMS as well.",
-      otpCode: plainOtp
+      title: 'Verify Your Account',
+      body: 'Welcome to WePlan! Use the verification code below to activate your account.',
+      otpCode: plainOtp,
     });
-    
-    const emailPromise = sendEmail({
+    await sendEmail({
       to: payload.email,
-      subject: "Your WePlan Verification Code",
-      html: emailHtml  
+      subject: 'Your WePlan Verification Code',
+      html: emailHtml,
     });
-
-    // (Parallel Execution)
-    await Promise.all([smsPromise, emailPromise]);
-
-    return newUser;
-  
-  } catch (error) {
-    await User.findByIdAndDelete(newUser._id);
-    throw new AppError(502, 'Failed to send OTP');
+    emailDelivered = true;
+    console.log('✅ OTP sent via Email to:', payload.email);
+  } catch (emailError: any) {
+    console.error('❌ Email OTP failed:', emailError?.message || emailError);
   }
+
+  // If both channels failed, rollback the user
+  if (!smsDelivered && !emailDelivered) {
+    await User.findByIdAndDelete(newUser._id);
+    throw new AppError(502, 'Failed to send OTP via SMS or Email. Please try again.');
+  }
+
+  return newUser;
 };
-const verifyOTPForRegistration = async (phone: string, otp: string) => {
-  const user = await User.findOne({ phone }).select('+otp +otpExpires');
+const verifyOTPForRegistration = async (identifier: string, otp: string) => {
+  const user = await User.findOne({
+    $or: [{ email: identifier }, { phone: identifier }],
+  }).select('+otp +otpExpires');
+
   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+
+  // Check if OTP is already expired
+  if (user.otpExpires && user.otpExpires < new Date()) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'OTP has expired. Please request a new one via /resendOtp');
+  }
+
   const isMatch = await bcrypt.compare(otp, user.otp!);
-  if (!isMatch || user.otpExpires! < new Date()) throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid/Expired OTP');
+  if (!isMatch) throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid OTP');
 
   user.isOtpVerified = true;
   user.otp = null;
@@ -97,13 +119,19 @@ const verifyOTPForRegistration = async (phone: string, otp: string) => {
   };
 };
 
-const loginUser = async (payload: any) => {
+const loginUser = async (payload: { identifier: string; password: string; fcmToken?: string }) => {
   const user = await User.findOne({ $or: [{ email: payload.identifier }, { phone: payload.identifier }] }).select('+password');
   if (!user || user.status === 'blocked' || !user.isOtpVerified) 
     throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid credentials or account not verified');
 
   const isMatch = await user.isPasswordMatched(payload.password, user.password!);
   if (!isMatch) throw new AppError(httpStatus.FORBIDDEN, 'Incorrect password');
+
+  // Update FCM token for push notifications (latest device)
+  if (payload.fcmToken) {
+    user.fcmToken = payload.fcmToken;
+    await user.save();
+  }
 
   const jwtPayload = { userId: user._id.toString(), role: user.role };
   return {

@@ -28,6 +28,7 @@ const userSchema = new Schema<TUser, UserModel, IUserMethods>(
     otp: { type: String, select: 0 },
     otpExpires: { type: Date, select: 0 },
     acceptedTerms: { type: Boolean },
+    fcmToken: { type: String, default: null },
     isDeleted: { type: Boolean, default: false },
     vendor: {
       businessName: String,

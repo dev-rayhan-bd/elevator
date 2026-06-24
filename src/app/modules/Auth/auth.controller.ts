@@ -16,7 +16,7 @@ const userLogin = catchAsync(async (req, res) => {
 });
 
 const VerifyOtpForRegistration = catchAsync(async (req, res) => {
-  const result = await AuthServices.verifyOTPForRegistration(req.body.phone, req.body.otp);
+  const result = await AuthServices.verifyOTPForRegistration(req.body.identifier, req.body.otp);
   sendResponse(res, { statusCode: 200, success: true, message: 'Verified', data: result });
 });
 
