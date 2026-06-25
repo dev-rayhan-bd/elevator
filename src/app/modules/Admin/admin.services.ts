@@ -13,7 +13,8 @@ import { sendOtpToUser } from '../Auth/auth.services';
 
 
 const sendOtpToAdmin = async (admin: any, plainOtp: string, title: string) => {
-  if (admin.email) { 
+  // --- Always send OTP via Email (primary channel) ---
+  if (admin.email) {
     const html = getEmailTemplate({
       userName: admin.firstName,
       title: title,
@@ -25,12 +26,19 @@ const sendOtpToAdmin = async (admin: any, plainOtp: string, title: string) => {
       subject: title,
       html: html
     });
-    console.log("OTP sent via Email to:", admin.email);
-  } else if (admin.phone) { 
-    await sendOTP(admin.phone, plainOtp);
-    console.log("OTP sent via SMS to:", admin.phone);
+    console.log("✅ OTP sent via Email to:", admin.email);
   } else {
-    throw new AppError(httpStatus.BAD_REQUEST, "No valid contact (email/phone) for OTP");
+    throw new AppError(httpStatus.BAD_REQUEST, "Admin email is required for OTP");
+  }
+
+  // --- v2: SMS OTP — enable by setting SMS_ENABLED=true in .env ---
+  if (config.sms_enabled && admin.phone) {
+    try {
+      await sendOTP(admin.phone, plainOtp);
+      console.log("✅ OTP also sent via SMS to:", admin.phone);
+    } catch (smsError: any) {
+      console.warn("⚠️ SMS OTP skipped (optional channel):", smsError?.message || smsError);
+    }
   }
 };
 
@@ -143,18 +151,18 @@ const resetPassword = async (payload: any) => {
   return { message: 'Password reset successful' };
 };
 const resendOTP = async (identifier: string) => {
-  const user = await User.findOne({ 
+  const admin = await Admin.findOne({ 
     $or: [{ email: identifier }, { phone: identifier }] 
   });
   
-  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  if (!admin) throw new AppError(httpStatus.NOT_FOUND, 'Admin not found');
 
   const plainOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  user.otp = plainOtp; 
-  user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-  await user.save();
+  admin.otp = plainOtp; 
+  admin.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+  await admin.save();
 
-  await sendOtpToUser(user, plainOtp, "Your New Verification Code",identifier);
+  await sendOtpToAdmin(admin, plainOtp, "Your New Verification Code");
   return { message: 'Verification code resent successfully' };
 };
 const getMeFromDB = async (userId: string, role: string) => {
@@ -168,7 +176,7 @@ const getMeFromDB = async (userId: string, role: string) => {
   }
 
   if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User profile not found!');
+    throw new AppError(httpStatus.NOT_FOUND, 'Admin profile not found!');
   }
 
   return result;

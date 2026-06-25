@@ -13,7 +13,7 @@ export type TForgetPassword = {
 };
 
 export type TResetPassword = {
-  phone: string;
+  identifier: string;
   otp: string;
   newPassword: string;
 };

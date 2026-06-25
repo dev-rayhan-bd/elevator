@@ -12,28 +12,31 @@ import { TUser } from '../User/user.interface';
 
 
 
-export const sendOtpToUser = async (user: any, plainOtp: string, title: string, identifier: string) => {
+export const sendOtpToUser = async (user: any, plainOtp: string, title: string, _identifier?: string) => {
 
-  if (identifier.includes('@')) {
-    const html = getEmailTemplate({
-      userName: user.firstName,
-      title: title,
-      body: `Your verification code is below. Please use it within 10 minutes.`,
-      otpCode: plainOtp
-    });
-    
-    await sendEmail({
-      to: user.email,
-      subject: title,
-      html: html
-    });
-    console.log("OTP sent via Email to:", user.email);
+  // --- Always send OTP via Email (primary channel) ---
+  const html = getEmailTemplate({
+    userName: user.firstName,
+    title,
+    body: `Your verification code is below. Please use it within 10 minutes.`,
+    otpCode: plainOtp,
+  });
 
-  } 
+  await sendEmail({
+    to: user.email,
+    subject: title,
+    html,
+  });
+  console.log('✅ OTP sent via Email to:', user.email);
 
-  else {
-    await sendOTP(user.phone, plainOtp);
-    console.log("OTP sent via SMS to:", user.phone);
+  // --- v2: SMS OTP — enable by setting SMS_ENABLED=true in .env ---
+  if (config.sms_enabled && user.phone) {
+    try {
+      await sendOTP(user.phone, plainOtp);
+      console.log('✅ OTP also sent via SMS to:', user.phone);
+    } catch (smsError: any) {
+      console.warn('⚠️ SMS OTP skipped (optional channel):', smsError?.message || smsError);
+    }
   }
 };
 
@@ -51,20 +54,8 @@ const registerUser = async (payload: TUser) => {
 
   const newUser = await User.create(payload);
 
-  // Send OTP via both channels independently – one failure won't block the other
-  let smsDelivered = false;
-  let emailDelivered = false;
-
-  // SMS via Twilio
-  try {
-    await sendOTP(payload.phone!, plainOtp);
-    smsDelivered = true;
-    console.log('✅ OTP sent via SMS to:', payload.phone);
-  } catch (smsError: any) {
-    console.error('❌ SMS OTP failed:', smsError?.message || smsError);
-  }
-
-  // Email via Nodemailer
+  // --- Send OTP via Email (primary channel) ---
+  // v2: To also send SMS, set SMS_ENABLED=true in .env — sendOtpToUser handles it
   try {
     const emailHtml = getEmailTemplate({
       userName: payload.firstName,
@@ -77,16 +68,19 @@ const registerUser = async (payload: TUser) => {
       subject: 'Your WePlan Verification Code',
       html: emailHtml,
     });
-    emailDelivered = true;
     console.log('✅ OTP sent via Email to:', payload.email);
-  } catch (emailError: any) {
-    console.error('❌ Email OTP failed:', emailError?.message || emailError);
-  }
 
-  // If both channels failed, rollback the user
-  if (!smsDelivered && !emailDelivered) {
+    // v2: SMS OTP (parallel, non-blocking)
+    if (config.sms_enabled && payload.phone) {
+      sendOTP(payload.phone, plainOtp)
+        .then(() => console.log('✅ OTP also sent via SMS to:', payload.phone))
+        .catch((err: any) => console.warn('⚠️ SMS OTP skipped:', err?.message || err));
+    }
+  } catch (emailError: any) {
+    // Email failed → rollback
     await User.findByIdAndDelete(newUser._id);
-    throw new AppError(502, 'Failed to send OTP via SMS or Email. Please try again.');
+    console.error('❌ Email OTP failed:', emailError?.message || emailError);
+    throw new AppError(502, 'Failed to send OTP via Email. Please try again.');
   }
 
   return newUser;
@@ -176,11 +170,11 @@ const forgotPass = async (identifier: string) => {
 
 
 const resetPassword = async (payload: TResetPassword) => {
-  const { phone, otp, newPassword } = payload;
+  const { identifier, otp, newPassword } = payload;
   
  
   const user = await User.findOne({ 
-    $or: [{ phone: phone }, { email: phone }] 
+    $or: [{ phone: identifier }, { email: identifier }] 
   }).select('+otp +otpExpires');
 
   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
