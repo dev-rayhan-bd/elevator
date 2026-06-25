@@ -67,3 +67,10 @@ export const SubcategoryServices = {
   deleteSubcategoryFromDB,
   getAllSubcategoriesListFromDB,
 };
+
+
+// 1.searchTerm diye category search hocce na
+// 2.all subcategory get korar arekta api needed including querybuilder,filter,search
+// 3.service area delete korte gele Unexpected end of JSON input ei error astece
+// 4.searvice area search korar filter dite hobe querybuilder use kore
+// 5.all area without querybuilder arekta api needed
