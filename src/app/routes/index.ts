@@ -9,6 +9,11 @@ import { ContactRoutes } from '../modules/ContactUs/contact.route';
 import { NotificationRoutes } from '../modules/Notification/notification.routes';
 import { ReviewRoutes } from '../modules/Review/review.routes';
 import { AdminRoutes } from '../modules/Admin/admin.routes';
+import { CategoryRoutes } from '../modules/ServiceCategory/category.routes';
+import { SubcategoryRoutes } from '../modules/ServiceSubcategory/subcategory.routes';
+import { AmenityRoutes } from '../modules/Amenity/amenity.routes';
+import { ServiceAreaRoutes } from '../modules/ServiceArea/serviceArea.routes';
+import { VendorServiceRoutes } from '../modules/VendorService/vendorService.routes';
 
 
 
@@ -50,6 +55,11 @@ const moduleRoutes = [
   { path: '/notification', route: NotificationRoutes },  
   { path: '/reviews', route: ReviewRoutes },
   { path: '/admin', route: AdminRoutes },
+  { path: '/category', route: CategoryRoutes },
+  { path: '/subcategory', route: SubcategoryRoutes },
+  { path: '/amenity', route: AmenityRoutes },
+  { path: '/service-area', route: ServiceAreaRoutes },
+  { path: '/vendor-service', route: VendorServiceRoutes },
 
 ];
 
