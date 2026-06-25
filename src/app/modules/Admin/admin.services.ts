@@ -10,6 +10,7 @@ import sendEmail from '../../utils/sendEmail';
 import config from '../../config';
 import { createToken } from '../Auth/auth.utils';
 import { sendOtpToUser } from '../Auth/auth.services';
+import { sendNotification } from '../../utils/sendNotification';
 
 
 const sendOtpToAdmin = async (admin: any, plainOtp: string, title: string) => {
@@ -84,10 +85,21 @@ const approveVendorRequest = async (id: string) => {
     id,
     {
       role: 'vendor',
-      status: 'active'
+      status: 'active',
+      'vendor.isProfileCompleted': true,
     },
     { new: true }
   );
+
+  // Trigger vendor approval notification (fire-and-forget)
+  sendNotification(
+    id,
+    'Vendor Application Approved! 🎉',
+    'Congratulations! Your vendor application has been approved. Your profile is now active.',
+    'vendor_approved',
+    { action: 'vendor_approved' }
+  );
+
   return result;
 };
 

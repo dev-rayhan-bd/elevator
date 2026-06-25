@@ -34,7 +34,6 @@ export interface TVendorDetails {
   profileScore: number; // 0-100
   isVerifiedBadge: boolean;
       isProfileCompleted: boolean;
-      
 }
 
 export interface TUser {

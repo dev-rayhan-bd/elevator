@@ -81,6 +81,7 @@ userSchema.pre("save", async function (next) {
     );
   }
   this.fullName = `${this.firstName} ${this.lastName}`;
+
   next();
 });
 

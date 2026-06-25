@@ -3,19 +3,39 @@ import auth from '../../middleware/auth';
 import { UserControllers } from './user.controller';
 import { upload } from '../../middleware/multer';
 
-
-
 const router = express.Router();
 
+// ──────────────────────────────────────────────────────────────
+// Admin / SuperAdmin Routes
+// ──────────────────────────────────────────────────────────────
 router.get('/', auth('admin', 'superAdmin'), UserControllers.getAllUsers);
-router.patch('/update-me', auth('user', 'vendor'), upload.single('image') as any, UserControllers.updateProfile);
+
+// ──────────────────────────────────────────────────────────────
+// Authenticated User / Vendor Routes
+// ──────────────────────────────────────────────────────────────
+router.get(
+  '/me',
+  auth('user', 'vendor', 'admin', 'superAdmin'),
+  UserControllers.getMe
+);
+
+router.patch(
+  '/update-me',
+  auth('user', 'vendor'),
+  upload.single('image') as any,
+  UserControllers.updateProfile
+);
+
 router.patch(
   '/setup-profile',
-  auth('user','vendor'),
+  auth('user', 'vendor'),
   upload.single('image') as any,
   UserControllers.setupProfile
 );
 
+// ──────────────────────────────────────────────────────────────
+// Vendor-Only Routes
+// ──────────────────────────────────────────────────────────────
 router.patch(
   '/update-portfolio',
   auth('vendor'),
@@ -25,18 +45,16 @@ router.patch(
 
 router.post(
   '/become-vendor',
-  auth('user'), 
+  auth('user'),
   UserControllers.becomeVendorRequest
 );
-router.get(
-  '/me', 
-  auth('user', 'vendor', 'admin', 'superAdmin'), 
-  UserControllers.getMe 
-);
+
 router.patch('/manage-availability', auth('vendor'), UserControllers.updateAvailability);
+
 router.patch(
   '/update-availability',
-  auth('vendor'), 
+  auth('vendor'),
   UserControllers.updateAvailabilityStatus
 );
+
 export const UserRoutes = router;

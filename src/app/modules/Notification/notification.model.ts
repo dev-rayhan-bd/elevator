@@ -6,10 +6,17 @@ const notificationSchema = new Schema({
   message: { type: String, required: true },
   type: { 
     type: String, 
-    enum: ['order', 'birthday', 'promo', 'general','catering'], 
+    enum: [
+      'vendor_approved', 'vendor_rejected', 'profile_score_changed',
+      'profile_visibility_changed', 'new_review', 'vendor_application',
+      'new_vendor_registered', 'vendor_verification', 'availability_update',
+      'booking_update'
+    ], 
     default: 'general' 
   },
   isRead: { type: Boolean, default: false },
+  /** Optional structured payload for deep-linking and client logic */
+  data: { type: Schema.Types.Mixed, default: {} },
 }, { timestamps: true });
 
 export const NotificationModel = model('Notification', notificationSchema);

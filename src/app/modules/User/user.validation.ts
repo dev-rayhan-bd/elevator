@@ -75,5 +75,5 @@ export const vendorDocumentValidationSchema = z.object({
 export const UserValidations = {
   updateUserValidationSchema,
   updatePortfolioValidationSchema,
-  vendorDocumentValidationSchema
+  vendorDocumentValidationSchema,
 };

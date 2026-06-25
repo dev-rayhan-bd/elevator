@@ -3,7 +3,7 @@ import sendResponse from '../../utils/sendResponse';
 import { UserServices } from './user.services';
 import uploadImage from '../../middleware/upload';
 import  httpStatus  from 'http-status';
-import AppError from '../../errors/AppError';
+
 const getAllUsers = catchAsync(async (req, res) => {
   const result = await UserServices.getAllUsersFromDB(req.query);
   sendResponse(res, { statusCode: 200, success: true, message: 'Users retrieved', data: result });
@@ -15,13 +15,13 @@ const updateProfile = catchAsync(async (req, res) => {
     imageUrl = await uploadImage(req);
   }
 
-  // FormData JSON parsing if body is wrapped in 'data' field
   const data = req.body.data ? JSON.parse(req.body.data) : req.body;
   const payload = { ...data, image: imageUrl };
 
   const result = await UserServices.updateProfileInDB(req.user.userId, payload);
   sendResponse(res, { statusCode: 200, success: true, message: 'Profile updated', data: result });
 });
+
 const setupProfile = catchAsync(async (req, res) => {
   let imageUrl;
   if (req.file) imageUrl = await uploadImage(req);
@@ -49,9 +49,10 @@ const updatePortfolio = catchAsync(async (req, res) => {
 
   sendResponse(res, { statusCode: 200, success: true, message: 'Portfolio updated', data: result });
 });
+
 const updateAvailability = catchAsync(async (req, res) => {
   const userId = req.user.userId;
-  const { availability } = req.body; // Array of days: [{day: 'Monday', isOpen: true, ...}]
+  const { availability } = req.body;
 
   const result = await UserServices.manageAvailabilityInDB(userId, availability);
 
@@ -62,9 +63,10 @@ const updateAvailability = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
 const becomeVendorRequest = catchAsync(async (req, res) => {
   const userId = req.user.userId;
-  const vendorData = req.body; 
+  const vendorData = req.body;
 
   const result = await UserServices.applyToBecomeVendor(userId, vendorData);
 
@@ -75,6 +77,7 @@ const becomeVendorRequest = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
 const getMe = catchAsync(async (req, res) => {
   const { userId } = req.user; 
     const role = req.user.role;
@@ -87,6 +90,7 @@ const getMe = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
 const updateAvailabilityStatus = catchAsync(async (req, res) => {
   const result = await UserServices.updateVendorAvailabilityInDB(
     req.user.userId,
@@ -100,4 +104,14 @@ const updateAvailabilityStatus = catchAsync(async (req, res) => {
     data: result,
   });
 });
-export const UserControllers = { getAllUsers, updateProfile,setupProfile,updatePortfolio ,updateAvailability,becomeVendorRequest,getMe,updateAvailabilityStatus};
+
+export const UserControllers = {
+  getAllUsers,
+  updateProfile,
+  setupProfile,
+  updatePortfolio,
+  updateAvailability,
+  becomeVendorRequest,
+  getMe,
+  updateAvailabilityStatus,
+};
