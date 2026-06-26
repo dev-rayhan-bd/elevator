@@ -4,17 +4,17 @@ import sendResponse from '../../utils/sendResponse';
 import { ServicePackageServices } from './package.services';
 
 /**
- * Vendor: Get my own packages (all 3 types with populated features)
+ * Vendor: Get my own packages (all 3 types with populated features) + stats
  */
 const getMyPackages = catchAsync(async (req, res) => {
-  const result = await ServicePackageServices.getMyPackagesFromDB(
+  const { packages, stats } = await ServicePackageServices.getMyPackagesFromDB(
     req.user.userId,
   );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'My packages retrieved successfully',
-    data: result,
+    data: { packages, stats },
   });
 });
 

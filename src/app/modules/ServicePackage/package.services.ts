@@ -6,10 +6,11 @@ import { TServicePackage } from './package.interface';
 import { VendorService } from '../VendorService/vendorService.model';
 
 /**
- * Get all packages of the logged-in vendor with features (VendorService) populated
+ * Get all packages of the logged-in vendor with features (VendorService) populated,
+ * along with stats: total packages, active packages, total services count
  */
 const getMyPackagesFromDB = async (vendorId: string) => {
-  const result = await ServicePackage.find({
+  const packages = await ServicePackage.find({
     vendor: new Types.ObjectId(vendorId),
   })
     .populate({
@@ -17,7 +18,24 @@ const getMyPackagesFromDB = async (vendorId: string) => {
       select: 'title price duration images isActive',
     })
     .sort({ packageType: 1 });
-  return result;
+
+  // ── Compute stats ──
+  const totalPackages = packages.length;
+  const activePackages = packages.filter((pkg) => pkg.isActive).length;
+
+  // Count total VendorService documents belonging to this vendor
+  const totalServices = await VendorService.countDocuments({
+    vendor: new Types.ObjectId(vendorId),
+  });
+
+  return {
+    packages,
+    stats: {
+      totalPackages,
+      activePackages,
+      totalServices,
+    },
+  };
 };
 
 /**
