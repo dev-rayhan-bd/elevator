@@ -3,6 +3,7 @@ import { Types } from 'mongoose';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import uploadImage from '../../middleware/upload';
+import AppError from '../../errors/AppError';
 import { VendorServiceServices } from './vendorService.services';
 import { VendorServiceValidations } from './vendorService.validation';
 
@@ -167,6 +168,26 @@ const adminToggleServiceStatus = catchAsync(async (req, res) => {
   });
 });
 
+const deleteServiceImages = catchAsync(async (req, res) => {
+  const { images } = req.body;
+  if (!images || !Array.isArray(images) || images.length === 0) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Please provide an array of image URLs to delete');
+  }
+
+  const result = await VendorServiceServices.deleteServiceImagesFromDB(
+    req.user.userId,
+    req.params.id,
+    images,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Images removed successfully',
+    data: result,
+  });
+});
+
 export const VendorServiceControllers = {
   getAllVendorServices,
   getMyServices,
@@ -176,4 +197,5 @@ export const VendorServiceControllers = {
   updateVendorService,
   deleteVendorService,
   adminToggleServiceStatus,
+  deleteServiceImages,
 };

@@ -40,8 +40,17 @@ export const toggleServiceStatusSchema = z.object({
   }),
 });
 
+export const deleteServiceImagesSchema = z.object({
+  body: z.object({
+    images: z
+      .array(z.string().min(1, 'Image URL cannot be empty'))
+      .min(1, 'At least one image URL is required'),
+  }),
+});
+
 export const VendorServiceValidations = {
   createVendorServiceSchema,
   updateVendorServiceSchema,
   toggleServiceStatusSchema,
+  deleteServiceImagesSchema,
 };

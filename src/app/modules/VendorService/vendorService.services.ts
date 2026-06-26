@@ -113,10 +113,40 @@ const updateVendorServiceInDB = async (
   });
   if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Service not found or unauthorized');
 
+  // If images are provided, append them to existing images instead of replacing
+  if (payload.images && Array.isArray(payload.images) && payload.images.length > 0) {
+    const { images, ...otherUpdates } = payload;
+    const result = await VendorService.findByIdAndUpdate(
+      serviceId,
+      { $set: otherUpdates, $push: { images: { $each: images as string[] } } },
+      { new: true, runValidators: true },
+    );
+    return result;
+  }
+
   const result = await VendorService.findByIdAndUpdate(serviceId, payload, {
     new: true,
     runValidators: true,
   });
+  return result;
+};
+
+const deleteServiceImagesFromDB = async (
+  vendorId: string,
+  serviceId: string,
+  imageUrls: string[],
+) => {
+  const service = await VendorService.findOne({
+    _id: new Types.ObjectId(serviceId),
+    vendor: new Types.ObjectId(vendorId),
+  });
+  if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Service not found or unauthorized');
+
+  const result = await VendorService.findByIdAndUpdate(
+    serviceId,
+    { $pull: { images: { $in: imageUrls } } },
+    { new: true },
+  );
   return result;
 };
 
@@ -150,4 +180,5 @@ export const VendorServiceServices = {
   updateVendorServiceInDB,
   deleteVendorServiceFromDB,
   adminToggleServiceStatusInDB,
+  deleteServiceImagesFromDB,
 };

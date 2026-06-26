@@ -39,6 +39,13 @@ router.delete(
   VendorServiceControllers.deleteVendorService,
 );
 
+// ── Image Management Route (Vendor) ──
+router.patch(
+  '/:id/remove-images',
+  auth(USER_ROLE.vendor),
+  VendorServiceControllers.deleteServiceImages,
+);
+
 // ── Admin Routes ──
 router.get(
   '/admin/all',
