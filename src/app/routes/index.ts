@@ -16,7 +16,7 @@ import { ServiceAreaRoutes } from '../modules/ServiceArea/serviceArea.routes';
 
 import { EventTypeRoutes } from '../modules/EventType/eventType.routes';
 import { VendorServiceRoutes } from '../modules/VendorService/vendorService.routes';
-
+import { ServicePackageRoutes } from '../modules/ServicePackage/package.routes';
 
 
 const router = Router();
@@ -60,6 +60,7 @@ const moduleRoutes = [
   { path: '/service-area', route: ServiceAreaRoutes },
   { path: '/vendor-service', route: VendorServiceRoutes },
   { path: '/event-type', route: EventTypeRoutes },
+  { path: '/service-package', route: ServicePackageRoutes },
 
 ];
 
