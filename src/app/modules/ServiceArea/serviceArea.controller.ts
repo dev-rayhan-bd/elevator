@@ -53,10 +53,32 @@ const deleteServiceArea = catchAsync(async (req, res) => {
   });
 });
 
+const getAllServiceAreasWithQuery = catchAsync(async (req, res) => {
+  const result = await ServiceAreaServices.getAllServiceAreasWithQueryFromDB(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Service areas retrieved successfully',
+    data: result,
+  });
+});
+
+const getAllServiceAreasList = catchAsync(async (req, res) => {
+  const result = await ServiceAreaServices.getAllServiceAreasListFromDB();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All service areas retrieved successfully',
+    data: result,
+  });
+});
+
 export const ServiceAreaControllers = {
   getAllServiceAreas,
   getSingleServiceArea,
   createServiceArea,
   updateServiceArea,
   deleteServiceArea,
+  getAllServiceAreasWithQuery,
+  getAllServiceAreasList,
 };

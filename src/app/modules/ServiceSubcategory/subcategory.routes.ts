@@ -8,6 +8,7 @@ const router = express.Router();
 
 // Public
 router.get('/', SubcategoryControllers.getAllSubcategories);
+router.get('/all/query', SubcategoryControllers.getAllSubcategoriesWithQuery);
 router.get('/all', SubcategoryControllers.getAllSubcategoriesList);
 router.get('/by-category/:categoryId', SubcategoryControllers.getSubcategoriesByCategory);
 router.get('/:id', SubcategoryControllers.getSingleSubcategory);

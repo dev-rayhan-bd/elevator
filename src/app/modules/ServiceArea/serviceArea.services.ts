@@ -46,10 +46,28 @@ const deleteServiceAreaFromDB = async (id: string) => {
   return result;
 };
 
+const getAllServiceAreasWithQueryFromDB = async (query: Record<string, unknown>) => {
+  const areaQuery = new QueryBuilder(ServiceArea.find(), query)
+    .search(['name', 'region'])
+    .filter()
+    .sort();
+
+  const result = await areaQuery.modelQuery;
+  const meta = await areaQuery.countTotal();
+  return { meta, result };
+};
+
+const getAllServiceAreasListFromDB = async () => {
+  const result = await ServiceArea.find({ isActive: true }).sort('name');
+  return result;
+};
+
 export const ServiceAreaServices = {
   getAllServiceAreasFromDB,
   getSingleServiceAreaFromDB,
   createServiceAreaIntoDB,
   updateServiceAreaInDB,
   deleteServiceAreaFromDB,
+  getAllServiceAreasWithQueryFromDB,
+  getAllServiceAreasListFromDB,
 };

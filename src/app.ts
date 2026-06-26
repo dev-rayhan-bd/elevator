@@ -30,7 +30,19 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter); 
 
-app.use(express.json({ limit: '10kb' })); // bosy size limnit 10kb, to prevent DoS attacks
+app.use(express.json({ limit: '10kb' })); // body size limit 10kb, to prevent DoS attacks
+
+// Handle JSON parse errors gracefully (e.g., empty body with Content-Type: application/json)
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof SyntaxError && 'body' in err && (err as any).type === 'entity.parse.failed') {
+    res.status(400).json({
+      success: false,
+      message: 'Invalid JSON in request body',
+    });
+  } else {
+    next(err);
+  }
+});
 
 app.use(cookieParser());
 app.set('trust proxy', 1);

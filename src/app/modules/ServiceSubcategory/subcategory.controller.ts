@@ -14,6 +14,16 @@ const getAllSubcategories = catchAsync(async (req, res) => {
   });
 });
 
+const getAllSubcategoriesWithQuery = catchAsync(async (req, res) => {
+  const result = await SubcategoryServices.getAllSubcategoriesWithQueryFromDB(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All subcategories retrieved successfully',
+    data: result,
+  });
+});
+
 const getAllSubcategoriesList = catchAsync(async (req, res) => {
   const result = await SubcategoryServices.getAllSubcategoriesListFromDB();
   sendResponse(res, {
@@ -88,6 +98,7 @@ const deleteSubcategory = catchAsync(async (req, res) => {
 
 export const SubcategoryControllers = {
   getAllSubcategories,
+  getAllSubcategoriesWithQuery,
   getAllSubcategoriesList,
   getSubcategoriesByCategory,
   getSingleSubcategory,

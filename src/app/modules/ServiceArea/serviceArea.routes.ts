@@ -9,6 +9,8 @@ const router = express.Router();
 
 // Public
 router.get('/', ServiceAreaControllers.getAllServiceAreas);
+router.get('/all/query', ServiceAreaControllers.getAllServiceAreasWithQuery);
+router.get('/all', ServiceAreaControllers.getAllServiceAreasList);
 router.get('/:id', ServiceAreaControllers.getSingleServiceArea);
 
 // Admin only
