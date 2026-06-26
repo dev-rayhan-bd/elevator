@@ -188,6 +188,16 @@ const deleteServiceImages = catchAsync(async (req, res) => {
   });
 });
 
+const getMyServicesList = catchAsync(async (req, res) => {
+  const result = await VendorServiceServices.getMyServicesListFromDB(req.user.userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Your services list retrieved successfully',
+    data: result,
+  });
+});
+
 export const VendorServiceControllers = {
   getAllVendorServices,
   getMyServices,
@@ -198,4 +208,5 @@ export const VendorServiceControllers = {
   deleteVendorService,
   adminToggleServiceStatus,
   deleteServiceImages,
+  getMyServicesList,
 };

@@ -171,6 +171,14 @@ const adminToggleServiceStatusInDB = async (
   return result;
 };
 
+const getMyServicesListFromDB = async (vendorId: string) => {
+  const result = await VendorService.find({ vendor: new Types.ObjectId(vendorId) })
+    .select('title')
+    .sort('-createdAt');
+    
+  return result;
+};
+
 export const VendorServiceServices = {
   getAllVendorServicesFromDB,
   getVendorServicesByVendorFromDB,
@@ -181,4 +189,5 @@ export const VendorServiceServices = {
   deleteVendorServiceFromDB,
   adminToggleServiceStatusInDB,
   deleteServiceImagesFromDB,
+  getMyServicesListFromDB,
 };

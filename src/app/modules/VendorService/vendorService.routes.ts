@@ -19,6 +19,12 @@ router.get(
   VendorServiceControllers.getMyServices,
 );
 
+router.get(
+  '/my-services/list',
+  auth(USER_ROLE.vendor),
+  VendorServiceControllers.getMyServicesList,
+);
+
 router.post(
   '/',
   auth(USER_ROLE.vendor),
