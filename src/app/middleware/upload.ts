@@ -18,7 +18,7 @@ const uploadImage = async (
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
-        folder: 'el-afrik', 
+        folder: 'Wee Plan', 
         resource_type: 'auto',
       },
       (error, result) => {

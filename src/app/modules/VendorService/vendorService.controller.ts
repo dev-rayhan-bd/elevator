@@ -1,7 +1,10 @@
 import httpStatus from 'http-status';
+import { Types } from 'mongoose';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
+import uploadImage from '../../middleware/upload';
 import { VendorServiceServices } from './vendorService.services';
+import { VendorServiceValidations } from './vendorService.validation';
 
 const getAllVendorServices = catchAsync(async (req, res) => {
   const result = await VendorServiceServices.getAllVendorServicesFromDB(req.query);
@@ -47,7 +50,42 @@ const getSingleVendorService = catchAsync(async (req, res) => {
 });
 
 const createVendorService = catchAsync(async (req, res) => {
-  const result = await VendorServiceServices.createVendorServiceIntoDB(req.user.userId, req.body);
+  // Upload multiple images to Cloudinary if files are present (multipart/form-data)
+  let imageUrls: string[] = [];
+  if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+    const uploadPromises = req.files.map((file) => uploadImage(req, file));
+    imageUrls = await Promise.all(uploadPromises);
+  }
+
+  // Parse data — multipart sends JSON string in 'data' field; regular JSON uses body directly
+  const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+
+  // Validate with Zod after parsing
+  const validated = VendorServiceValidations.createVendorServiceSchema.parse({
+    body: rawData,
+  });
+
+  const payload = {
+    ...validated.body,
+    category: new Types.ObjectId(validated.body.category),
+    subcategory: new Types.ObjectId(validated.body.subcategory),
+    ...((validated.body.eventTypes?.length ?? 0) > 0 && {
+      eventTypes: validated.body.eventTypes!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...((validated.body.serviceAreas?.length ?? 0) > 0 && {
+      serviceAreas: validated.body.serviceAreas!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...((validated.body.amenities?.length ?? 0) > 0 && {
+      amenities: validated.body.amenities!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...(imageUrls.length > 0 && { images: imageUrls }),
+  };
+
+  const result = await VendorServiceServices.createVendorServiceIntoDB(
+    req.user.userId,
+    payload,
+  );
+
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
@@ -57,11 +95,43 @@ const createVendorService = catchAsync(async (req, res) => {
 });
 
 const updateVendorService = catchAsync(async (req, res) => {
+  // Upload new images if files provided
+  let imageUrls: string[] = [];
+  if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+    const uploadPromises = req.files.map((file) => uploadImage(req, file));
+    imageUrls = await Promise.all(uploadPromises);
+  }
+
+  // Parse data
+  const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+
+  // Validate with Zod
+  const validated = VendorServiceValidations.updateVendorServiceSchema.parse({
+    body: rawData,
+  });
+
+  const payload = {
+    ...validated.body,
+    ...(validated.body.category && { category: new Types.ObjectId(validated.body.category) }),
+    ...(validated.body.subcategory && { subcategory: new Types.ObjectId(validated.body.subcategory) }),
+    ...((validated.body.eventTypes?.length ?? 0) > 0 && {
+      eventTypes: validated.body.eventTypes!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...((validated.body.serviceAreas?.length ?? 0) > 0 && {
+      serviceAreas: validated.body.serviceAreas!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...((validated.body.amenities?.length ?? 0) > 0 && {
+      amenities: validated.body.amenities!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...(imageUrls.length > 0 && { images: imageUrls }),
+  };
+
   const result = await VendorServiceServices.updateVendorServiceInDB(
     req.user.userId,
     req.params.id,
-    req.body,
+    payload,
   );
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -83,7 +153,6 @@ const deleteVendorService = catchAsync(async (req, res) => {
   });
 });
 
-// Admin: toggle featured / active
 const adminToggleServiceStatus = catchAsync(async (req, res) => {
   const { isFeatured, isActive } = req.body;
   const result = await VendorServiceServices.adminToggleServiceStatusInDB(req.params.id, {

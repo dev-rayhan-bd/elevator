@@ -1,11 +1,12 @@
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import auth from '../../middleware/auth';
-import validateRequest from '../../middleware/validateRequest';
 import { USER_ROLE } from '../Auth/auth.constant';
 import { VendorServiceControllers } from './vendorService.controller';
-import { VendorServiceValidations } from './vendorService.validation';
+import { upload } from '../../middleware/multer';
 
 const router = express.Router();
+
+const uploadImages = upload.array('images', 10) as unknown as RequestHandler;
 
 // ── Public Routes ──
 router.get('/public', VendorServiceControllers.getPublicVendorServices);
@@ -21,14 +22,14 @@ router.get(
 router.post(
   '/',
   auth(USER_ROLE.vendor),
-  validateRequest(VendorServiceValidations.createVendorServiceSchema),
+  uploadImages,
   VendorServiceControllers.createVendorService,
 );
 
 router.patch(
   '/:id',
   auth(USER_ROLE.vendor),
-  validateRequest(VendorServiceValidations.updateVendorServiceSchema),
+  uploadImages,
   VendorServiceControllers.updateVendorService,
 );
 

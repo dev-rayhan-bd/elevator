@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 
-export type TPricingType = 'fixed' | 'hourly' | 'negotiable';
+export type TPricingType = 'fixed' | 'starting from' | 'per head';
 
 export interface TVendorService {
   vendor: Types.ObjectId;
@@ -10,10 +10,11 @@ export interface TVendorService {
   description: string;
   pricingType: TPricingType;
   price: number;
-  discountedPrice?: number;
-  amenities: Types.ObjectId[];
+  guestCapacity: number;
+  eventTypes: Types.ObjectId[];
   serviceAreas: Types.ObjectId[];
+  amenities: Types.ObjectId[];
   images: string[];
+  termsAndCondition: string;
   isActive: boolean;
-  isFeatured: boolean;
 }

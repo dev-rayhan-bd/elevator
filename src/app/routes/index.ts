@@ -13,10 +13,9 @@ import { CategoryRoutes } from '../modules/ServiceCategory/category.routes';
 import { SubcategoryRoutes } from '../modules/ServiceSubcategory/subcategory.routes';
 import { AmenityRoutes } from '../modules/Amenity/amenity.routes';
 import { ServiceAreaRoutes } from '../modules/ServiceArea/serviceArea.routes';
+
+import { EventTypeRoutes } from '../modules/EventType/eventType.routes';
 import { VendorServiceRoutes } from '../modules/VendorService/vendorService.routes';
-
-
-
 
 
 
@@ -60,6 +59,7 @@ const moduleRoutes = [
   { path: '/amenity', route: AmenityRoutes },
   { path: '/service-area', route: ServiceAreaRoutes },
   { path: '/vendor-service', route: VendorServiceRoutes },
+  { path: '/event-type', route: EventTypeRoutes },
 
 ];
 
