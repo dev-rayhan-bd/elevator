@@ -1,22 +1,18 @@
 import { z } from 'zod';
 
 export const createSubcategorySchema = z.object({
-  body: z.object({
-    name: z.string().min(1, 'Name is required'),
-    category: z.string().min(1, 'Category ID is required'),
-    description: z.string().optional(),
-    isActive: z.boolean().optional(),
-  }),
+  
+  name: z.string().min(1, 'Name is required'),
+  category: z.string().min(1, 'Category ID is required'),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
 });
 
 export const updateSubcategorySchema = z.object({
-  body: z.object({
-    name: z.string().min(1).optional(),
-    category: z.string().optional(),
-    description: z.string().optional(),
-
-    isActive: z.boolean().optional(),
-  }),
+  name: z.string().min(1).optional(),
+  category: z.string().optional(),
+  description: z.string().optional(),
+  isActive: z.boolean().optional(),
 });
 
 export const SubcategoryValidations = {

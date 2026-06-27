@@ -106,6 +106,46 @@ const resendOtp = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: 200, success: true, message: result.message, data: null });
 });
 
+const blockUnblockUser = catchAsync(async (req, res) => {
+  const result = await AdminServices.blockUnblockUser(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: result.user,
+  });
+});
+
+const deleteAdmin = catchAsync(async (req, res) => {
+  const result = await AdminServices.deleteAdminFromDB(req.params.id, req.user.userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: null,
+  });
+});
+
+const blockUnblockAdmin = catchAsync(async (req, res) => {
+  const result = await AdminServices.blockUnblockAdmin(req.params.id, req.user.userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: result.admin,
+  });
+});
+
+const getAllAdmins = catchAsync(async (req, res) => {
+  const result = await AdminServices.getAllAdminsFromDB(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All admins retrieved successfully',
+    data: result,
+  });
+});
+
 export const AdminControllers = {
   loginAdmin,
   updateProfile,
@@ -115,5 +155,9 @@ export const AdminControllers = {
   approveVendor,
   getPendingVendors,
   createAdmin,
-  resendOtp
+  resendOtp,
+  blockUnblockUser,
+  deleteAdmin,
+  blockUnblockAdmin,
+  getAllAdmins,
 };

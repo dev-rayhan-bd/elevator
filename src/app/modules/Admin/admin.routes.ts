@@ -49,4 +49,30 @@ router.post(
   AdminControllers.createAdmin
 );
 router.post('/resendOtp', AdminControllers.resendOtp);
+
+router.patch(
+  '/block-unblock/:id',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  AdminControllers.blockUnblockUser
+);
+
+// ── Super Admin only ──
+router.delete(
+  '/:id',
+  auth(USER_ROLE.superAdmin),
+  AdminControllers.deleteAdmin
+);
+
+router.patch(
+  '/block-unblock-admin/:id',
+  auth(USER_ROLE.superAdmin),
+  AdminControllers.blockUnblockAdmin
+);
+
+router.get(
+  '/',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  AdminControllers.getAllAdmins
+);
+
 export const AdminRoutes = router;

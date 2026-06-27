@@ -38,8 +38,7 @@ const createCategory = catchAsync(async (req, res) => {
   let imageUrl: string | undefined;
   if (req.file) imageUrl = await uploadImage(req);
 
-  const data = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const payload = { ...data, ...(imageUrl && { image: imageUrl }) };
+  const payload = { ...req.body, ...(imageUrl && { image: imageUrl }) };
 
   const result = await CategoryServices.createCategoryIntoDB(payload);
   sendResponse(res, {
@@ -54,8 +53,7 @@ const updateCategory = catchAsync(async (req, res) => {
   let imageUrl: string | undefined;
   if (req.file) imageUrl = await uploadImage(req);
 
-  const data = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const payload = { ...data, ...(imageUrl && { image: imageUrl }) };
+  const payload = { ...req.body, ...(imageUrl && { image: imageUrl }) };
 
   const result = await CategoryServices.updateCategoryInDB(req.params.id, payload);
   sendResponse(res, {

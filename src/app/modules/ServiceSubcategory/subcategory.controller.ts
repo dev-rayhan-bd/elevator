@@ -58,8 +58,7 @@ const createSubcategory = catchAsync(async (req, res) => {
   let imageUrl: string | undefined;
   if (req.file) imageUrl = await uploadImage(req);
 
-  const data = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const payload = { ...data, ...(imageUrl && { image: imageUrl }) };
+  const payload = { ...req.body, ...(imageUrl && { image: imageUrl }) };
 
   const result = await SubcategoryServices.createSubcategoryIntoDB(payload);
   sendResponse(res, {
@@ -74,8 +73,7 @@ const updateSubcategory = catchAsync(async (req, res) => {
   let imageUrl: string | undefined;
   if (req.file) imageUrl = await uploadImage(req);
 
-  const data = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const payload = { ...data, ...(imageUrl && { image: imageUrl }) };
+  const payload = { ...req.body, ...(imageUrl && { image: imageUrl }) };
 
   const result = await SubcategoryServices.updateSubcategoryInDB(req.params.id, payload);
   sendResponse(res, {

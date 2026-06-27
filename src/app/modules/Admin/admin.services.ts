@@ -73,6 +73,8 @@ const loginAdminFromDB = async (payload: { identifier: string; password: string 
 const createAdminInDB = async (payload: any) => {
   const isExist = await Admin.findOne({ $or: [{ email: payload.email }, { phone: payload.phone }] });
   if (isExist) throw new AppError(httpStatus.CONFLICT, 'Email or Phone already registered as Admin');
+  // Force role to 'admin' — superAdmin cannot be created via API
+  payload.role = 'admin';
   return await Admin.create(payload);
 };
 
@@ -116,6 +118,11 @@ const getPendingVendorsFromDB = async (query: Record<string, unknown>) => {
 
 
 const updateAdminProfile = async (id: string, payload: any) => {
+  // Strip sensitive fields — no admin can change their role, status, or delete themselves via profile update
+  delete payload.role;
+  delete payload.isDeleted;
+  delete payload.email;
+  delete payload.password;
   const result = await Admin.findByIdAndUpdate(id, payload, { new: true });
   return result;
 };
@@ -193,13 +200,80 @@ const getMeFromDB = async (userId: string, role: string) => {
 
   return result;
 };
+const blockUnblockUser = async (id: string) => {
+  const user = await User.findById(id);
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+
+  const newStatus = user.status === 'blocked' ? 'active' : 'blocked';
+  user.status = newStatus;
+  await user.save();
+
+  return { message: `User ${newStatus === 'blocked' ? 'blocked' : 'unblocked'} successfully`, user };
+};
+
+const deleteAdminFromDB = async (id: string, requesterId: string) => {
+  if (id === requesterId) {
+    throw new AppError(httpStatus.FORBIDDEN, 'You cannot delete yourself');
+  }
+
+  const admin = await Admin.findById(id);
+  if (!admin) throw new AppError(httpStatus.NOT_FOUND, 'Admin not found');
+  if (admin.role === 'superAdmin') {
+    throw new AppError(httpStatus.FORBIDDEN, 'Cannot delete a Super Admin');
+  }
+
+  admin.isDeleted = true;
+  admin.status = 'blocked';
+  await admin.save();
+
+  return { message: 'Admin deleted successfully' };
+};
+
+const blockUnblockAdmin = async (id: string, requesterId: string) => {
+  if (id === requesterId) {
+    throw new AppError(httpStatus.FORBIDDEN, 'You cannot block/unblock yourself');
+  }
+
+  const admin = await Admin.findById(id);
+  if (!admin) throw new AppError(httpStatus.NOT_FOUND, 'Admin not found');
+  if (admin.role === 'superAdmin') {
+    throw new AppError(httpStatus.FORBIDDEN, 'Cannot block/unblock a Super Admin');
+  }
+
+  const newStatus = admin.status === 'blocked' ? 'active' : 'blocked';
+  admin.status = newStatus;
+  await admin.save();
+
+  return { message: `Admin ${newStatus === 'blocked' ? 'blocked' : 'unblocked'} successfully`, admin };
+};
+
+const getAllAdminsFromDB = async (query: Record<string, unknown>) => {
+  const adminQuery = new QueryBuilder(
+    Admin.find({ isDeleted: false }),
+    query,
+  )
+    .search(['email', 'firstName', 'lastName', 'phone'])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const result = await adminQuery.modelQuery;
+  const meta = await adminQuery.countTotal();
+  return { meta, result };
+};
+
 export const AdminServices = { 
   loginAdminFromDB, 
   createAdminInDB, 
   approveVendorRequest, 
   getPendingVendorsFromDB, 
+  getAllAdminsFromDB,
   updateAdminProfile, 
   changeAdminPassword, 
   forgotPassword, 
-  resetPassword ,resendOTP,getMeFromDB
+  resetPassword ,resendOTP,getMeFromDB,
+  blockUnblockUser,
+  deleteAdminFromDB,
+  blockUnblockAdmin,
 };
