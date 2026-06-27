@@ -17,6 +17,8 @@ import { ServiceAreaRoutes } from '../modules/ServiceArea/serviceArea.routes';
 import { EventTypeRoutes } from '../modules/EventType/eventType.routes';
 import { VendorServiceRoutes } from '../modules/VendorService/vendorService.routes';
 import { ServicePackageRoutes } from '../modules/ServicePackage/package.routes';
+import { EventRequestRoutes } from '../modules/EventRequest/eventRequest.routes';
+import { EventQuoteRoutes } from '../modules/EventQuote/eventQuote.routes';
 
 
 const router = Router();
@@ -61,6 +63,8 @@ const moduleRoutes = [
   { path: '/vendor-service', route: VendorServiceRoutes },
   { path: '/event-type', route: EventTypeRoutes },
   { path: '/service-package', route: ServicePackageRoutes },
+  { path: '/event-request', route: EventRequestRoutes },
+  { path: '/event-quote', route: EventQuoteRoutes },
 
 ];
 

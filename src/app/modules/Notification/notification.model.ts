@@ -10,7 +10,8 @@ const notificationSchema = new Schema({
       'vendor_approved', 'vendor_rejected', 'profile_score_changed',
       'profile_visibility_changed', 'new_review', 'vendor_application',
       'new_vendor_registered', 'vendor_verification', 'availability_update',
-      'booking_update'
+      'booking_update', 'new_quote', 'counter_offer', 'quote_accepted',
+      'quote_declined', 'quote_won', 'quote_lost', 'request_cancelled', 'request_closed'
     ], 
     default: 'general' 
   },
