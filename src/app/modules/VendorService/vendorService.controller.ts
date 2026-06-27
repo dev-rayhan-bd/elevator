@@ -198,10 +198,135 @@ const getMyServicesList = catchAsync(async (req, res) => {
   });
 });
 
+const saveDraft = catchAsync(async (req, res) => {
+  // Upload images if any
+  let imageUrls: string[] = [];
+  if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+    const uploadPromises = req.files.map((file) => uploadImage(req, file));
+    imageUrls = await Promise.all(uploadPromises);
+  }
+
+  // Parse data
+  const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+
+  // Validate with draft schema (all fields optional)
+  const validated = VendorServiceValidations.draftVendorServiceSchema.parse({
+    body: rawData,
+  });
+
+  const payload = {
+    ...validated.body,
+    ...(validated.body.category && { category: new Types.ObjectId(validated.body.category) }),
+    ...(validated.body.subcategory && { subcategory: new Types.ObjectId(validated.body.subcategory) }),
+    ...((validated.body.eventTypes?.length ?? 0) > 0 && {
+      eventTypes: validated.body.eventTypes!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...((validated.body.serviceAreas?.length ?? 0) > 0 && {
+      serviceAreas: validated.body.serviceAreas!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...((validated.body.amenities?.length ?? 0) > 0 && {
+      amenities: validated.body.amenities!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...(imageUrls.length > 0 && { images: imageUrls }),
+  };
+
+  const result = await VendorServiceServices.saveDraftInDB(
+    req.user.userId,
+    payload,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Draft saved successfully',
+    data: result,
+  });
+});
+
+const getMyDrafts = catchAsync(async (req, res) => {
+  const result = await VendorServiceServices.getMyDraftsFromDB(req.user.userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Your drafts retrieved successfully',
+    data: result,
+  });
+});
+
+const publishDraft = catchAsync(async (req, res) => {
+  // Upload images if any
+  let imageUrls: string[] = [];
+  if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+    const uploadPromises = req.files.map((file) => uploadImage(req, file));
+    imageUrls = await Promise.all(uploadPromises);
+  }
+
+  // Parse data
+  const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+
+  // Validate with full publish schema
+  const validated = VendorServiceValidations.publishDraftSchema.parse({
+    body: rawData,
+  });
+
+  const payload = {
+    ...validated.body,
+    ...(validated.body.category && { category: new Types.ObjectId(validated.body.category) }),
+    ...(validated.body.subcategory && { subcategory: new Types.ObjectId(validated.body.subcategory) }),
+    ...((validated.body.eventTypes?.length ?? 0) > 0 && {
+      eventTypes: validated.body.eventTypes!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...((validated.body.serviceAreas?.length ?? 0) > 0 && {
+      serviceAreas: validated.body.serviceAreas!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...((validated.body.amenities?.length ?? 0) > 0 && {
+      amenities: validated.body.amenities!.map((id: string) => new Types.ObjectId(id)),
+    }),
+    ...(imageUrls.length > 0 && { images: imageUrls }),
+  };
+
+  const result = await VendorServiceServices.publishDraftFromDB(
+    req.user.userId,
+    req.params.id,
+    payload,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Draft published successfully',
+    data: result,
+  });
+});
+
+const deleteDraft = catchAsync(async (req, res) => {
+  const result = await VendorServiceServices.deleteDraftFromDB(
+    req.user.userId,
+    req.params.id,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Draft deleted successfully',
+    data: result,
+  });
+});
+
+const getAllPublishedServices = catchAsync(async (req, res) => {
+  const result = await VendorServiceServices.getAllPublishedServicesFromDB(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All published services retrieved successfully',
+    data: result,
+  });
+});
+
 export const VendorServiceControllers = {
   getAllVendorServices,
   getMyServices,
   getPublicVendorServices,
+  getAllPublishedServices,
   getSingleVendorService,
   createVendorService,
   updateVendorService,
@@ -209,4 +334,8 @@ export const VendorServiceControllers = {
   adminToggleServiceStatus,
   deleteServiceImages,
   getMyServicesList,
+  saveDraft,
+  getMyDrafts,
+  publishDraft,
+  deleteDraft,
 };

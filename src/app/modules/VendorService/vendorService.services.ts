@@ -9,7 +9,7 @@ const getAllVendorServicesFromDB = async (query: Record<string, unknown>) => {
   const serviceQuery = new QueryBuilder(
     VendorService.find()
       .populate('vendor', 'firstName lastName fullName image')
-      .populate('category', 'name icon')
+      .populate('category', 'name image')
       .populate('subcategory', 'name image')
       .populate('eventTypes', 'name image')
       .populate('serviceAreas', 'name region')
@@ -32,11 +32,14 @@ const getVendorServicesByVendorFromDB = async (
   query: Record<string, unknown>,
 ) => {
   const serviceQuery = new QueryBuilder(
-    VendorService.find({ vendor: new Types.ObjectId(vendorId) })
-      .populate('category', 'name icon')
-      .populate('subcategory', 'name')
+    VendorService.find({
+      vendor: new Types.ObjectId(vendorId),
+      isDraft: { $ne: true },
+    })
+      .populate('category', 'name image')
+      .populate('subcategory', 'name image')
       .populate('eventTypes', 'name image')
-      .populate('serviceAreas', 'name')
+      .populate('serviceAreas', 'name region')
       .populate('amenities', 'name icon'),
     query,
   )
@@ -51,15 +54,15 @@ const getVendorServicesByVendorFromDB = async (
 
 const getPublicVendorServicesFromDB = async (query: Record<string, unknown>) => {
   const serviceQuery = new QueryBuilder(
-    VendorService.find({ isActive: true })
+    VendorService.find({ isActive: true, isDraft: { $ne: true } })
       .populate(
         'vendor',
         'firstName lastName fullName image lat long vendor.businessName vendor.location vendor.profileScore vendor.isVerifiedBadge',
       )
-      .populate('category', 'name icon')
-      .populate('subcategory', 'name')
+      .populate('category', 'name image')
+      .populate('subcategory', 'name image')
       .populate('eventTypes', 'name image')
-      .populate('serviceAreas', 'name')
+      .populate('serviceAreas', 'name region')
       .populate('amenities', 'name icon'),
     query,
   )
@@ -80,8 +83,8 @@ const getSingleVendorServiceFromDB = async (id: string) => {
       'vendor',
       'firstName lastName fullName image email phone lat long vendor',
     )
-    .populate('category', 'name icon description')
-    .populate('subcategory', 'name')
+    .populate('category', 'name image description')
+    .populate('subcategory', 'name image')
     .populate('eventTypes', 'name image')
     .populate('serviceAreas', 'name region')
     .populate('amenities', 'name icon');
@@ -96,6 +99,7 @@ const createVendorServiceIntoDB = async (
   const serviceData = {
     ...payload,
     vendor: new Types.ObjectId(vendorId),
+    isDraft: false,
   } as TVendorService;
 
   const result = await VendorService.create(serviceData);
@@ -172,17 +176,105 @@ const adminToggleServiceStatusInDB = async (
 };
 
 const getMyServicesListFromDB = async (vendorId: string) => {
-  const result = await VendorService.find({ vendor: new Types.ObjectId(vendorId) })
+  const result = await VendorService.find({
+    vendor: new Types.ObjectId(vendorId),
+    isDraft: { $ne: true },
+  })
     .select('title')
     .sort('-createdAt');
     
   return result;
 };
 
+const saveDraftInDB = async (
+  vendorId: string,
+  payload: Record<string, unknown>,
+) => {
+  const draftData = {
+    ...payload,
+    vendor: new Types.ObjectId(vendorId),
+    isDraft: true,
+  } as TVendorService;
+
+  const result = await VendorService.create(draftData);
+  return result;
+};
+
+const getMyDraftsFromDB = async (vendorId: string) => {
+  const result = await VendorService.find({
+    vendor: new Types.ObjectId(vendorId),
+    isDraft: true,
+  })
+    .populate('category', 'name image')
+    .populate('subcategory', 'name image')
+    .populate('eventTypes', 'name image')
+    .populate('serviceAreas', 'name region')
+    .populate('amenities', 'name icon')
+    .sort('-updatedAt');
+
+  return result;
+};
+
+const publishDraftFromDB = async (
+  vendorId: string,
+  draftId: string,
+  payload: Record<string, unknown>,
+) => {
+  const service = await VendorService.findOne({
+    _id: new Types.ObjectId(draftId),
+    vendor: new Types.ObjectId(vendorId),
+    isDraft: true,
+  });
+  if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Draft not found or unauthorized');
+
+  const result = await VendorService.findByIdAndUpdate(
+    draftId,
+    { $set: { ...payload, isDraft: false } },
+    { new: true, runValidators: true },
+  );
+  return result;
+};
+
+const deleteDraftFromDB = async (vendorId: string, draftId: string) => {
+  const service = await VendorService.findOneAndDelete({
+    _id: new Types.ObjectId(draftId),
+    vendor: new Types.ObjectId(vendorId),
+    isDraft: true,
+  });
+  if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Draft not found or unauthorized');
+  return service;
+};
+
+const getAllPublishedServicesFromDB = async (query: Record<string, unknown>) => {
+  const serviceQuery = new QueryBuilder(
+    VendorService.find({ isDraft: { $ne: true } })
+      .populate(
+        'vendor',
+        'firstName lastName fullName image lat long vendor.businessName vendor.location vendor.profileScore vendor.isVerifiedBadge',
+      )
+      .populate('category', 'name image')
+      .populate('subcategory', 'name image')
+      .populate('eventTypes', 'name image')
+      .populate('serviceAreas', 'name region')
+      .populate('amenities', 'name icon'),
+    query,
+  )
+    .search(['title', 'description'])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const result = await serviceQuery.modelQuery;
+  const meta = await serviceQuery.countTotal();
+  return { meta, result };
+};
+
 export const VendorServiceServices = {
   getAllVendorServicesFromDB,
   getVendorServicesByVendorFromDB,
   getPublicVendorServicesFromDB,
+  getAllPublishedServicesFromDB,
   getSingleVendorServiceFromDB,
   createVendorServiceIntoDB,
   updateVendorServiceInDB,
@@ -190,4 +282,8 @@ export const VendorServiceServices = {
   adminToggleServiceStatusInDB,
   deleteServiceImagesFromDB,
   getMyServicesListFromDB,
+  saveDraftInDB,
+  getMyDraftsFromDB,
+  publishDraftFromDB,
+  deleteDraftFromDB,
 };

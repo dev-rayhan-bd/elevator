@@ -10,6 +10,7 @@ const uploadImages = upload.array('images', 10) as unknown as RequestHandler;
 
 // ── Public Routes ──
 router.get('/public', VendorServiceControllers.getPublicVendorServices);
+router.get('/public/all', VendorServiceControllers.getAllPublishedServices);
 router.get('/public/:id', VendorServiceControllers.getSingleVendorService);
 
 // ── Vendor Routes ──
@@ -43,6 +44,33 @@ router.delete(
   '/:id',
   auth(USER_ROLE.vendor),
   VendorServiceControllers.deleteVendorService,
+);
+
+// ── Draft Routes (Vendor) ──
+router.get(
+  '/my-drafts',
+  auth(USER_ROLE.vendor),
+  VendorServiceControllers.getMyDrafts,
+);
+
+router.post(
+  '/draft',
+  auth(USER_ROLE.vendor),
+  uploadImages,
+  VendorServiceControllers.saveDraft,
+);
+
+router.patch(
+  '/draft/:id/publish',
+  auth(USER_ROLE.vendor),
+  uploadImages,
+  VendorServiceControllers.publishDraft,
+);
+
+router.delete(
+  '/draft/:id',
+  auth(USER_ROLE.vendor),
+  VendorServiceControllers.deleteDraft,
 );
 
 // ── Image Management Route (Vendor) ──
