@@ -18,8 +18,20 @@ const sendQuoteIntoDB = async (vendorId: string, payload: {
   // Check event request exists and is active
   const eventRequest = await EventRequest.findById(payload.eventRequest);
   if (!eventRequest) throw new AppError(httpStatus.NOT_FOUND, 'Event request not found');
+  if (eventRequest.status === 'cancelled') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'This event request has been cancelled and is no longer accepting quotes');
+  }
   if (eventRequest.status !== 'active') {
     throw new AppError(httpStatus.BAD_REQUEST, 'This event request is no longer active');
+  }
+
+  // Prevent vendor from quoting when a quote has already been accepted/won
+  const existingWonQuote = await EventQuote.findOne({
+    eventRequest: new Types.ObjectId(payload.eventRequest),
+    status: 'won',
+  });
+  if (existingWonQuote) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'A vendor has already been selected for this event request');
   }
 
   // Prevent vendor from quoting their own request

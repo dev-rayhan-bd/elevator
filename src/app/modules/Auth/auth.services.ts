@@ -97,7 +97,11 @@ const verifyOTPForRegistration = async (identifier: string, otp: string) => {
     throw new AppError(httpStatus.UNAUTHORIZED, 'OTP has expired. Please request a new one via /resendOtp');
   }
 
-  const isMatch = await bcrypt.compare(otp, user.otp!);
+  if (!user.otp) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'No OTP found. Please request a new one via /resendOtp');
+  }
+
+  const isMatch = await bcrypt.compare(otp, user.otp);
   if (!isMatch) throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid OTP');
 
   user.isOtpVerified = true;
@@ -139,7 +143,7 @@ const loginUser = async (payload: { identifier: string; password: string; fcmTok
 const resendOTP = async (identifier: string) => {
   const user = await User.findOne({ 
     $or: [{ email: identifier }, { phone: identifier }] 
-  });
+  }).select('+otp +otpExpires');
   
   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
 
@@ -155,7 +159,7 @@ const resendOTP = async (identifier: string) => {
 const forgotPass = async (identifier: string) => {
   const user = await User.findOne({ 
     $or: [{ email: identifier }, { phone: identifier }] 
-  });
+  }).select('+otp +otpExpires');
   
   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
 
@@ -180,7 +184,11 @@ const resetPassword = async (payload: TResetPassword) => {
   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
 
 
-  const isOtpMatched = await bcrypt.compare(otp, user.otp as string);
+  if (!user.otp) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'No OTP found. Please request a new one via /forgotPass');
+  }
+
+  const isOtpMatched = await bcrypt.compare(otp, user.otp);
   if (!isOtpMatched || (user.otpExpires && user.otpExpires < new Date())) {
     throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid or expired OTP');
   }
@@ -233,10 +241,12 @@ const resetPassword = async (payload: TResetPassword) => {
 
 const changePassword = async (userId: string, payload: any) => {
   const user = await User.findById(userId).select('+password');
-  const isMatch = await user?.isPasswordMatched(payload.oldPassword, user.password!);
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  if (!user.password) throw new AppError(httpStatus.BAD_REQUEST, 'Password not set');
+  const isMatch = await user.isPasswordMatched(payload.oldPassword, user.password);
   if (!isMatch) throw new AppError(httpStatus.FORBIDDEN, 'Old password incorrect');
-  user!.password = payload.newPassword;
-  await user!.save();
+  user.password = payload.newPassword;
+  await user.save();
   return { message: 'Password updated' };
 };
 

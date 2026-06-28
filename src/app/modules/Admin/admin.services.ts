@@ -158,8 +158,12 @@ const resetPassword = async (payload: any) => {
   const admin = await Admin.findOne({ $or: [{ email: payload.identifier }, { phone: payload.identifier }] }).select('+otp +otpExpires');
   if (!admin) throw new AppError(httpStatus.NOT_FOUND, 'Admin not found');
 
-  const isOtpMatched = await bcrypt.compare(payload.otp, admin.otp as string);
-  if (!isOtpMatched || admin.otpExpires! < new Date()) {
+  if (!admin.otp) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'No OTP found. Please request a new one');
+  }
+
+  const isOtpMatched = await bcrypt.compare(payload.otp, admin.otp);
+  if (!isOtpMatched || (admin.otpExpires && admin.otpExpires < new Date())) {
     throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid or expired OTP');
   }
 
@@ -172,7 +176,7 @@ const resetPassword = async (payload: any) => {
 const resendOTP = async (identifier: string) => {
   const admin = await Admin.findOne({ 
     $or: [{ email: identifier }, { phone: identifier }] 
-  });
+  }).select('+otp +otpExpires');
   
   if (!admin) throw new AppError(httpStatus.NOT_FOUND, 'Admin not found');
 
