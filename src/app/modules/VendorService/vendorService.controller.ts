@@ -31,7 +31,10 @@ const getMyServices = catchAsync(async (req, res) => {
 });
 
 const getPublicVendorServices = catchAsync(async (req, res) => {
-  const result = await VendorServiceServices.getPublicVendorServicesFromDB(req.query);
+  // optionalAuth middleware sets req.user if a valid token is present
+  const userId = (req.user as any)?.userId;
+
+  const result = await VendorServiceServices.getPublicVendorServicesFromDB(req.query, userId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -41,7 +44,8 @@ const getPublicVendorServices = catchAsync(async (req, res) => {
 });
 
 const getSingleVendorService = catchAsync(async (req, res) => {
-  const result = await VendorServiceServices.getSingleVendorServiceFromDB(req.params.id);
+  const userId = (req.user as any)?.userId;
+  const result = await VendorServiceServices.getSingleVendorServiceFromDB(req.params.id, userId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -322,6 +326,34 @@ const getAllPublishedServices = catchAsync(async (req, res) => {
   });
 });
 
+// ── Favourite / Unfavourite ──
+
+const toggleFavService = catchAsync(async (req, res) => {
+  const result = await VendorServiceServices.toggleFavServiceInDB(
+    req.user.userId,
+    req.params.serviceId,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: { isFav: result.isFav },
+  });
+});
+
+const getFavServices = catchAsync(async (req, res) => {
+  const result = await VendorServiceServices.getFavServicesFromDB(
+    req.user.userId,
+    req.query,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Favourite services retrieved successfully',
+    data: result,
+  });
+});
+
 export const VendorServiceControllers = {
   getAllVendorServices,
   getMyServices,
@@ -338,4 +370,6 @@ export const VendorServiceControllers = {
   getMyDrafts,
   publishDraft,
   deleteDraft,
+  toggleFavService,
+  getFavServices,
 };

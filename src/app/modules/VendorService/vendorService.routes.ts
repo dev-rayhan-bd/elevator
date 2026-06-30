@@ -1,5 +1,6 @@
 import express, { RequestHandler } from 'express';
 import auth from '../../middleware/auth';
+import optionalAuth from '../../middleware/optionalAuth';
 import { USER_ROLE } from '../Auth/auth.constant';
 import { VendorServiceControllers } from './vendorService.controller';
 import { upload } from '../../middleware/multer';
@@ -8,10 +9,10 @@ const router = express.Router();
 
 const uploadImages = upload.array('images', 10) as unknown as RequestHandler;
 
-// ── Public Routes ──
-router.get('/public', VendorServiceControllers.getPublicVendorServices);
+// ── Public Routes (optionalAuth = logged-in user isFav field) ──
+router.get('/public', optionalAuth, VendorServiceControllers.getPublicVendorServices);
 router.get('/public/all', VendorServiceControllers.getAllPublishedServices);
-router.get('/public/:id', VendorServiceControllers.getSingleVendorService);
+router.get('/public/:id', optionalAuth, VendorServiceControllers.getSingleVendorService);
 
 // ── Vendor Routes ──
 router.get(
@@ -78,6 +79,19 @@ router.patch(
   '/:id/remove-images',
   auth(USER_ROLE.vendor),
   VendorServiceControllers.deleteServiceImages,
+);
+
+// ── Favourite Routes (any authenticated user) ──
+router.post(
+  '/fav/:serviceId',
+  auth(USER_ROLE.user, USER_ROLE.vendor),
+  VendorServiceControllers.toggleFavService,
+);
+
+router.get(
+  '/my-favs',
+  auth(USER_ROLE.user, USER_ROLE.vendor),
+  VendorServiceControllers.getFavServices,
 );
 
 // ── Admin Routes ──

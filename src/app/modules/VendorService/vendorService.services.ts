@@ -4,6 +4,7 @@ import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { VendorService } from './vendorService.model';
 import { TVendorService } from './vendorService.interface';
+import { User } from '../User/user.model';
 
 const getAllVendorServicesFromDB = async (query: Record<string, unknown>) => {
   const serviceQuery = new QueryBuilder(
@@ -52,7 +53,10 @@ const getVendorServicesByVendorFromDB = async (
   return { meta, result };
 };
 
-const getPublicVendorServicesFromDB = async (query: Record<string, unknown>) => {
+const getPublicVendorServicesFromDB = async (
+  query: Record<string, unknown>,
+  userId?: string,
+) => {
   const serviceQuery = new QueryBuilder(
     VendorService.find({ isActive: true, isDraft: { $ne: true } })
       .populate(
@@ -74,10 +78,24 @@ const getPublicVendorServicesFromDB = async (query: Record<string, unknown>) => 
 
   const result = await serviceQuery.modelQuery;
   const meta = await serviceQuery.countTotal();
+
+  // If user is authenticated, attach isFav field
+  if (userId) {
+    const user = await User.findById(userId).select('favoriteServices');
+    const favSet = new Set(
+      (user?.favoriteServices ?? []).map((id: Types.ObjectId) => id.toString()),
+    );
+    const enriched = result.map((service) => ({
+      ...service.toObject(),
+      isFav: favSet.has(service._id.toString()),
+    }));
+    return { meta, result: enriched };
+  }
+
   return { meta, result };
 };
 
-const getSingleVendorServiceFromDB = async (id: string) => {
+const getSingleVendorServiceFromDB = async (id: string, userId?: string) => {
   const result = await VendorService.findById(id)
     .populate(
       'vendor',
@@ -89,6 +107,19 @@ const getSingleVendorServiceFromDB = async (id: string) => {
     .populate('serviceAreas', 'name region')
     .populate('amenities', 'name icon');
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
+
+  // Attach isFav if user is logged in
+  if (userId) {
+    const user = await User.findById(userId).select('favoriteServices');
+    const favSet = new Set(
+      (user?.favoriteServices ?? []).map((id: Types.ObjectId) => id.toString()),
+    );
+    return {
+      ...result.toObject(),
+      isFav: favSet.has(result._id.toString()),
+    };
+  }
+
   return result;
 };
 
@@ -270,6 +301,69 @@ const getAllPublishedServicesFromDB = async (query: Record<string, unknown>) => 
   return { meta, result };
 };
 
+// ── Favourite / Unfavourite ──
+
+const toggleFavServiceInDB = async (userId: string, serviceId: string) => {
+  const service = await VendorService.findById(serviceId);
+  if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
+
+  const user = await User.findById(userId).select('favoriteServices');
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+
+  const objectId = new Types.ObjectId(serviceId);
+  const alreadyFav = user.favoriteServices?.some((id: Types.ObjectId) =>
+    id.equals(objectId),
+  );
+
+  if (alreadyFav) {
+    await User.findByIdAndUpdate(userId, {
+      $pull: { favoriteServices: objectId },
+    });
+    return { message: 'Service removed from favorites', isFav: false };
+  } else {
+    await User.findByIdAndUpdate(userId, {
+      $addToSet: { favoriteServices: objectId },
+    });
+    return { message: 'Service added to favorites', isFav: true };
+  }
+};
+
+const getFavServicesFromDB = async (userId: string, query: Record<string, unknown>) => {
+  const user = await User.findById(userId).select('favoriteServices');
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+
+  const favIds = user.favoriteServices ?? [];
+
+  const serviceQuery = new QueryBuilder(
+    VendorService.find({ _id: { $in: favIds }, isDraft: { $ne: true } })
+      .populate(
+        'vendor',
+        'firstName lastName fullName image lat long vendor.businessName vendor.location vendor.profileScore vendor.isVerifiedBadge',
+      )
+      .populate('category', 'name image')
+      .populate('subcategory', 'name image')
+      .populate('eventTypes', 'name image')
+      .populate('serviceAreas', 'name region')
+      .populate('amenities', 'name icon'),
+    query,
+  )
+    .search(['title', 'description'])
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const result = await serviceQuery.modelQuery;
+  const meta = await serviceQuery.countTotal();
+
+  const enriched = result.map((service) => ({
+    ...service.toObject(),
+    isFav: true,
+  }));
+
+  return { meta, result: enriched };
+};
+
 export const VendorServiceServices = {
   getAllVendorServicesFromDB,
   getVendorServicesByVendorFromDB,
@@ -286,4 +380,6 @@ export const VendorServiceServices = {
   getMyDraftsFromDB,
   publishDraftFromDB,
   deleteDraftFromDB,
+  toggleFavServiceInDB,
+  getFavServicesFromDB,
 };

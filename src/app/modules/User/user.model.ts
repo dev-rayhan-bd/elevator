@@ -29,6 +29,7 @@ const userSchema = new Schema<TUser, UserModel, IUserMethods>(
     otpExpires: { type: Date, select: 0 },
     acceptedTerms: { type: Boolean },
     fcmToken: { type: String, default: null },
+    favoriteServices: [{ type: Schema.Types.ObjectId, ref: 'VendorService' }],
     isDeleted: { type: Boolean, default: false },
     vendor: {
       businessName: String,

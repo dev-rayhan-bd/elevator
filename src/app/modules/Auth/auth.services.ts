@@ -40,6 +40,7 @@ export const sendOtpToUser = async (user: any, plainOtp: string, title: string, 
   }
 };
 
+
 const registerUser = async (payload: TUser) => {
   const isExist = await User.findOne({ $or: [{ email: payload.email }, { phone: payload.phone }] });
   if (isExist) throw new AppError(409, 'Email or Phone already registered');
@@ -85,6 +86,8 @@ const registerUser = async (payload: TUser) => {
 
   return newUser;
 };
+
+
 const verifyOTPForRegistration = async (identifier: string, otp: string) => {
   const user = await User.findOne({
     $or: [{ email: identifier }, { phone: identifier }],

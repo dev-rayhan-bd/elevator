@@ -56,6 +56,7 @@ export interface TUser {
   isDeleted: boolean;
   passwordChangedAt?: Date;
   fcmToken?: string | null;
+  favoriteServices?: Types.ObjectId[];
 }
 
 export interface IUserMethods {
