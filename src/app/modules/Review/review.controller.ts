@@ -3,14 +3,10 @@ import sendResponse from '../../utils/sendResponse';
 import { ReviewServices } from './review.services';
 import httpStatus from 'http-status';
 
+// ── Create review ──
 const createReview = catchAsync(async (req, res) => {
-  const reviewData = {
-    ...req.body,
-    user: req.user.userId, // লগইন করা ইউজার আইডি
-  };
-
+  const reviewData = { ...req.body, user: req.user.userId };
   const result = await ReviewServices.createReviewInDB(reviewData);
-
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
@@ -19,10 +15,11 @@ const createReview = catchAsync(async (req, res) => {
   });
 });
 
-const getVendorReviews = catchAsync(async (req, res) => {
-  const { vendorId } = req.params;
-  const result = await ReviewServices.getVendorReviewsFromDB(vendorId);
-
+// ── Get service reviews (pagination + summary) ──
+const getServiceReviews = catchAsync(async (req, res) => {
+  const { serviceId } = req.params;
+  const userId = (req.user as any)?.userId;
+  const result = await ReviewServices.getServiceReviewsFromDB(serviceId, req.query, userId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -31,7 +28,20 @@ const getVendorReviews = catchAsync(async (req, res) => {
   });
 });
 
+// ── Delete own review ──
+const deleteReview = catchAsync(async (req, res) => {
+  const { reviewId } = req.params;
+  const result = await ReviewServices.deleteReviewInDB(req.user.userId, reviewId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Review deleted successfully',
+    data: result,
+  });
+});
+
 export const ReviewControllers = {
   createReview,
-  getVendorReviews,
+  getServiceReviews,
+  deleteReview,
 };

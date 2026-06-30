@@ -45,7 +45,14 @@ const getPublicVendorServices = catchAsync(async (req, res) => {
 
 const getSingleVendorService = catchAsync(async (req, res) => {
   const userId = (req.user as any)?.userId;
-  const result = await VendorServiceServices.getSingleVendorServiceFromDB(req.params.id, userId);
+  const reviewPage = Number(req.query.reviewPage) || 1;
+  const reviewLimit = Number(req.query.reviewLimit) || 10;
+  const result = await VendorServiceServices.getSingleVendorServiceFromDB(
+    req.params.id,
+    userId,
+    reviewPage,
+    reviewLimit,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

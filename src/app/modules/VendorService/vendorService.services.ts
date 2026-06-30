@@ -5,6 +5,7 @@ import QueryBuilder from '../../builder/QueryBuilder';
 import { VendorService } from './vendorService.model';
 import { TVendorService } from './vendorService.interface';
 import { User } from '../User/user.model';
+import { ReviewServices } from '../Review/review.services';
 
 const getAllVendorServicesFromDB = async (query: Record<string, unknown>) => {
   const serviceQuery = new QueryBuilder(
@@ -95,7 +96,12 @@ const getPublicVendorServicesFromDB = async (
   return { meta, result };
 };
 
-const getSingleVendorServiceFromDB = async (id: string, userId?: string) => {
+const getSingleVendorServiceFromDB = async (
+  id: string,
+  userId?: string,
+  reviewPage?: number,
+  reviewLimit?: number,
+) => {
   const result = await VendorService.findById(id)
     .populate(
       'vendor',
@@ -108,19 +114,30 @@ const getSingleVendorServiceFromDB = async (id: string, userId?: string) => {
     .populate('amenities', 'name icon');
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
 
+  // Fetch reviews + rating summary for this service
+  const reviewData = await ReviewServices.getServiceReviewsWithSummary(
+    id,
+    reviewPage || 1,
+    reviewLimit || 10,
+  );
+
   // Attach isFav if user is logged in
+  let isFav = false;
   if (userId) {
     const user = await User.findById(userId).select('favoriteServices');
     const favSet = new Set(
       (user?.favoriteServices ?? []).map((id: Types.ObjectId) => id.toString()),
     );
-    return {
-      ...result.toObject(),
-      isFav: favSet.has(result._id.toString()),
-    };
+    isFav = favSet.has(result._id.toString());
   }
 
-  return result;
+  return {
+    ...result.toObject(),
+    isFav,
+    reviews: reviewData.reviews,
+    ratingSummary: reviewData.summary,
+    reviewPagination: reviewData.pagination,
+  };
 };
 
 const createVendorServiceIntoDB = async (
