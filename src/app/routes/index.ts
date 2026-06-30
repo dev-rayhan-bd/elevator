@@ -19,6 +19,7 @@ import { VendorServiceRoutes } from '../modules/VendorService/vendorService.rout
 import { ServicePackageRoutes } from '../modules/ServicePackage/package.routes';
 import { EventRequestRoutes } from '../modules/EventRequest/eventRequest.routes';
 import { EventQuoteRoutes } from '../modules/EventQuote/eventQuote.routes';
+import { VendorQuoteRoutes } from '../modules/VendorQuote/vendorQuote.routes';
 
 
 const router = Router();
@@ -65,6 +66,7 @@ const moduleRoutes = [
   { path: '/service-package', route: ServicePackageRoutes },
   { path: '/event-request', route: EventRequestRoutes },
   { path: '/event-quote', route: EventQuoteRoutes },
+  { path: '/vendor-quote', route: VendorQuoteRoutes },
 
 ];
 
