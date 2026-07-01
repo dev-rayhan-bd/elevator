@@ -11,6 +11,7 @@ const router = express.Router();
 // Public
 router.get('/', CategoryControllers.getAllCategories);
 router.get('/all', CategoryControllers.getAllCategoriesList);
+router.get('/with-subcategories', CategoryControllers.getCategoriesWithSubcategories);
 router.get('/:id', CategoryControllers.getSingleCategory);
 
 // Admin only

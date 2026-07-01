@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { ServiceCategory } from './category.model';
+import { ServiceSubcategory } from '../ServiceSubcategory/subcategory.model';
 import { TServiceCategory } from './category.interface';
 
 const getAllCategoriesFromDB = async (query: Record<string, unknown>) => {
@@ -51,6 +52,35 @@ const getAllCategoriesListFromDB = async () => {
   return result;
 };
 
+const getCategoriesWithSubcategoriesFromDB = async () => {
+  const categories = await ServiceCategory.find({ isActive: true })
+    .select('_id name')
+    .sort('name')
+    .lean();
+
+  const subcategories = await ServiceSubcategory.find({ isActive: true })
+    .select('_id name category')
+    .sort('name')
+    .lean();
+
+  const subcategoryMap: Record<string, Array<{ _id: string; name: string }>> = {};
+  for (const sub of subcategories) {
+    const catId = String(sub.category);
+    if (!subcategoryMap[catId]) {
+      subcategoryMap[catId] = [];
+    }
+    subcategoryMap[catId].push({ _id: String(sub._id), name: sub.name });
+  }
+
+  const result = categories.map((cat) => ({
+    _id: String(cat._id),
+    name: cat.name,
+    subcategories: subcategoryMap[String(cat._id)] || [],
+  }));
+
+  return result;
+};
+
 export const CategoryServices = {
   getAllCategoriesFromDB,
   getSingleCategoryFromDB,
@@ -58,4 +88,5 @@ export const CategoryServices = {
   updateCategoryInDB,
   deleteCategoryFromDB,
   getAllCategoriesListFromDB,
+  getCategoriesWithSubcategoriesFromDB,
 };

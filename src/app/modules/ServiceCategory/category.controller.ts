@@ -74,6 +74,16 @@ const deleteCategory = catchAsync(async (req, res) => {
   });
 });
 
+const getCategoriesWithSubcategories = catchAsync(async (req, res) => {
+  const result = await CategoryServices.getCategoriesWithSubcategoriesFromDB();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Categories with subcategories retrieved successfully',
+    data: result,
+  });
+});
+
 export const CategoryControllers = {
   getAllCategories,
   getAllCategoriesList,
@@ -81,4 +91,5 @@ export const CategoryControllers = {
   createCategory,
   updateCategory,
   deleteCategory,
+  getCategoriesWithSubcategories,
 };
