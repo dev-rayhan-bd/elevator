@@ -21,6 +21,8 @@ import { EventRequestRoutes } from '../modules/EventRequest/eventRequest.routes'
 import { EventQuoteRoutes } from '../modules/EventQuote/eventQuote.routes';
 import { VendorQuoteRoutes } from '../modules/VendorQuote/vendorQuote.routes';
 import { InspirationRoutes } from '../modules/Inspiration/inspiration.routes';
+import { BlogRoutes } from '../modules/Blog/blog/blog.routes';
+import { BlogCategoryRoutes } from '../modules/Blog/blogCategory/blogCategory.routes';
 
 
 const router = Router();
@@ -69,6 +71,8 @@ const moduleRoutes = [
   { path: '/event-quote', route: EventQuoteRoutes },
   { path: '/vendor-quote', route: VendorQuoteRoutes },
   { path: '/inspiration', route: InspirationRoutes },
+  { path: '/blog', route: BlogRoutes },
+  { path: '/blog-category', route: BlogCategoryRoutes },
 
 ];
 
