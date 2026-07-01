@@ -27,6 +27,7 @@ export interface TVendorDetails {
   socialLinks?: { instagram?: string; facebook?: string; website?: string };
    googleMapLink?: string;
   categories: string[];
+  serviceArea: string[];
   documents: string[]; // URLs
   portfolio: string[]; // Image Gallery URLs
  bookedDates: string[];

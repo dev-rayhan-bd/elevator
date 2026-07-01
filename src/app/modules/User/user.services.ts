@@ -41,6 +41,7 @@ const updateProfileInDB = async (userId: string, payload: any) => {
     if (vendorData?.experienceYears && vendorData.experienceYears > 0) score += 5;
     if (vendorData?.location?.address) score += 5;
     if (vendorData?.categories?.length >= 1) score += 5;
+    if (vendorData?.serviceArea?.length >= 1) score += 5;
 
     score = Math.min(score, 100);
     const previousScore = user.vendor?.profileScore ?? 0;

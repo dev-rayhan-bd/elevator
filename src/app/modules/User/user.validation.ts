@@ -49,8 +49,11 @@ export const updateUserValidationSchema = z.object({
           experienceYears: z.number().min(0).optional(),
           teamSize: z.number().min(1).optional(),
           categories: z.array(z.string()).optional(),
+          serviceArea: z.array(z.string()).optional(),
           socialLinks: socialLinksSchema.optional(),
           availability: availabilitySchema,
+          documents: z.array(z.string()).optional(),
+          portfolio: z.array(z.string()).optional(),
         }).optional(),
       })
     ),

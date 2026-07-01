@@ -49,6 +49,7 @@ const userSchema = new Schema<TUser, UserModel, IUserMethods>(
       socialLinks: { instagram: String, facebook: String, website: String },
       googleMapLink: { type: String, default: "" },
       categories: [String],
+      serviceArea: [String],
       documents: [String],
       portfolio: [String],
       bookedDates: {
