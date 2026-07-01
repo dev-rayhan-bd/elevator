@@ -20,6 +20,7 @@ import { ServicePackageRoutes } from '../modules/ServicePackage/package.routes';
 import { EventRequestRoutes } from '../modules/EventRequest/eventRequest.routes';
 import { EventQuoteRoutes } from '../modules/EventQuote/eventQuote.routes';
 import { VendorQuoteRoutes } from '../modules/VendorQuote/vendorQuote.routes';
+import { InspirationRoutes } from '../modules/Inspiration/inspiration.routes';
 
 
 const router = Router();
@@ -67,6 +68,7 @@ const moduleRoutes = [
   { path: '/event-request', route: EventRequestRoutes },
   { path: '/event-quote', route: EventQuoteRoutes },
   { path: '/vendor-quote', route: VendorQuoteRoutes },
+  { path: '/inspiration', route: InspirationRoutes },
 
 ];
 
