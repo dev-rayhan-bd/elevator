@@ -70,10 +70,14 @@ const vendorServiceSchema = new Schema<TVendorService>(
   { timestamps: true },
 );
 
-// Indexes for common queries
+// ── Compound indexes for fast public search ──
+vendorServiceSchema.index({ isActive: 1, isDraft: 1, category: 1 });
+vendorServiceSchema.index({ isActive: 1, isDraft: 1, subcategory: 1 });
+vendorServiceSchema.index({ isActive: 1, isDraft: 1, eventTypes: 1 });
+vendorServiceSchema.index({ isActive: 1, isDraft: 1, price: 1 });
+vendorServiceSchema.index({ isActive: 1, isDraft: 1, createdAt: -1 });
+// ── Vendor-specific queries ──
 vendorServiceSchema.index({ vendor: 1, isActive: 1 });
 vendorServiceSchema.index({ vendor: 1, isDraft: 1 });
-vendorServiceSchema.index({ category: 1 });
-vendorServiceSchema.index({ subcategory: 1 });
 
 export const VendorService = model<TVendorService>('VendorService', vendorServiceSchema);
