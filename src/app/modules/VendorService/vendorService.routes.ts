@@ -12,6 +12,7 @@ const uploadImages = upload.array('images', 10) as unknown as RequestHandler;
 // ── Public Routes (optionalAuth = logged-in user isFav field) ──
 router.get('/public', optionalAuth, VendorServiceControllers.getPublicVendorServices);
 router.get('/public/all', VendorServiceControllers.getAllPublishedServices);
+router.get('/public/recent-vendors', VendorServiceControllers.getRecentVendors);
 router.get('/public/:id', optionalAuth, VendorServiceControllers.getSingleVendorService);
 
 // ── Vendor Routes ──

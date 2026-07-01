@@ -361,6 +361,18 @@ const getFavServices = catchAsync(async (req, res) => {
   });
 });
 
+// ── Home Feed: Recent Vendors ──
+
+const getRecentVendors = catchAsync(async (req, res) => {
+  const result = await VendorServiceServices.getRecentVendorsFromDB(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Recent vendors retrieved successfully',
+    data: result,
+  });
+});
+
 export const VendorServiceControllers = {
   getAllVendorServices,
   getMyServices,
@@ -378,5 +390,6 @@ export const VendorServiceControllers = {
   publishDraft,
   deleteDraft,
   toggleFavService,
+  getRecentVendors,
   getFavServices,
 };

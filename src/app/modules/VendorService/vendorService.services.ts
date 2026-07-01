@@ -540,6 +540,63 @@ const getFavServicesFromDB = async (userId: string, query: Record<string, unknow
   return { meta, result: enriched };
 };
 
+// ── Home Feed: Recent Vendors (last 30 days) ──
+
+const getRecentVendorsFromDB = async (query: Record<string, unknown>) => {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const page = Number(query.page) || 1;
+  const limit = Math.min(Number(query.limit) || 10, 50);
+  const skip = (page - 1) * limit;
+
+  const filter: Record<string, any> = {
+    role: 'vendor',
+    createdAt: { $gte: thirtyDaysAgo },
+  };
+
+  const [vendors, total] = await Promise.all([
+    User.find(filter)
+      .select('firstName lastName fullName image vendor.businessName vendor.location vendor.isVerifiedBadge vendor.profileScore createdAt')
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    User.countDocuments(filter),
+  ]);
+
+  // Enrich each vendor with their active service count
+  const vendorIds = vendors.map((v) => v._id);
+  const serviceCounts = await VendorService.aggregate([
+    { $match: { vendor: { $in: vendorIds }, isActive: true, isDraft: { $ne: true } } },
+    { $group: { _id: '$vendor', count: { $sum: 1 } } },
+  ]);
+
+  const countMap: Record<string, number> = {};
+  for (const sc of serviceCounts) {
+    countMap[sc._id.toString()] = sc.count;
+  }
+
+  const result = vendors.map((v) => ({
+    _id: v._id,
+    firstName: v.firstName,
+    lastName: v.lastName,
+    fullName: v.fullName,
+    image: v.image,
+    businessName: (v as any).vendor?.businessName || '',
+    location: (v as any).vendor?.location || null,
+    isVerifiedBadge: (v as any).vendor?.isVerifiedBadge || false,
+    profileScore: (v as any).vendor?.profileScore || 0,
+    serviceCount: countMap[v._id.toString()] || 0,
+    joinedAt: (v as any).createdAt,
+  }));
+
+  return {
+    meta: { page, limit, total, totalPage: Math.ceil(total / limit) },
+    result,
+  };
+};
+
 export const VendorServiceServices = {
   getAllVendorServicesFromDB,
   getVendorServicesByVendorFromDB,
@@ -558,4 +615,5 @@ export const VendorServiceServices = {
   deleteDraftFromDB,
   toggleFavServiceInDB,
   getFavServicesFromDB,
+  getRecentVendorsFromDB,
 };
