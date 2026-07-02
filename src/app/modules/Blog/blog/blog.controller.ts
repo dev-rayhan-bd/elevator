@@ -54,9 +54,10 @@ const deleteBlog = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// ── Public: Get Single by slug ──
+// ── Get Single by slug (role-aware) ──
 const getSingleBlogBySlug = catchAsync(async (req: Request, res: Response) => {
-  const result = await BlogServices.getSingleBlogBySlugFromDB(req.params.slug);
+  const user = (req as any).user;
+  const result = await BlogServices.getSingleBlogBySlugFromDB(req.params.slug, user);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -65,9 +66,10 @@ const getSingleBlogBySlug = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// ── Admin: Get Single by id ──
+// ── Get Single by id (role-aware) ──
 const getSingleBlog = catchAsync(async (req: Request, res: Response) => {
-  const result = await BlogServices.getSingleBlogFromDB(req.params.id);
+  const user = (req as any).user;
+  const result = await BlogServices.getSingleBlogFromDB(req.params.id, user);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -76,20 +78,10 @@ const getSingleBlog = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// ── Public: Get All ──
+// ── Get All (role-aware — one API for all) ──
 const getAllBlogs = catchAsync(async (req: Request, res: Response) => {
-  const result = await BlogServices.getAllBlogsFromDB(req.query);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Blogs retrieved successfully',
-    data: result,
-  });
-});
-
-// ── Admin: Get All (incl. unpublished) ──
-const getAdminBlogs = catchAsync(async (req: Request, res: Response) => {
-  const result = await BlogServices.getAdminBlogsFromDB(req.query);
+  const user = (req as any).user;
+  const result = await BlogServices.getAllBlogsFromDB(req.query, user);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -105,5 +97,4 @@ export const BlogControllers = {
   getSingleBlogBySlug,
   getSingleBlog,
   getAllBlogs,
-  getAdminBlogs,
 };
