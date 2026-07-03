@@ -1,7 +1,6 @@
 import express, { RequestHandler } from 'express';
 
 import auth from '../../../middleware/auth';
-import optionalAuth from '../../../middleware/optionalAuth';
 import { BlogControllers } from './blog.controller';
 import { upload } from '../../../middleware/multer';
 import { USER_ROLE } from '../../Auth/auth.constant';
@@ -9,12 +8,12 @@ import { USER_ROLE } from '../../Auth/auth.constant';
 const router = express.Router();
 const uploadImage = upload.single('image') as unknown as RequestHandler;
 
-// ── Unified Routes (one API for all roles — admin sees all, others see published only) ──
-router.get('/', optionalAuth, BlogControllers.getAllBlogs);
-router.get('/slug/:slug', optionalAuth, BlogControllers.getSingleBlogBySlug);
-router.get('/:id', optionalAuth, BlogControllers.getSingleBlog);
+// ── Public Routes (no auth required) ──
+router.get('/', BlogControllers.getAllBlogs);
 
-// ── Admin-Only Routes ──
+router.get('/:id', BlogControllers.getSingleBlog);
+
+// ── Admin-Only Routes ── 
 router.post(
   '/',
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
