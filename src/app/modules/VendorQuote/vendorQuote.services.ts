@@ -80,8 +80,8 @@ const getMyQuotesFromDB = async (userId: string, query: Record<string, unknown>)
   ]);
 
   return {
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     quotes,
-    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
 
@@ -204,9 +204,9 @@ const getVendorQuotesFromDB = async (vendorId: string, query: Record<string, unk
   }
 
   return {
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     stats: statsMap,
     quotes,
-    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
 

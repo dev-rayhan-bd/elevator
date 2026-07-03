@@ -80,9 +80,9 @@ const getServiceReviewsFromDB = async (
   }));
 
   return {
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     reviews: reviewsWithFlag,
     summary,
-    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
 
@@ -129,9 +129,9 @@ const getServiceReviewsWithSummary = async (serviceId: string, page = 1, limit =
   ]);
 
   return {
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
     reviews,
     summary: computeRatingSummary(allRatings),
-    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
 

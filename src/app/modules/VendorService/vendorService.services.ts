@@ -295,7 +295,7 @@ const getSingleVendorServiceFromDB = async (
     isFav,
     reviews: reviewData.reviews,
     ratingSummary: reviewData.summary,
-    reviewPagination: reviewData.pagination,
+    reviewPagination: reviewData.meta,
   };
 };
 
