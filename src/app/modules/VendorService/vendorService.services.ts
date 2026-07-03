@@ -302,7 +302,7 @@ const getSingleVendorServiceFromDB = async (
 const createVendorServiceIntoDB = async (
   vendorId: string,
   payload: Record<string, unknown>,
-) => {
+) => { 
   const serviceData = {
     ...payload,
     vendor: new Types.ObjectId(vendorId),
