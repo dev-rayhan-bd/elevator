@@ -51,6 +51,38 @@ const blogSchema = new Schema<TBlog>(
       type: [String],
       default: [],
     },
+
+    // ── SEO fields ──
+    metaTitle: {
+      type: String,
+      trim: true,
+    },
+    metaDescription: {
+      type: String,
+      trim: true,
+    },
+    metaKeywords: {
+      type: [String],
+      default: [],
+    },
+    ogImage: {
+      type: String,
+    },
+
+    // ── UI-specific fields ──
+    featured: {
+      type: Boolean,
+      default: false,
+    },
+    showAuthor: {
+      type: Boolean,
+      default: true,
+    },
+    layout: {
+      type: String,
+      enum: ['full', 'sidebar', 'compact'],
+      default: 'full',
+    },
   },
   {
     timestamps: true,

@@ -61,6 +61,14 @@ const getAllBlogsFromDB = async (query: Record<string, unknown>) => {
   return { meta, result };
 };
 
+// ── Get Single by Slug (public) ──
+const getSingleBlogBySlugFromDB = async (slug: string) => {
+  const result = await Blog.findOne({ slug, isPublished: true })
+    .populate('category', 'name');
+  if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Blog not found');
+  return result;
+};
+
 export const BlogServices = {
   createBlogIntoDB,
   updateBlogInDB,
@@ -68,4 +76,5 @@ export const BlogServices = {
 
   getSingleBlogFromDB,
   getAllBlogsFromDB,
+  getSingleBlogBySlugFromDB,
 };

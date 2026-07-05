@@ -6,10 +6,15 @@ import { upload } from '../../../middleware/multer';
 import { USER_ROLE } from '../../Auth/auth.constant';
 
 const router = express.Router();
-const uploadImage = upload.single('image') as unknown as RequestHandler;
+const uploadFields = upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'ogImage', maxCount: 1 },
+]) as unknown as RequestHandler;
 
 // ── Public Routes (no auth required) ──
 router.get('/', BlogControllers.getAllBlogs);
+
+router.get('/slug/:slug', BlogControllers.getSingleBlogBySlug);
 
 router.get('/:id', BlogControllers.getSingleBlog);
 
@@ -17,14 +22,14 @@ router.get('/:id', BlogControllers.getSingleBlog);
 router.post(
   '/',
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
-  uploadImage,
+  uploadFields,
   BlogControllers.createBlog,
 );
 
 router.patch(
   '/:id',
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
-  uploadImage,
+  uploadFields,
   BlogControllers.updateBlog,
 );
 

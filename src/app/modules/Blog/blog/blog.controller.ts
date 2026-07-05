@@ -8,12 +8,19 @@ import uploadImage from '../../../middleware/upload';
 // ── Admin: Create ──
 const createBlog = catchAsync(async (req: Request, res: Response) => {
   let imageUrl = '';
-  if (req.file) {
-    imageUrl = await uploadImage(req);
+  let ogImageUrl = '';
+
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+
+  if (files?.image) {
+    imageUrl = await uploadImage(req, files.image[0]);
+  }
+  if (files?.ogImage) {
+    ogImageUrl = await uploadImage(req, files.ogImage[0]);
   }
 
   const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const payload = { ...rawData, image: imageUrl };
+  const payload = { ...rawData, image: imageUrl, ...(ogImageUrl && { ogImage: ogImageUrl }) };
 
   const result = await BlogServices.createBlogIntoDB(payload);
   sendResponse(res, {
@@ -27,12 +34,23 @@ const createBlog = catchAsync(async (req: Request, res: Response) => {
 // ── Admin: Update ──
 const updateBlog = catchAsync(async (req: Request, res: Response) => {
   let imageUrl: string | undefined;
-  if (req.file) {
-    imageUrl = await uploadImage(req);
+  let ogImageUrl: string | undefined;
+
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+
+  if (files?.image) {
+    imageUrl = await uploadImage(req, files.image[0]);
+  }
+  if (files?.ogImage) {
+    ogImageUrl = await uploadImage(req, files.ogImage[0]);
   }
 
   const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const payload = { ...rawData, ...(imageUrl && { image: imageUrl }) };
+  const payload = {
+    ...rawData,
+    ...(imageUrl && { image: imageUrl }),
+    ...(ogImageUrl && { ogImage: ogImageUrl }),
+  };
 
   const result = await BlogServices.updateBlogInDB(req.params.id, payload);
   sendResponse(res, {
@@ -78,10 +96,22 @@ const getAllBlogs = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ── Get Single by Slug (public) ──
+const getSingleBlogBySlug = catchAsync(async (req: Request, res: Response) => {
+  const result = await BlogServices.getSingleBlogBySlugFromDB(req.params.slug);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Blog retrieved successfully',
+    data: result,
+  });
+});
+
 export const BlogControllers = {
   createBlog,
   updateBlog,
   deleteBlog,
   getSingleBlog,
   getAllBlogs,
+  getSingleBlogBySlug,
 };

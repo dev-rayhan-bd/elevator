@@ -13,6 +13,17 @@ const createBlogSchema = z.object({
         readTime: z.string().min(1, 'Read time is required'),
         isPublished: z.boolean().optional(),
         tags: z.array(z.string()).optional(),
+
+        // SEO
+        metaTitle: z.string().optional(),
+        metaDescription: z.string().optional(),
+        metaKeywords: z.array(z.string()).optional(),
+        ogImage: z.string().optional(),
+
+        // UI
+        featured: z.boolean().optional(),
+        showAuthor: z.boolean().optional(),
+        layout: z.enum(['full', 'sidebar', 'compact']).optional(),
       }),
     ),
 
@@ -31,6 +42,17 @@ const updateBlogSchema = z.object({
         readTime: z.string().optional(),
         isPublished: z.boolean().optional(),
         tags: z.array(z.string()).optional(),
+
+        // SEO
+        metaTitle: z.string().optional(),
+        metaDescription: z.string().optional(),
+        metaKeywords: z.array(z.string()).optional(),
+        ogImage: z.string().optional(),
+
+        // UI
+        featured: z.boolean().optional(),
+        showAuthor: z.boolean().optional(),
+        layout: z.enum(['full', 'sidebar', 'compact']).optional(),
       }),
     ),
   }),
