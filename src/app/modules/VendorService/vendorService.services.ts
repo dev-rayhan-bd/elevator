@@ -109,11 +109,16 @@ const getPublicVendorServicesFromDB = async (
     filter.$or = [{ title: regex }, { description: regex }];
   }
 
-  // ── Parallel User lookups (isVerified + isFav) ──
+  // ── Parallel User lookups (isSponsored + isVerified + isFav) ──
   const needVerified = isVerified === 'true' || isVerified === true;
   const needFav = isFav === 'true' || isFav === true;
 
-  const [verifiedVendorIds, userFavs] = await Promise.all([
+  const [sponsoredVendorIds, verifiedVendorIds, userFavs] = await Promise.all([
+    // Get all sponsored vendor IDs for search ranking
+    User.find({ isSponsored: true, role: 'vendor' })
+      .select('_id')
+      .lean()
+      .then((v) => v.map((d) => d._id)),
     needVerified
       ? User.find({ role: 'vendor', 'vendor.isVerifiedBadge': true })
           .select('_id')
@@ -186,7 +191,7 @@ const getPublicVendorServicesFromDB = async (
     }
   }
 
-  // ── Sort ──
+  // ── Sort (prioritize sponsored vendors, then profileScore descending) ──
   let sortObj: Record<string, 1 | -1> = { createdAt: -1 };
   if (sortByPrice === 'asc') sortObj = { price: 1 };
   else if (sortByPrice === 'desc') sortObj = { price: -1 };
@@ -210,10 +215,25 @@ const getPublicVendorServicesFromDB = async (
     VendorService.countDocuments(filter),
   ]);
 
-  // ── Enrich: isFav ──
+  // ── Sort sponsored vendors first (search ranking) ──
   let enrichedResult = result;
+  if (sponsoredVendorIds.length > 0) {
+    const sponsoredSet = new Set(sponsoredVendorIds.map((id: any) => id.toString()));
+    enrichedResult = [...result].sort((a: any, b: any) => {
+      const aSponsored = sponsoredSet.has(a.vendor?._id?.toString() || a.vendor?.toString());
+      const bSponsored = sponsoredSet.has(b.vendor?._id?.toString() || b.vendor?.toString());
+      if (aSponsored && !bSponsored) return -1;
+      if (!aSponsored && bSponsored) return 1;
+      // Both sponsored or both not — sort by vendor profileScore descending
+      const aScore = a.vendor?.profileScore || 0;
+      const bScore = b.vendor?.profileScore || 0;
+      return bScore - aScore;
+    });
+  }
+
+  // ── Enrich: isFav ──
   if (favSet) {
-    enrichedResult = result.map((s: any) => ({
+    enrichedResult = enrichedResult.map((s: any) => ({
       ...s,
       isFav: favSet!.has(s._id.toString()),
     }));

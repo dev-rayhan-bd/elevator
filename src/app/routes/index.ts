@@ -24,6 +24,8 @@ import { InspirationRoutes } from '../modules/Inspiration/inspiration.routes';
 import { BlogRoutes } from '../modules/Blog/blog/blog.routes';
 import { BlogCategoryRoutes } from '../modules/Blog/blogCategory/blogCategory.routes';
 import { BannerRoutes } from '../modules/Banner/banner.routes';
+import { PromotionRoutes } from '../modules/Promotion/promotion.routes';
+import { VerificationRoutes } from '../modules/Verification/verification.routes';
 
 
 const router = Router();
@@ -75,6 +77,8 @@ const moduleRoutes = [
   { path: '/blog', route: BlogRoutes },
   { path: '/blog-category', route: BlogCategoryRoutes },
   { path: '/banner', route: BannerRoutes },
+  { path: '/promotion', route: PromotionRoutes },
+  { path: '/verification', route: VerificationRoutes },
 
 ];
 

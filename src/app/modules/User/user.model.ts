@@ -30,6 +30,8 @@ const userSchema = new Schema<TUser, UserModel, IUserMethods>(
     acceptedTerms: { type: Boolean },
     fcmToken: { type: String, default: null },
     favoriteServices: [{ type: Schema.Types.ObjectId, ref: 'VendorService' }],
+    isSponsored: { type: Boolean, default: false },
+    isFeatured: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
     vendor: {
       businessName: String,
