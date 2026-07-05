@@ -23,6 +23,7 @@ import { VendorQuoteRoutes } from '../modules/VendorQuote/vendorQuote.routes';
 import { InspirationRoutes } from '../modules/Inspiration/inspiration.routes';
 import { BlogRoutes } from '../modules/Blog/blog/blog.routes';
 import { BlogCategoryRoutes } from '../modules/Blog/blogCategory/blogCategory.routes';
+import { BannerRoutes } from '../modules/Banner/banner.routes';
 
 
 const router = Router();
@@ -73,6 +74,7 @@ const moduleRoutes = [
   { path: '/inspiration', route: InspirationRoutes },
   { path: '/blog', route: BlogRoutes },
   { path: '/blog-category', route: BlogCategoryRoutes },
+  { path: '/banner', route: BannerRoutes },
 
 ];
 
