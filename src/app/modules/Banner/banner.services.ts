@@ -422,3 +422,6 @@ export const BannerServices = {
   // Cron
   runExpiryCron,
 };
+
+// Named export for cron job
+export { expireOverdueBanners };

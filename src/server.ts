@@ -7,7 +7,7 @@ import config from './app/config';
 import seedAdmin from './app/DB';
 import 'dotenv/config';
 import { initializeSocket } from './app/utils/socket';
-
+import { startCronJobs } from './app/cron/syncCron';
 
 
 
@@ -18,6 +18,10 @@ async function main() {
     await mongoose.connect(config.database_url as string);
     
  await seedAdmin(); 
+
+    // Start scheduled cron jobs (Promotion & Banner expiry)
+    startCronJobs();
+
     server = app.listen(config.port, () => {
       console.log(`app is listening on port ${config.port}`);
     });

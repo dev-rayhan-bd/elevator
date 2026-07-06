@@ -1,11 +1,13 @@
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import auth from '../../middleware/auth';
 import validateRequest from '../../middleware/validateRequest';
+import { upload } from '../../middleware/multer';
 import { USER_ROLE } from '../Auth/auth.constant';
 import { PromotionControllers } from './promotion.controller';
 import { PromotionValidations } from './promotion.validation';
 
 const router = express.Router();
+const uploadDocs = upload.array('documents', 10) as unknown as RequestHandler;
 
 // ══════════════════════════════════════════════
 //  PUBLIC ROUTES
@@ -21,12 +23,20 @@ router.get('/plans', PromotionControllers.getAllPromotionPlans);
 //  VENDOR ROUTES
 // ══════════════════════════════════════════════
 
-// Purchase a promotion
+// Purchase a promotion (sponsored, featured, inspiration — NOT verified)
 router.post(
   '/purchase',
   auth(USER_ROLE.vendor),
   validateRequest(PromotionValidations.purchasePromotionSchema),
   PromotionControllers.purchasePromotion,
+);
+
+// Purchase verified promotion (requires document upload)
+router.post(
+  '/purchase-verified',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  PromotionControllers.purchaseVerifiedPromotion,
 );
 
 // Get my promotions
@@ -73,6 +83,13 @@ router.patch(
   PromotionControllers.updatePromotionPlan,
 );
 
+// Toggle plan isActive (on/off)
+router.patch(
+  '/plans/:id/toggle-active',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  PromotionControllers.adminTogglePromotionPlanIsActive,
+);
+
 router.delete(
   '/plans/:id',
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
@@ -93,6 +110,13 @@ router.patch(
   '/admin/:id/payment-status',
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   PromotionControllers.adminUpdatePaymentStatus,
+);
+
+// Toggle vendor purchased promotion isActive (on/off)
+router.patch(
+  '/admin/:id/toggle-active',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  PromotionControllers.adminToggleVendorPromotionIsActive,
 );
 
 // ══════════════════════════════════════════════

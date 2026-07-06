@@ -21,7 +21,7 @@ const verificationSchema = new Schema<TVerification>(
     notes: { type: String, trim: true },
     verifiedBy: {
       type: Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'Admin',
     },
     verifiedAt: { type: Date },
     rejectedReason: { type: String, trim: true },

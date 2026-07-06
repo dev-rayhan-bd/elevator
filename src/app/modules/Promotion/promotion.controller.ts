@@ -3,6 +3,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { PromotionServices } from './promotion.services';
+import uploadImage from '../../middleware/upload';
 
 // ══════════════════════════════════════════════
 //  ADMIN: PROMOTION PLAN CRUD
@@ -81,6 +82,38 @@ const purchasePromotion = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ── Purchase Verified Promotion (with documents) ──
+const purchaseVerifiedPromotion = catchAsync(async (req: Request, res: Response) => {
+  const vendorId = (req as any).user.userId;
+
+  // Handle multipart: parse JSON from data field if present
+  const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+
+  // Upload files to Cloudinary if present
+  const files = req.files as Express.Multer.File[] | undefined;
+  const uploadedUrls: string[] = [];
+  if (files && files.length > 0) {
+    for (const file of files) {
+      const url = await uploadImage(req, file);
+      uploadedUrls.push(url);
+    }
+  }
+
+  // Merge uploaded URLs with any provided document URLs
+  const documents = [...(rawData.documents || []), ...uploadedUrls];
+
+  const result = await PromotionServices.purchaseVerifiedPromotionIntoDB(
+    vendorId,
+    { planId: rawData.planId, documents },
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Verified promotion purchased successfully. Awaiting admin review.',
+    data: result,
+  });
+});
+
 const getMyPromotions = catchAsync(async (req: Request, res: Response) => {
   const vendorId = (req as any).user.userId;
   const result = await PromotionServices.getMyPromotionsFromDB(
@@ -152,6 +185,47 @@ const adminUpdatePaymentStatus = catchAsync(async (req: Request, res: Response) 
 });
 
 // ══════════════════════════════════════════════
+//  ADMIN: TOGGLE VENDOR PURCHASED PROMOTION isActive
+// ══════════════════════════════════════════════
+
+const adminToggleVendorPromotionIsActive = catchAsync(async (req: Request, res: Response) => {
+  const result = await PromotionServices.adminToggleVendorPromotionIsActiveInDB(
+    req.params.id,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Vendor promotion ${result.isActive ? 'activated' : 'deactivated'} successfully`,
+    data: result,
+  });
+});
+
+// ══════════════════════════════════════════════
+//  ADMIN: TOGGLE PLAN isActive
+// ══════════════════════════════════════════════
+
+const adminTogglePromotionPlanIsActive = catchAsync(async (req: Request, res: Response) => {
+  const result = await PromotionServices.adminTogglePromotionPlanIsActiveInDB(
+    req.params.id,
+  );
+  if (!result) {
+    sendResponse(res, {
+      statusCode: httpStatus.NOT_FOUND,
+      success: false,
+      message: 'Promotion plan not found',
+      data: null,
+    });
+    return;
+  }
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Promotion plan ${result.isActive ? 'activated' : 'deactivated'} successfully`,
+    data: result,
+  });
+});
+
+// ══════════════════════════════════════════════
 //  CRON
 // ══════════════════════════════════════════════
 
@@ -175,6 +249,7 @@ export const PromotionControllers = {
 
   // Vendor
   purchasePromotion,
+  purchaseVerifiedPromotion,
   getMyPromotions,
   cancelMyPromotion,
 
@@ -187,4 +262,8 @@ export const PromotionControllers = {
 
   // Cron
   runExpiryCron,
+
+  // Toggle
+  adminTogglePromotionPlanIsActive,
+  adminToggleVendorPromotionIsActive,
 };

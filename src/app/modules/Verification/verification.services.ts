@@ -137,6 +137,30 @@ const adminUpdateVerificationStatusInDB = async (
     await User.findByIdAndUpdate(verification.vendor, {
       'vendor.isVerifiedBadge': true,
     });
+
+    // ── Auto-activate any pending 'verified' VendorPromotion ──
+    try {
+      const { VendorPromotion } = await import('../Promotion/promotion.model');
+      const promotions = await VendorPromotion.find({
+        vendor: verification.vendor,
+        promotionCategory: 'verified',
+        status: 'pending',
+      });
+
+      const now = new Date();
+      for (const promo of promotions) {
+        // Recalculate endDate so vendor gets full duration from approval date
+        const originalDuration =
+          promo.endDate.getTime() - promo.startDate.getTime();
+        promo.startDate = now;
+        promo.endDate = new Date(now.getTime() + originalDuration);
+        promo.status = 'active';
+        promo.isActive = true;
+        await promo.save();
+      }
+    } catch (err) {
+      console.error('Failed to activate vendor promotion:', err);
+    }
   } else if (payload.status === 'rejected') {
     // Ensure badge is removed when rejected
     await User.findByIdAndUpdate(verification.vendor, {

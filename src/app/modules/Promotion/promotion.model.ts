@@ -57,7 +57,7 @@ const vendorPromotionSchema = new Schema<TVendorPromotion>(
     isPostCreated: { type: Boolean, default: false },
     status: {
       type: String,
-      enum: ['active', 'expired', 'cancelled'],
+      enum: ['pending', 'active', 'expired', 'cancelled'],
       default: 'active',
     },
     paymentStatus: {

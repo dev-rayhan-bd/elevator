@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
 
 export type TPromotionCategory = 'sponsored' | 'featured' | 'inspiration' | 'verified';
-export type TPromotionStatus = 'active' | 'expired' | 'cancelled';
+export type TPromotionStatus = 'pending' | 'active' | 'expired' | 'cancelled';
 export type TPaymentStatus = 'pending' | 'paid' | 'refunded';
 
 export interface TPromotionPlanConfig {

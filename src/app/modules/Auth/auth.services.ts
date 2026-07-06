@@ -53,6 +53,17 @@ const registerUser = async (payload: TUser) => {
   payload.status = 'active'; 
   payload.isOtpVerified = false;
 
+  // ── Security: Strip restricted fields that users must not set ──
+  delete (payload as any).isSponsored;
+  delete (payload as any).isFeatured;
+  delete (payload as any).isDeleted;
+  if (payload.vendor) {
+    delete (payload.vendor as any).isVerifiedBadge;
+    delete (payload.vendor as any).isProfileCompleted;
+    delete (payload.vendor as any).profileScore;
+    delete (payload.vendor as any).passwordChangedAt;
+  }
+
   const newUser = await User.create(payload);
 
   // --- Send OTP via Email (primary channel) ---

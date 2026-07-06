@@ -26,6 +26,17 @@ const updateProfileInDB = async (userId: string, payload: any) => {
   delete payload.email;
   delete payload.isOtpVerified;
 
+  // ── Security: Strip restricted fields that users must not set ──
+  delete payload.isSponsored;
+  delete payload.isFeatured;
+  delete payload.isDeleted;
+  if (payload.vendor) {
+    delete payload.vendor.isVerifiedBadge;
+    delete payload.vendor.isProfileCompleted;
+    delete payload.vendor.profileScore;
+    delete payload.vendor.passwordChangedAt;
+  }
+
   if (user.role === 'vendor' && payload.vendor) {
     let score = 0;
     const vendorData = payload.vendor || user.vendor;

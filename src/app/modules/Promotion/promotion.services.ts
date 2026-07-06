@@ -5,6 +5,7 @@ import QueryBuilder from '../../builder/QueryBuilder';
 import { PromotionPlan, VendorPromotion } from './promotion.model';
 import { TPromotionPlanConfig, TVendorPromotion } from './promotion.interface';
 import { User } from '../User/user.model';
+import { Verification } from '../Verification/verification.model';
 
 // ── Utility: Mark expired promotions & revert user flags ──
 const expireOverduePromotions = async () => {
@@ -167,6 +168,14 @@ const purchasePromotionIntoDB = async (
     throw new AppError(httpStatus.NOT_FOUND, 'Promotion plan not found or inactive');
   }
 
+  // ── Block verified purchases here — must use /purchase-verified ──
+  if (plan.promotionCategory === 'verified') {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Verified promotion requires document upload. Use /promotion/purchase-verified instead.',
+    );
+  }
+
   // ── Duplicate prevention: vendor cannot buy same promotion category if already active ──
   const existingActive = await VendorPromotion.findOne({
     vendor: new Types.ObjectId(vendorId),
@@ -195,7 +204,7 @@ const purchasePromotionIntoDB = async (
     endDate,
     price: plan.price,
     discountPrice: plan.discountPercent > 0
-      ? plan.originalPrice - plan.price
+      ? parseFloat((plan.originalPrice - plan.price).toFixed(2))
       : undefined,
     status: 'active',
     isActive: true,
@@ -209,6 +218,90 @@ const purchasePromotionIntoDB = async (
 
   const result = await VendorPromotion.create(promotionData);
   return result;
+};
+
+// ══════════════════════════════════════════════
+//  VENDOR: PURCHASE VERIFIED PROMOTION (with documents)
+// ══════════════════════════════════════════════
+
+const purchaseVerifiedPromotionIntoDB = async (
+  vendorId: string,
+  payload: { planId: string; documents: string[] },
+) => {
+  const plan = await PromotionPlan.findById(payload.planId);
+  if (!plan || !plan.isActive) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Promotion plan not found or inactive');
+  }
+
+  // Only 'verified' category allowed here
+  if (plan.promotionCategory !== 'verified') {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'This endpoint is only for verified promotion. Use /promotion/purchase for other categories.',
+    );
+  }
+
+  // Documents are mandatory
+  if (!payload.documents || payload.documents.length === 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'At least one verification document is required',
+    );
+  }
+
+  // Duplicate check — also block if there's a pending review
+  const existingVerified = await VendorPromotion.findOne({
+    vendor: new Types.ObjectId(vendorId),
+    promotionCategory: 'verified',
+    status: { $in: ['pending', 'active'] },
+  });
+  if (existingVerified) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      `You already have a ${existingVerified.status} verified promotion request`,
+    );
+  }
+
+  const now = new Date();
+  const endDate = new Date(now);
+  endDate.setDate(endDate.getDate() + plan.durationDays);
+
+  const promotionData: Partial<TVendorPromotion> = {
+    vendor: new Types.ObjectId(vendorId),
+    plan: plan._id,
+    promotionCategory: 'verified',
+    startDate: now,
+    endDate,
+    price: plan.price,
+    discountPrice: plan.discountPercent > 0
+      ? parseFloat((plan.originalPrice - plan.price).toFixed(2))
+      : undefined,
+    status: 'pending', // ── Awaiting admin review ──
+    isActive: false,     // ── Not public until approved ──
+    paymentStatus: 'pending',
+    isPostCreated: false,
+  };
+
+  const vendorPromotion = await VendorPromotion.create(promotionData);
+
+  // ── Create/update Verification record (documents stored in Verification model) ──
+  const existingVerification = await Verification.findOne({ vendor: vendorId });
+  if (existingVerification) {
+    existingVerification.documents = payload.documents;
+    existingVerification.status = 'pending';
+    existingVerification.rejectedReason = undefined;
+    existingVerification.verifiedBy = undefined;
+    existingVerification.verifiedAt = undefined;
+    await existingVerification.save();
+  } else {
+    await Verification.create({
+      vendor: new Types.ObjectId(vendorId),
+      documents: payload.documents,
+      notes: 'Submitted via verified promotion purchase',
+    });
+  }
+
+  return vendorPromotion;
 };
 
 const getMyPromotionsFromDB = async (
@@ -358,6 +451,32 @@ const runExpiryCron = async () => {
   return result;
 };
 
+// ══════════════════════════════════════════════
+//  ADMIN: TOGGLE PLAN isActive
+// ══════════════════════════════════════════════
+
+const adminTogglePromotionPlanIsActiveInDB = async (id: string) => {
+  const plan = await PromotionPlan.findById(id);
+  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Promotion plan not found');
+
+  plan.isActive = !plan.isActive;
+  await plan.save();
+  return plan;
+};
+
+// ══════════════════════════════════════════════
+//  ADMIN: TOGGLE VENDOR PURCHASED PROMOTION isActive
+// ══════════════════════════════════════════════
+
+const adminToggleVendorPromotionIsActiveInDB = async (id: string) => {
+  const promotion = await VendorPromotion.findById(id);
+  if (!promotion) throw new AppError(httpStatus.NOT_FOUND, 'Vendor promotion not found');
+
+  promotion.isActive = !promotion.isActive;
+  await promotion.save();
+  return promotion;
+};
+
 export const PromotionServices = {
   // Admin: Plan CRUD
   createPromotionPlanIntoDB,
@@ -368,6 +487,7 @@ export const PromotionServices = {
 
   // Vendor
   purchasePromotionIntoDB,
+  purchaseVerifiedPromotionIntoDB,
   getMyPromotionsFromDB,
   cancelMyPromotionFromDB,
 
@@ -378,4 +498,11 @@ export const PromotionServices = {
 
   // Cron
   runExpiryCron,
+
+  // Toggle
+  adminTogglePromotionPlanIsActiveInDB,
+  adminToggleVendorPromotionIsActiveInDB,
 };
+
+// Named export for cron job
+export { expireOverduePromotions };
