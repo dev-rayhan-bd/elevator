@@ -8,8 +8,8 @@ export interface TServicePackage {
   title: string;
   description: string;
   price: number;
-  deliveryTime: string;
-  revisions: number;
+  // deliveryTime: string;
+  // revisions: number;
   features: Types.ObjectId[];
   isActive: boolean;
 }
