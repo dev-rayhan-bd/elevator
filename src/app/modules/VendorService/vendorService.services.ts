@@ -6,6 +6,7 @@ import { VendorService } from './vendorService.model';
 import { TVendorService } from './vendorService.interface';
 import { User } from '../User/user.model';
 import { ReviewServices } from '../Review/review.services';
+import { VendorPromotion } from '../Promotion/promotion.model';
 
 const getAllVendorServicesFromDB = async (query: Record<string, unknown>) => {
   const serviceQuery = new QueryBuilder(
@@ -617,6 +618,148 @@ const getRecentVendorsFromDB = async (query: Record<string, unknown>) => {
   };
 };
 
+/**
+ * PUBLIC: Featured vendors' services with sponsored tags
+ * Returns services from vendors who hold an active 'featured' promotion
+ * in VendorPromotion, each tagged with isSponsored=true if the vendor
+ * also holds an active 'sponsored' promotion.
+ *
+ * NOTE: We query VendorPromotion directly instead of User.isFeatured
+ * because the flag is only synced when admin confirms payment.
+ */
+const getFeaturedVendorServicesFromDB = async (
+  query: Record<string, unknown>,
+  userId?: string,
+) => {
+  const page = Number(query.page) || 1;
+  const limit = Math.min(Number(query.limit) || 20, 50);
+  const skip = (page - 1) * limit;
+  const now = new Date();
+
+  // 1. Find vendor IDs with an active 'featured' promotion
+  const featuredPromos = await VendorPromotion.find({
+    promotionCategory: 'featured',
+    status: 'active',
+    isActive: true,
+    endDate: { $gt: now },
+  })
+    .select('vendor')
+    .lean();
+
+  const vendorIds = [...new Set(featuredPromos.map((p) => p.vendor.toString()))];
+  if (vendorIds.length === 0) {
+    return {
+      meta: { page: 1, limit, total: 0, totalPage: 0 },
+      result: [],
+    };
+  }
+
+  // 2. Find vendor IDs with an active 'sponsored' promotion
+  const sponsoredPromos = await VendorPromotion.find({
+    vendor: { $in: vendorIds },
+    promotionCategory: 'sponsored',
+    status: 'active',
+    isActive: true,
+    endDate: { $gt: now },
+  })
+    .select('vendor')
+    .lean();
+
+  const sponsoredSet = new Set(
+    sponsoredPromos.map((p) => p.vendor.toString()),
+  );
+
+  // 3. Fetch active services from featured vendors
+  const [result, total] = await Promise.all([
+    VendorService.find({
+      vendor: { $in: vendorIds.map((id) => new Types.ObjectId(id)) },
+      isActive: true,
+      isDraft: { $ne: true },
+    })
+      .populate(
+        'vendor',
+        'firstName lastName fullName image lat long vendor.businessName vendor.location vendor.profileScore vendor.isVerifiedBadge',
+      )
+      .populate('category', 'name image')
+      .populate('subcategory', 'name image')
+      .populate('eventTypes', 'name image')
+      .populate('serviceAreas', 'name region')
+      .populate('amenities', 'name icon')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    VendorService.countDocuments({
+      vendor: { $in: vendorIds.map((id) => new Types.ObjectId(id)) },
+      isActive: true,
+      isDraft: { $ne: true },
+    }),
+  ]);
+
+  // 4. Enrich each service with isSponsored tag
+  let enrichedResult = result.map((service: any) => {
+    const vendorId = service.vendor?._id?.toString() || service.vendor?.toString();
+    return {
+      ...service,
+      isSponsored: sponsoredSet.has(vendorId),
+    };
+  });
+
+  // Sort: sponsored first, then by profileScore
+  enrichedResult.sort((a: any, b: any) => {
+    if (a.isSponsored && !b.isSponsored) return -1;
+    if (!a.isSponsored && b.isSponsored) return 1;
+    return (b.vendor?.profileScore || 0) - (a.vendor?.profileScore || 0);
+  });
+
+  // 5. Attach favourite flag if user is logged in
+  if (userId) {
+    const user = await User.findById(userId)
+      .select('favoriteServices')
+      .lean();
+    const favSet = new Set(
+      (user?.favoriteServices ?? []).map((id: any) => id.toString()),
+    );
+    enrichedResult = enrichedResult.map((s: any) => ({
+      ...s,
+      isFav: favSet.has(s._id.toString()),
+    }));
+  }
+
+  // 6. Attach rating + reviewCount
+  if (enrichedResult.length > 0) {
+    const serviceIds = enrichedResult.map((s: any) => s._id);
+    const { Review } = await import('../Review/review.model');
+    const ratingAgg = await Review.aggregate([
+      { $match: { service: { $in: serviceIds }, isDeleted: false } },
+      {
+        $group: {
+          _id: '$service',
+          avgRating: { $avg: '$rating' },
+          reviewCount: { $sum: 1 },
+        },
+      },
+    ]);
+    const ratingMap: Record<string, { avgRating: number; reviewCount: number }> = {};
+    for (const r of ratingAgg) {
+      ratingMap[r._id.toString()] = {
+        avgRating: Math.round(r.avgRating * 10) / 10,
+        reviewCount: r.reviewCount,
+      };
+    }
+    enrichedResult = enrichedResult.map((s: any) => ({
+      ...s,
+      rating: ratingMap[s._id.toString()]?.avgRating ?? 0,
+      reviewCount: ratingMap[s._id.toString()]?.reviewCount ?? 0,
+    }));
+  }
+
+  return {
+    meta: { page, limit, total, totalPage: Math.ceil(total / limit) },
+    result: enrichedResult,
+  };
+};
+
 export const VendorServiceServices = {
   getAllVendorServicesFromDB,
   getVendorServicesByVendorFromDB,
@@ -636,4 +779,5 @@ export const VendorServiceServices = {
   toggleFavServiceInDB,
   getFavServicesFromDB,
   getRecentVendorsFromDB,
+  getFeaturedVendorServicesFromDB,
 };

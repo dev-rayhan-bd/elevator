@@ -373,6 +373,22 @@ const getRecentVendors = catchAsync(async (req, res) => {
   });
 });
 
+// ── Home Feed: Featured Vendors with Sponsored Tags ──
+
+const getFeaturedVendorServices = catchAsync(async (req, res) => {
+  const userId = (req.user as any)?.userId;
+  const result = await VendorServiceServices.getFeaturedVendorServicesFromDB(
+    req.query,
+    userId,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Featured vendor services retrieved successfully',
+    data: result,
+  });
+});
+
 export const VendorServiceControllers = {
   getAllVendorServices,
   getMyServices,
@@ -392,4 +408,5 @@ export const VendorServiceControllers = {
   toggleFavService,
   getRecentVendors,
   getFavServices,
+  getFeaturedVendorServices,
 };

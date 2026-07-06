@@ -13,6 +13,7 @@ const uploadImages = upload.array('images', 10) as unknown as RequestHandler;
 router.get('/public', optionalAuth, VendorServiceControllers.getPublicVendorServices);
 router.get('/public/all', VendorServiceControllers.getAllPublishedServices);
 router.get('/public/recent-vendors', VendorServiceControllers.getRecentVendors);
+router.get('/public/featured-vendors', optionalAuth, VendorServiceControllers.getFeaturedVendorServices);
 router.get('/public/:id', optionalAuth, VendorServiceControllers.getSingleVendorService);
 
 // ── Vendor Routes ──
