@@ -26,6 +26,7 @@ import { BlogCategoryRoutes } from '../modules/Blog/blogCategory/blogCategory.ro
 import { BannerRoutes } from '../modules/Banner/banner.routes';
 import { PromotionRoutes } from '../modules/Promotion/promotion.routes';
 import { VerificationRoutes } from '../modules/Verification/verification.routes';
+import { NewsletterRoutes } from '../modules/Newsletter/newsletter.routes';
 
 
 const router = Router();
@@ -79,6 +80,7 @@ const moduleRoutes = [
   { path: '/banner', route: BannerRoutes },
   { path: '/promotion', route: PromotionRoutes },
   { path: '/verification', route: VerificationRoutes },
+  { path: '/newsletter', route: NewsletterRoutes },
 
 ];
 
