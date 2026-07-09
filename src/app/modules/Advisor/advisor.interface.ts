@@ -20,6 +20,8 @@ export type TAdvisorBookingStatus =
   | 'completed'
   | 'cancelled';
 
+export type TPaymentStatus = 'unpaid' | 'paid' | 'refunded';
+
 export interface IAdvisorBooking extends Document {
   user: Types.ObjectId;
   advisorService: Types.ObjectId;
@@ -32,6 +34,7 @@ export interface IAdvisorBooking extends Document {
   guestCount: number;
   specialRequirements?: string;
   status: TAdvisorBookingStatus;
+  paymentStatus: TPaymentStatus;
   assignedAssociate?: Types.ObjectId;
   assignedAt?: Date;
   completedAt?: Date;

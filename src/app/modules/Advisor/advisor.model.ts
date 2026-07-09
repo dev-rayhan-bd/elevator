@@ -51,6 +51,11 @@ const advisorBookingSchema = new Schema<IAdvisorBooking>(
       enum: ['pending', 'assigned', 'in_progress', 'completed', 'cancelled'],
       default: 'pending',
     },
+    paymentStatus: {
+      type: String,
+      enum: ['unpaid', 'paid', 'refunded'],
+      default: 'unpaid',
+    },
     assignedAssociate: {
       type: Schema.Types.ObjectId,
       ref: 'User',

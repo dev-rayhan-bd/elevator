@@ -32,6 +32,7 @@ const createBookingSchema = z.object({
   budget: z.number().min(0, 'Budget must be 0 or more'),
   guestCount: z.number().min(1, 'Guest count must be at least 1'),
   specialRequirements: z.string().optional(),
+  paymentStatus: z.enum(['unpaid', 'paid', 'refunded']).optional(),
 });
 
 // ══════════════════════════════════════════════

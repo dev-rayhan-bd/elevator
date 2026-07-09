@@ -117,6 +117,7 @@ const createBookingIntoDB = async (userId: string, payload: any) => {
     guestCount: payload.guestCount,
     specialRequirements: payload.specialRequirements,
     status: 'pending',
+    paymentStatus: 'unpaid',
   };
 
   const result = await AdvisorBooking.create(bookingData);
