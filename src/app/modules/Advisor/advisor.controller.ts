@@ -180,6 +180,20 @@ const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ══════════════════════════════════════════════
+//  ADMIN: EXPORT ALL DATA
+// ══════════════════════════════════════════════
+
+const exportAllData = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdvisorServices.exportAllDataFromDB();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All advisor data exported successfully',
+    data: result,
+  });
+});
+
 export const AdvisorControllers = {
   createAdvisorService,
   updateAdvisorService,
@@ -195,4 +209,5 @@ export const AdvisorControllers = {
   assignAssociate,
   adminUpdateBookingStatus,
   getDashboardStats,
+  exportAllData,
 };

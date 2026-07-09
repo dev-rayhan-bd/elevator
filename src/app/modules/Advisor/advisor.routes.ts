@@ -112,4 +112,14 @@ router.get(
   AdvisorControllers.getDashboardStats,
 );
 
+// ══════════════════════════════════════════════
+//  ADMIN: EXPORT ALL DATA
+// ══════════════════════════════════════════════
+
+router.get(
+  '/export',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  AdvisorControllers.exportAllData,
+);
+
 export const AdvisorRoutes = router;

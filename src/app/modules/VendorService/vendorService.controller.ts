@@ -389,6 +389,28 @@ const getFeaturedVendorServices = catchAsync(async (req, res) => {
   });
 });
 
+// ══════════════════════════════════════════════
+//  PUBLIC: GET ACTIVE SERVICES BY VENDOR ID
+// ══════════════════════════════════════════════
+
+const getActiveServicesByVendor = catchAsync(async (req, res) => {
+  const { vendorId } = req.params;
+  const userId = (req.user as any)?.userId;
+
+  const result = await VendorServiceServices.getActiveServicesByVendorFromDB(
+    vendorId,
+    req.query,
+    userId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Active vendor services retrieved successfully',
+    data: result,
+  });
+});
+
 export const VendorServiceControllers = {
   getAllVendorServices,
   getMyServices,
@@ -409,4 +431,5 @@ export const VendorServiceControllers = {
   getRecentVendors,
   getFavServices,
   getFeaturedVendorServices,
+  getActiveServicesByVendor,
 };

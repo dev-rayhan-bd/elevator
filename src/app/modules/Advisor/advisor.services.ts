@@ -208,7 +208,34 @@ const adminGetAllBookingsFromDB = async (query: Record<string, unknown>) => {
 
   const result = await bookingQuery.modelQuery;
   const meta = await bookingQuery.countTotal();
-  return { meta, result };
+
+  // ── Stats ──
+  const totalBookings = await AdvisorBooking.countDocuments();
+  const pending = await AdvisorBooking.countDocuments({ status: 'pending' });
+  const assigned = await AdvisorBooking.countDocuments({ status: 'assigned' });
+  const inProgress = await AdvisorBooking.countDocuments({ status: 'in_progress' });
+  const completed = await AdvisorBooking.countDocuments({ status: 'completed' });
+  const cancelled = await AdvisorBooking.countDocuments({ status: 'cancelled' });
+
+  const revenueAgg = await AdvisorBooking.aggregate([
+    { $match: { status: { $in: ['completed', 'in_progress'] } } },
+    { $group: { _id: null, totalRevenue: { $sum: '$budget' } } },
+  ]);
+  const totalRevenue = revenueAgg[0]?.totalRevenue || 0;
+
+  return {
+    meta,
+    result,
+    stats: {
+      total: totalBookings,
+      pending,
+      assigned,
+      inProgress,
+      completed,
+      cancelled,
+      totalRevenue,
+    },
+  };
 };
 
 // ══════════════════════════════════════════════
@@ -369,6 +396,21 @@ const getAdvisorDashboardStatsFromDB = async () => {
   };
 };
 
+// ══════════════════════════════════════════════
+//  ADMIN: EXPORT ALL DATA
+// ══════════════════════════════════════════════
+
+const exportAllDataFromDB = async () => {
+  const services = await AdvisorService.find().lean();
+  const bookings = await AdvisorBooking.find()
+    .populate('user', 'firstName lastName email phone')
+    .populate('advisorService', 'name description price')
+    .populate('assignedAssociate', 'firstName lastName email phone')
+    .lean();
+
+  return { services, bookings };
+};
+
 export const AdvisorServices = {
   createAdvisorServiceIntoDB,
   updateAdvisorServiceInDB,
@@ -384,4 +426,5 @@ export const AdvisorServices = {
   assignAssociateToBookingInDB,
   adminUpdateBookingStatusInDB,
   getAdvisorDashboardStatsFromDB,
+  exportAllDataFromDB,
 };

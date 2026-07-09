@@ -760,6 +760,93 @@ const getFeaturedVendorServicesFromDB = async (
   };
 };
 
+// ══════════════════════════════════════════════
+//  PUBLIC: GET ACTIVE SERVICES BY VENDOR ID (with isFav)
+// ══════════════════════════════════════════════
+
+const getActiveServicesByVendorFromDB = async (
+  vendorId: string,
+  query: Record<string, unknown>,
+  userId?: string,
+) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const filter = {
+    vendor: new Types.ObjectId(vendorId),
+    isActive: true,
+    isDraft: { $ne: true },
+  };
+
+  // Build favSet if user is logged in
+  let favSet: Set<string> | undefined;
+  if (userId) {
+    const user = await User.findById(userId).select('favoriteServices');
+    if (user?.favoriteServices) {
+      favSet = new Set(user.favoriteServices.map((id) => id.toString()));
+    }
+  }
+
+  const [result, total] = await Promise.all([
+    VendorService.find(filter)
+      .populate('category', 'name image')
+      .populate('subcategory', 'name image')
+      .populate('eventTypes', 'name image')
+      .populate('serviceAreas', 'name region')
+      .populate('amenities', 'name icon')
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    VendorService.countDocuments(filter),
+  ]);
+
+  // Enrich with isFav
+  let enriched = result;
+  if (favSet) {
+    enriched = result.map((s: any) => ({
+      ...s,
+      isFav: favSet!.has(s._id.toString()),
+    }));
+  }
+
+  // Enrich with rating + reviewCount
+  if (enriched.length > 0) {
+    const serviceIds = enriched.map((s: any) => s._id);
+    const { Review } = await import('../Review/review.model');
+    const ratingAgg = await Review.aggregate([
+      { $match: { service: { $in: serviceIds }, isDeleted: false } },
+      {
+        $group: {
+          _id: '$service',
+          avgRating: { $avg: '$rating' },
+          reviewCount: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const ratingMap: Record<string, { avgRating: number; reviewCount: number }> = {};
+    for (const r of ratingAgg) {
+      ratingMap[r._id.toString()] = {
+        avgRating: Math.round(r.avgRating * 10) / 10,
+        reviewCount: r.reviewCount,
+      };
+    }
+
+    enriched = enriched.map((s: any) => ({
+      ...s,
+      rating: ratingMap[s._id.toString()]?.avgRating ?? 0,
+      reviewCount: ratingMap[s._id.toString()]?.reviewCount ?? 0,
+    }));
+  }
+
+  return {
+    meta: { page, limit, total, totalPage: Math.ceil(total / limit) },
+    result: enriched,
+  };
+};
+
 export const VendorServiceServices = {
   getAllVendorServicesFromDB,
   getVendorServicesByVendorFromDB,
@@ -780,4 +867,5 @@ export const VendorServiceServices = {
   getFavServicesFromDB,
   getRecentVendorsFromDB,
   getFeaturedVendorServicesFromDB,
+  getActiveServicesByVendorFromDB,
 };
