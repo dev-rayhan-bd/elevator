@@ -8,9 +8,6 @@ export interface IAdvisorService {
   name: string;
   description: string;
   price: number;
-  durationDays: number;
-  features: string[];
-  image?: string;
   isActive: boolean;
 }
 
@@ -26,11 +23,13 @@ export type TAdvisorBookingStatus =
 export interface IAdvisorBooking extends Document {
   user: Types.ObjectId;
   advisorService: Types.ObjectId;
-  eventDate: Date;
-  eventType: Types.ObjectId;
-  guestCount: number;
+  fullName: string;
+  email: string;
+  phone: string;
+  weddingDate: Date;
+  weddingLocation: string;
   budget: number;
-  area: Types.ObjectId;
+  guestCount: number;
   specialRequirements?: string;
   status: TAdvisorBookingStatus;
   assignedAssociate?: Types.ObjectId;

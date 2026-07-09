@@ -10,9 +10,6 @@ const advisorServiceSchema = new Schema<IAdvisorService>(
     name: { type: String, required: true, unique: true, trim: true },
     description: { type: String, required: true, trim: true },
     price: { type: Number, required: true, min: 0 },
-    durationDays: { type: Number, required: true, min: 1 },
-    features: { type: [String], default: [] },
-    image: { type: String, default: '' },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true },
@@ -41,19 +38,13 @@ const advisorBookingSchema = new Schema<IAdvisorBooking>(
       ref: 'AdvisorService',
       required: true,
     },
-    eventDate: { type: Date, required: true },
-    eventType: {
-      type: Schema.Types.ObjectId,
-      ref: 'EventType',
-      required: true,
-    },
-    guestCount: { type: Number, required: true, min: 1 },
+    fullName: { type: String, required: true, trim: true },
+    email: { type: String, required: true, trim: true },
+    phone: { type: String, required: true, trim: true },
+    weddingDate: { type: Date, required: true },
+    weddingLocation: { type: String, required: true, trim: true },
     budget: { type: Number, required: true, min: 0 },
-    area: {
-      type: Schema.Types.ObjectId,
-      ref: 'ServiceArea',
-      required: true,
-    },
+    guestCount: { type: Number, required: true, min: 1 },
     specialRequirements: { type: String, trim: true },
     status: {
       type: String,
@@ -72,9 +63,10 @@ const advisorBookingSchema = new Schema<IAdvisorBooking>(
   { timestamps: true },
 );
 
-advisorBookingSchema.index({ user: 1, status: 1 });
+advisorBookingSchema.index({ advisorService: 1, status: 1 });
 advisorBookingSchema.index({ status: 1, createdAt: -1 });
 advisorBookingSchema.index({ assignedAssociate: 1, status: 1 });
+advisorBookingSchema.index({ email: 1 });
 
 export const AdvisorBooking = model<IAdvisorBooking>(
   'AdvisorBooking',

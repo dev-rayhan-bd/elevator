@@ -8,9 +8,6 @@ const createAdvisorServiceSchema = z.object({
   name: z.string().min(1, 'Service name is required'),
   description: z.string().min(1, 'Description is required'),
   price: z.number().min(0, 'Price must be 0 or more'),
-  durationDays: z.number().min(1, 'Duration must be at least 1 day'),
-  features: z.array(z.string()).optional(),
-  image: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -18,9 +15,6 @@ const updateAdvisorServiceSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().min(1).optional(),
   price: z.number().min(0).optional(),
-  durationDays: z.number().min(1).optional(),
-  features: z.array(z.string()).optional(),
-  image: z.string().optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -30,11 +24,13 @@ const updateAdvisorServiceSchema = z.object({
 
 const createBookingSchema = z.object({
   advisorService: z.string().min(1, 'Advisor service is required'),
-  eventDate: z.string().min(1, 'Event date is required'),
-  eventType: z.string().min(1, 'Event type is required'),
-  guestCount: z.number().min(1, 'Guest count must be at least 1'),
+  fullName: z.string().min(1, 'Full name is required'),
+  email: z.string().email('Valid email is required'),
+  phone: z.string().min(1, 'Phone number is required'),
+  weddingDate: z.string().min(1, 'Wedding date is required'),
+  weddingLocation: z.string().min(1, 'Wedding location is required'),
   budget: z.number().min(0, 'Budget must be 0 or more'),
-  area: z.string().min(1, 'Service area is required'),
+  guestCount: z.number().min(1, 'Guest count must be at least 1'),
   specialRequirements: z.string().optional(),
 });
 

@@ -105,22 +105,24 @@ const createBookingIntoDB = async (userId: string, payload: any) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'This advisor service is currently unavailable');
   }
 
-  const result = await AdvisorBooking.create({
+  const bookingData: any = {
     user: new Types.ObjectId(userId),
     advisorService: new Types.ObjectId(payload.advisorService),
-    eventDate: new Date(payload.eventDate),
-    eventType: new Types.ObjectId(payload.eventType),
-    guestCount: payload.guestCount,
+    fullName: payload.fullName,
+    email: payload.email,
+    phone: payload.phone,
+    weddingDate: new Date(payload.weddingDate),
+    weddingLocation: payload.weddingLocation,
     budget: payload.budget,
-    area: new Types.ObjectId(payload.area),
+    guestCount: payload.guestCount,
     specialRequirements: payload.specialRequirements,
     status: 'pending',
-  });
+  };
+
+  const result = await AdvisorBooking.create(bookingData);
 
   return result.populate([
-    { path: 'advisorService', select: 'name description price durationDays features' },
-    { path: 'eventType', select: 'name image' },
-    { path: 'area', select: 'name region' },
+    { path: 'advisorService', select: 'name description price' },
   ]);
 };
 
@@ -131,9 +133,7 @@ const createBookingIntoDB = async (userId: string, payload: any) => {
 const getMyBookingsFromDB = async (userId: string, query: Record<string, unknown>) => {
   const bookingQuery = new QueryBuilder(
     AdvisorBooking.find({ user: new Types.ObjectId(userId) })
-      .populate('advisorService', 'name description price durationDays features image')
-      .populate('eventType', 'name image')
-      .populate('area', 'name region')
+      .populate('advisorService', 'name description price')
       .populate('assignedAssociate', 'firstName lastName image phone')
       .sort('-createdAt'),
     query,
@@ -156,9 +156,7 @@ const getMySingleBookingFromDB = async (userId: string, bookingId: string) => {
     _id: new Types.ObjectId(bookingId),
     user: new Types.ObjectId(userId),
   })
-    .populate('advisorService', 'name description price durationDays features image')
-    .populate('eventType', 'name image')
-    .populate('area', 'name region')
+    .populate('advisorService', 'name description price')
     .populate('assignedAssociate', 'firstName lastName image phone email');
 
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Booking not found');
@@ -198,8 +196,6 @@ const adminGetAllBookingsFromDB = async (query: Record<string, unknown>) => {
     AdvisorBooking.find()
       .populate('user', 'firstName lastName email image phone')
       .populate('advisorService', 'name description price')
-      .populate('eventType', 'name image')
-      .populate('area', 'name region')
       .populate('assignedAssociate', 'firstName lastName image phone'),
     query,
   )
@@ -354,7 +350,7 @@ const getAdvisorDashboardStatsFromDB = async () => {
     .populate('assignedAssociate', 'firstName lastName image')
     .sort('-createdAt')
     .limit(5)
-    .select('status budget eventDate createdAt');
+    .select('status budget weddingDate createdAt');
 
   return {
     services: { total: totalServices, active: activeServices },
