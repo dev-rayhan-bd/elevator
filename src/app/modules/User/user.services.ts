@@ -1,3 +1,4 @@
+import { Types } from 'mongoose';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { User } from './user.model';
 import httpStatus from 'http-status'
@@ -223,6 +224,27 @@ const triggerBookingNotification = async (vendorId: string, date: string, custom
   );
 };
 
+// ══════════════════════════════════════════════
+//  PUBLIC: GET SINGLE VENDOR PROFILE
+// ══════════════════════════════════════════════
+
+const getVendorProfileFromDB = async (vendorId: string) => {
+  const vendor = await User.findOne({
+    _id: new Types.ObjectId(vendorId),
+    role: 'vendor',
+    isDeleted: false,
+    status: 'active',
+  }).select(
+    'firstName lastName fullName image lat long role vendor.businessName vendor.ownerName vendor.whatsappNumber vendor.location vendor.businessDetails vendor.experienceYears vendor.teamSize vendor.socialLinks vendor.googleMapLink vendor.categories vendor.serviceArea vendor.portfolio vendor.profileScore vendor.isVerifiedBadge vendor.isProfileCompleted createdAt',
+  );
+
+  if (!vendor) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Vendor not found');
+  }
+
+  return vendor;
+};
+
 export const UserServices = {
   getAllUsersFromDB,
   updateProfileInDB,
@@ -230,6 +252,7 @@ export const UserServices = {
   applyToBecomeVendor,
   getMeFromDB,
   updateVendorAvailabilityInDB,
+  getVendorProfileFromDB,
   triggerNewReviewNotification,
   triggerVendorApprovalNotification,
   triggerVendorVerificationNotification,

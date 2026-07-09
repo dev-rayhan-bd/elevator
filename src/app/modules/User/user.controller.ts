@@ -105,6 +105,21 @@ const updateAvailabilityStatus = catchAsync(async (req, res) => {
   });
 });
 
+// ══════════════════════════════════════════════
+//  PUBLIC: GET SINGLE VENDOR PROFILE
+// ══════════════════════════════════════════════
+
+const getVendorProfile = catchAsync(async (req, res) => {
+  const { vendorId } = req.params;
+  const result = await UserServices.getVendorProfileFromDB(vendorId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Vendor profile retrieved successfully',
+    data: result,
+  });
+});
+
 export const UserControllers = {
   getAllUsers,
   updateProfile,
@@ -114,4 +129,5 @@ export const UserControllers = {
   becomeVendorRequest,
   getMe,
   updateAvailabilityStatus,
+  getVendorProfile,
 };

@@ -57,4 +57,12 @@ router.patch(
   UserControllers.updateAvailabilityStatus
 );
 
+// ──────────────────────────────────────────────────────────────
+// Public Routes
+// ──────────────────────────────────────────────────────────────
+router.get(
+  '/public/vendor/:vendorId',
+  UserControllers.getVendorProfile
+);
+
 export const UserRoutes = router;
