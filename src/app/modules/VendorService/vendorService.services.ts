@@ -59,220 +59,332 @@ const getPublicVendorServicesFromDB = async (
   query: Record<string, unknown>,
   userId?: string,
 ) => {
-  // ── Extract special filter params ──
+  // ──────────────────────────────────────────────────────
+  //  1. Extract & parse filter params
+  // ──────────────────────────────────────────────────────
   const {
     category,
     subcategory,
     area,
     eventTypes,
+    amenities,
     minPrice,
     maxPrice,
-    sortByPrice,
+    guestCapacity,
     rating,
     isVerified,
     isFav,
-    ...restQuery
+    search,
+    lat: queryLat,
+    lng: queryLng,
+    maxDistance,
+    page: pageStr,
+    limit: limitStr,
   } = query as Record<string, unknown>;
 
-  // ── Pagination (early — caps limit to prevent abuse) ──
-  const page = Number(restQuery.page) || 1;
-  const limit = Math.min(Number(restQuery.limit) || 10, 50);
+  const page = Math.max(Number(pageStr) || 1, 1);
+  const limit = Math.min(Number(limitStr) || 10, 50);
   const skip = (page - 1) * limit;
 
-  // ── Build base filter (direct DB fields — all indexed) ──
-  const filter: Record<string, any> = { isActive: true, isDraft: { $ne: true } };
+  // ──────────────────────────────────────────────────────
+  //  2. Build $match stage (VendorService fields)
+  // ──────────────────────────────────────────────────────
+  const $match: Record<string, any> = { isActive: true, isDraft: { $ne: true } };
 
-  if (category) {
-    filter.category = new Types.ObjectId(category as string);
-  }
-  if (subcategory) {
-    filter.subcategory = new Types.ObjectId(subcategory as string);
-  }
+  if (category) $match.category = new Types.ObjectId(category as string);
+  if (subcategory) $match.subcategory = new Types.ObjectId(subcategory as string);
   if (area) {
-    filter.serviceAreas = { $in: [new Types.ObjectId(area as string)] };
+    $match.serviceAreas = { $in: [new Types.ObjectId(area as string)] };
   }
   if (eventTypes) {
     const etIds = Array.isArray(eventTypes)
       ? eventTypes.map((id: any) => new Types.ObjectId(String(id)))
       : String(eventTypes).split(',').map((id: string) => new Types.ObjectId(id.trim()));
-    filter.eventTypes = { $in: etIds };
+    $match.eventTypes = { $in: etIds };
+  }
+  if (amenities) {
+    const amIds = Array.isArray(amenities)
+      ? amenities.map((id: any) => new Types.ObjectId(String(id)))
+      : String(amenities).split(',').map((id: string) => new Types.ObjectId(id.trim()));
+    $match.amenities = { $all: amIds };
   }
   if (minPrice || maxPrice) {
-    filter.price = {};
-    if (minPrice) filter.price.$gte = Number(minPrice);
-    if (maxPrice) filter.price.$lte = Number(maxPrice);
+    $match.price = {};
+    if (minPrice) $match.price.$gte = Number(minPrice);
+    if (maxPrice) $match.price.$lte = Number(maxPrice);
+  }
+  if (guestCapacity) {
+    $match.guestCapacity = { $gte: Number(guestCapacity) };
+  }
+  if (search) {
+    const regex = new RegExp(String(search), 'i');
+    $match.$or = [{ title: regex }, { description: regex }];
   }
 
-  // ── Search (filter-level regex → accurate count + pagination) ──
-  const searchTerm = (restQuery.search as string) || '';
-  if (searchTerm) {
-    const regex = new RegExp(searchTerm, 'i');
-    filter.$or = [{ title: regex }, { description: regex }];
-  }
+  // ───────────────────────────────────────────────────────
+  // 3. Build the aggregation pipeline
+  // ───────────────────────────────────────────────────────
+  const pipeline: any[] = [{ $match }];
 
-  // ── Parallel User lookups (isSponsored + isVerified + isFav) ──
+  // ── 3a. Lookup vendor (User) data ──
+  pipeline.push({
+    $lookup: {
+      from: 'users',
+      localField: 'vendor',
+      foreignField: '_id',
+      as: 'vendor',
+    },
+  });
+  pipeline.push({ $unwind: { path: '$vendor', preserveNullAndEmptyArrays: false } });
+
+  // ── 3b. Filter: only non-deleted vendors ──
+  pipeline.push({ $match: { 'vendor.isDeleted': { $ne: true }, 'vendor.role': 'vendor' } });
+
+  // ── 3c. isVerified filter ──
   const needVerified = isVerified === 'true' || isVerified === true;
-  const needFav = isFav === 'true' || isFav === true;
-
-  const [sponsoredVendorIds, verifiedVendorIds, userFavs] = await Promise.all([
-    // Get all sponsored vendor IDs for search ranking
-    User.find({ isSponsored: true, role: 'vendor' })
-      .select('_id')
-      .lean()
-      .then((v) => v.map((d) => d._id)),
-    needVerified
-      ? User.find({ role: 'vendor', 'vendor.isVerifiedBadge': true })
-          .select('_id')
-          .lean()
-          .then((v) => v.map((d) => d._id))
-      : Promise.resolve(null),
-    userId
-      ? User.findById(userId).select('favoriteServices').lean()
-          .then((u) => u?.favoriteServices ?? [])
-      : Promise.resolve([]),
-  ]);
-
-  // isVerified filter
   if (needVerified) {
-    if (!verifiedVendorIds || verifiedVendorIds.length === 0) {
-      return { meta: { page: 1, limit, total: 0, totalPage: 0 }, result: [] };
-    }
-    filter.vendor = { $in: verifiedVendorIds };
+    pipeline.push({ $match: { 'vendor.vendor.isVerifiedBadge': true } });
   }
 
-  // isFav filter — build _id set on filter
-  let favSet: Set<string> | null = null;
-  if (userId) {
-    favSet = new Set(userFavs.map((id: any) => id.toString()));
+  // ── 3d. Geo-spatial proximity filter (haversine in $addFields + $match) ──
+  const userLat = Number(queryLat);
+  const userLng = Number(queryLng);
+  const distKm = Number(maxDistance) || 0;
+  const hasGeoFilter = !isNaN(userLat) && !isNaN(userLng) && distKm > 0;
+
+  if (hasGeoFilter) {
+    // Earth radius in km
+    const R = 6371;
+    pipeline.push({
+      $addFields: {
+        distanceKm: {
+          $let: {
+            vars: {
+              dLat: { $degreesToRadians: { $subtract: [{ $ifNull: ['$vendor.vendor.lat', '$vendor.lat'] }, userLat] } },
+              dLng: { $degreesToRadians: { $subtract: [{ $ifNull: ['$vendor.vendor.long', '$vendor.long'] }, userLng] } },
+              lat1: { $degreesToRadians: userLat },
+              lat2: { $degreesToRadians: { $ifNull: ['$vendor.vendor.lat', '$vendor.lat'] } },
+            },
+            in: {
+              $multiply: [
+                R,
+                2,
+                {
+                  $asin: {
+                    $sqrt: {
+                      $add: [
+                        {
+                          $multiply: [
+                            { $sin: { $divide: ['$$dLat', 2] } },
+                            { $sin: { $divide: ['$$dLat', 2] } },
+                          ],
+                        },
+                        {
+                          $multiply: [
+                            { $cos: '$$lat1' },
+                            { $cos: '$$lat2' },
+                            { $sin: { $divide: ['$$dLng', 2] } },
+                            { $sin: { $divide: ['$$dLng', 2] } },
+                          ],
+                        },
+                      ],
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+    pipeline.push({ $match: { distanceKm: { $lte: distKm } } });
   }
+
+  // ── 3e. isFav filter (pre-filter before $facet) ──
+  const needFav = isFav === 'true' || isFav === true;
+  let favSet: Set<string> | null = null;
 
   if (needFav && !userId) {
     return { meta: { page: 1, limit, total: 0, totalPage: 0 }, result: [] };
   }
-  if (needFav && favSet && favSet.size === 0) {
-    return { meta: { page: 1, limit, total: 0, totalPage: 0 }, result: [] };
-  }
-  if (needFav && favSet && favSet.size > 0) {
-    filter._id = { $in: [...favSet].map((id) => new Types.ObjectId(id)) };
-  }
 
-  // ── Rating filter (scoped — only aggregates reviews for candidate services) ──
-  if (rating) {
-    const minRating = Number(rating);
-    const { Review } = await import('../Review/review.model');
+  if (userId) {
+    const userDoc = await User.findById(userId).select('favoriteServices').lean();
+    const favs = userDoc?.favoriteServices ?? [];
+    favSet = new Set(favs.map((id: any) => id.toString()));
 
-    // Step 1: get candidate service IDs that pass the base filter
-    const candidateIds = await VendorService.distinct('_id', filter);
-    if (candidateIds.length === 0) {
-      return { meta: { page: 1, limit, total: 0, totalPage: 0 }, result: [] };
-    }
-
-    // Step 2: aggregate ONLY those candidate reviews (not all reviews)
-    const ratingAgg = await Review.aggregate([
-      { $match: { service: { $in: candidateIds }, isDeleted: false } },
-      { $group: { _id: '$service', avgRating: { $avg: '$rating' } } },
-      { $match: { avgRating: { $gte: minRating } } },
-    ]);
-    const ratedIds = new Set(ratingAgg.map((r: any) => r._id.toString()));
-
-    if (ratedIds.size === 0) {
-      return { meta: { page: 1, limit, total: 0, totalPage: 0 }, result: [] };
-    }
-
-    // Step 3: intersect with existing _id filter (isFav) if present
-    if (filter._id?.$in) {
-      const currentIds: Types.ObjectId[] = filter._id.$in;
-      const intersected = currentIds.filter((id) => ratedIds.has(id.toString()));
-      if (intersected.length === 0) {
+    if (needFav) {
+      if (favSet.size === 0) {
         return { meta: { page: 1, limit, total: 0, totalPage: 0 }, result: [] };
       }
-      filter._id = { $in: intersected };
-    } else {
-      filter._id = { $in: [...ratedIds].map((id) => new Types.ObjectId(id)) };
+      pipeline.push({
+        $match: { _id: { $in: [...favSet].map((id) => new Types.ObjectId(id)) } },
+      });
     }
   }
 
-  // ── Sort (prioritize sponsored vendors, then profileScore descending) ──
-  let sortObj: Record<string, 1 | -1> = { createdAt: -1 };
-  if (sortByPrice === 'asc') sortObj = { price: 1 };
-  else if (sortByPrice === 'desc') sortObj = { price: -1 };
-
-  // ── Execute query (find + count in parallel) ──
-  const [result, total] = await Promise.all([
-    VendorService.find(filter)
-      .populate(
-        'vendor',
-        'firstName lastName fullName image lat long vendor.businessName vendor.location vendor.profileScore vendor.isVerifiedBadge',
-      )
-      .populate('category', 'name image')
-      .populate('subcategory', 'name image')
-      .populate('eventTypes', 'name image')
-      .populate('serviceAreas', 'name region')
-      .populate('amenities', 'name icon')
-      .sort(sortObj)
-      .skip(skip)
-      .limit(limit)
-      .lean(),
-    VendorService.countDocuments(filter),
-  ]);
-
-  // ── Sort sponsored vendors first (search ranking) ──
-  let enrichedResult = result;
-  if (sponsoredVendorIds.length > 0) {
-    const sponsoredSet = new Set(sponsoredVendorIds.map((id: any) => id.toString()));
-    enrichedResult = [...result].sort((a: any, b: any) => {
-      const aSponsored = sponsoredSet.has(a.vendor?._id?.toString() || a.vendor?.toString());
-      const bSponsored = sponsoredSet.has(b.vendor?._id?.toString() || b.vendor?.toString());
-      if (aSponsored && !bSponsored) return -1;
-      if (!aSponsored && bSponsored) return 1;
-      // Both sponsored or both not — sort by vendor profileScore descending
-      const aScore = a.vendor?.profileScore || 0;
-      const bScore = b.vendor?.profileScore || 0;
-      return bScore - aScore;
-    });
-  }
-
-  // ── Enrich: isFav ──
-  if (favSet) {
-    enrichedResult = enrichedResult.map((s: any) => ({
-      ...s,
-      isFav: favSet!.has(s._id.toString()),
-    }));
-  }
-
-  // ── Enrich: rating + reviewCount (only for returned page) ──
-  if (enrichedResult.length > 0) {
-    const serviceIds = enrichedResult.map((s: any) => s._id);
-    const { Review } = await import('../Review/review.model');
-    const ratingAgg = await Review.aggregate([
-      { $match: { service: { $in: serviceIds }, isDeleted: false } },
-      {
-        $group: {
-          _id: '$service',
-          avgRating: { $avg: '$rating' },
-          reviewCount: { $sum: 1 },
+  // ── 3f. Lookup active promotions (sponsored) ──
+  const now = new Date();
+  pipeline.push({
+    $lookup: {
+      from: 'vendorpromotions',
+      let: { vendorId: '$vendor._id' },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $and: [
+                { $eq: ['$vendor', '$$vendorId'] },
+                { $eq: ['$promotionCategory', 'sponsored'] },
+                { $eq: ['$isActive', true] },
+                { $eq: ['$status', 'active'] },
+                { $lte: ['$startDate', now] },
+                { $gte: ['$endDate', now] },
+              ],
+            },
+          },
         },
+        { $limit: 1 },
+      ],
+      as: 'activePromotion',
+    },
+  });
+  pipeline.push({
+    $addFields: {
+      isSponsored: { $gt: [{ $size: '$activePromotion' }, 0] },
+    },
+  });
+
+  // ── 3g. Lookup: rating + reviewCount ──
+  pipeline.push({
+    $lookup: {
+      from: 'reviews',
+      let: { serviceId: '$_id' },
+      pipeline: [
+        { $match: { $expr: { $eq: ['$service', '$$serviceId'] }, isDeleted: false } },
+        {
+          $group: {
+            _id: null,
+            avgRating: { $avg: '$rating' },
+            reviewCount: { $sum: 1 },
+          },
+        },
+      ],
+      as: 'ratingData',
+    },
+  });
+  pipeline.push({
+    $addFields: {
+      rating: {
+        $ifNull: [
+          { $round: [{ $arrayElemAt: ['$ratingData.avgRating', 0] }, 1] },
+          0,
+        ],
       },
-    ]);
+      reviewCount: {
+        $ifNull: [{ $arrayElemAt: ['$ratingData.reviewCount', 0] }, 0],
+      },
+    },
+  });
 
-    const ratingMap: Record<string, { avgRating: number; reviewCount: number }> = {};
-    for (const r of ratingAgg) {
-      ratingMap[r._id.toString()] = {
-        avgRating: Math.round(r.avgRating * 10) / 10,
-        reviewCount: r.reviewCount,
-      };
-    }
-
-    enrichedResult = enrichedResult.map((s: any) => ({
-      ...s,
-      rating: ratingMap[s._id.toString()]?.avgRating ?? 0,
-      reviewCount: ratingMap[s._id.toString()]?.reviewCount ?? 0,
-    }));
+  // ── 3h. Rating filter (post-lookup) ──
+  const minRating = Number(rating) || 0;
+  if (minRating > 0) {
+    pipeline.push({ $match: { rating: { $gte: minRating } } });
   }
+
+  // ── 3i. Add isFav field ──
+  if (favSet) {
+    pipeline.push({
+      $addFields: {
+        isFav: { $in: ['$_id', [...favSet].map((id) => new Types.ObjectId(id))] },
+      },
+    });
+  } else {
+    pipeline.push({ $addFields: { isFav: false } });
+  }
+
+  // ── 3j. Add distanceKm if geo not active ──
+  if (!hasGeoFilter) {
+    pipeline.push({ $addFields: { distanceKm: null } });
+  }
+
+  // ── 3k. Sort: Sponsored → Verified Badge → Profile Score → Rating → Newest ──
+  pipeline.push({
+    $addFields: {
+      sortVerified: { $ifNull: ['$vendor.vendor.isVerifiedBadge', false] },
+      sortProfileScore: { $ifNull: ['$vendor.vendor.profileScore', 0] },
+    },
+  });
+  pipeline.push({
+    $sort: {
+      isSponsored: -1,
+      sortVerified: -1,
+      sortProfileScore: -1,
+      rating: -1,
+      createdAt: -1,
+    } as Record<string, 1 | -1>,
+  });
+
+  // ── 3l. Project: map-pin optimized response ──
+  pipeline.push({
+    $project: {
+      _id: 1,
+      title: 1,
+      description: 1,
+      price: 1,
+      pricingType: 1,
+      guestCapacity: 1,
+      images: 1,
+      termsAndCondition: 1,
+      isActive: 1,
+      isDraft: 1,
+      createdAt: 1,
+      updatedAt: 1,
+      isSponsored: 1,
+      isFav: 1,
+      rating: 1,
+      reviewCount: 1,
+      distanceKm: 1,
+      category: { _id: 1, name: 1, image: 1 },
+      subcategory: { _id: 1, name: 1, image: 1 },
+      eventTypes: { _id: 1, name: 1, image: 1 },
+      serviceAreas: { _id: 1, name: 1, region: 1 },
+      amenities: { _id: 1, name: 1, icon: 1 },
+      'vendor._id': 1,
+      'vendor.firstName': 1,
+      'vendor.lastName': 1,
+      'vendor.fullName': 1,
+      'vendor.image': 1,
+      'vendor.lat': 1,
+      'vendor.long': 1,
+      'vendor.vendor.businessName': 1,
+      'vendor.vendor.location': 1,
+      'vendor.vendor.profileScore': 1,
+      'vendor.vendor.isVerifiedBadge': 1,
+      'vendor.vendor.lat': 1,
+      'vendor.vendor.long': 1,
+    },
+  });
+
+  // ── 3m. $facet: paginated results + total count ──
+  pipeline.push({
+    $facet: {
+      metadata: [{ $count: 'total' }],
+      data: [{ $skip: skip }, { $limit: limit }],
+    },
+  });
+
+  // ───────────────────────────────────────────────────────
+  // 4. Execute pipeline
+  // ───────────────────────────────────────────────────────
+  const [facetResult] = await VendorService.aggregate(pipeline);
+  const total = facetResult.metadata[0]?.total ?? 0;
+  const result = facetResult.data;
 
   return {
     meta: { page, limit, total, totalPage: Math.ceil(total / limit) },
-    result: enrichedResult,
+    result,
   };
 };
 

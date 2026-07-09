@@ -78,6 +78,11 @@ vendorServiceSchema.index({ isActive: 1, isDraft: 1, price: 1 });
 vendorServiceSchema.index({ isActive: 1, isDraft: 1, createdAt: -1 });
 // ── Vendor-specific queries ──
 vendorServiceSchema.index({ vendor: 1, isActive: 1 });
+// ── Karachi Venue Map — aggregation support indexes ──
+vendorServiceSchema.index({ isActive: 1, isDraft: 1, guestCapacity: 1 });
+vendorServiceSchema.index({ isActive: 1, isDraft: 1, amenities: 1 });
+vendorServiceSchema.index({ isActive: 1, isDraft: 1, price: 1, guestCapacity: 1 });
+vendorServiceSchema.index({ isActive: 1, isDraft: 1, serviceAreas: 1 });
 vendorServiceSchema.index({ vendor: 1, isDraft: 1 });
 
 export const VendorService = model<TVendorService>('VendorService', vendorServiceSchema);

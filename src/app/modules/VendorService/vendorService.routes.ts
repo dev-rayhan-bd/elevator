@@ -14,6 +14,7 @@ router.get('/public', optionalAuth, VendorServiceControllers.getPublicVendorServ
 router.get('/public/all', VendorServiceControllers.getAllPublishedServices);
 router.get('/public/recent-vendors', VendorServiceControllers.getRecentVendors);
 router.get('/public/featured-vendors', optionalAuth, VendorServiceControllers.getFeaturedVendorServices);
+router.get('/public/venues/karachi', optionalAuth, VendorServiceControllers.getKarachiVenues);
 router.get('/public/:id', optionalAuth, VendorServiceControllers.getSingleVendorService);
 router.get('/public/vendor/:vendorId', optionalAuth, VendorServiceControllers.getActiveServicesByVendor);
 

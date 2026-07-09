@@ -411,6 +411,28 @@ const getActiveServicesByVendor = catchAsync(async (req, res) => {
   });
 });
 
+// ══════════════════════════════════════════════
+//  KARACHI VENUE MAP — Advanced Venue Search
+// ══════════════════════════════════════════════
+
+const getKarachiVenues = catchAsync(async (req, res) => {
+  // Validate query params
+  const parsed = VendorServiceValidations.venueSearchQuerySchema.parse(req.query);
+  const userId = (req.user as any)?.userId;
+
+  const result = await VendorServiceServices.getPublicVendorServicesFromDB(
+    parsed as unknown as Record<string, unknown>,
+    userId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Karachi venues retrieved successfully',
+    data: result,
+  });
+});
+
 export const VendorServiceControllers = {
   getAllVendorServices,
   getMyServices,
@@ -432,4 +454,5 @@ export const VendorServiceControllers = {
   getFavServices,
   getFeaturedVendorServices,
   getActiveServicesByVendor,
+  getKarachiVenues,
 };

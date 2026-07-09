@@ -82,6 +82,31 @@ export const publishDraftSchema = z.object({
   }),
 });
 
+// ── Karachi Venue Map — Query Param Validation ──
+export const venueSearchQuerySchema = z.object({
+  category: z.string().optional(),
+  subcategory: z.string().optional(),
+  area: z.string().optional(),
+  eventTypes: z.union([z.string(), z.array(z.string())]).optional(),
+  amenities: z.union([z.string(), z.array(z.string())]).optional(),
+  minPrice: z.string().optional(),
+  maxPrice: z.string().optional(),
+  guestCapacity: z.string().optional(),
+  rating: z.string().optional(),
+  isVerified: z
+    .union([z.literal('true'), z.literal('false'), z.boolean()])
+    .optional(),
+  isFav: z
+    .union([z.literal('true'), z.literal('false'), z.boolean()])
+    .optional(),
+  search: z.string().optional(),
+  lat: z.string().optional(),
+  lng: z.string().optional(),
+  maxDistance: z.string().optional(),
+  page: z.string().optional(),
+  limit: z.string().optional(),
+});
+
 export const VendorServiceValidations = {
   createVendorServiceSchema,
   updateVendorServiceSchema,
@@ -89,4 +114,5 @@ export const VendorServiceValidations = {
   deleteServiceImagesSchema,
   draftVendorServiceSchema,
   publishDraftSchema,
+  venueSearchQuerySchema,
 };
