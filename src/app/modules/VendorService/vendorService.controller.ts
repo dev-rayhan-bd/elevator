@@ -88,7 +88,7 @@ const createVendorService = catchAsync(async (req, res) => {
       serviceAreas: validated.body.serviceAreas!.map((id: string) => new Types.ObjectId(id)),
     }),
     ...((validated.body.amenities?.length ?? 0) > 0 && {
-      amenities: validated.body.amenities!.map((id: string) => new Types.ObjectId(id)),
+      amenities: validated.body.amenities,
     }),
     ...(imageUrls.length > 0 && { images: imageUrls }),
   };
@@ -133,7 +133,7 @@ const updateVendorService = catchAsync(async (req, res) => {
       serviceAreas: validated.body.serviceAreas!.map((id: string) => new Types.ObjectId(id)),
     }),
     ...((validated.body.amenities?.length ?? 0) > 0 && {
-      amenities: validated.body.amenities!.map((id: string) => new Types.ObjectId(id)),
+      amenities: validated.body.amenities,
     }),
     ...(imageUrls.length > 0 && { images: imageUrls }),
   };
@@ -236,7 +236,7 @@ const saveDraft = catchAsync(async (req, res) => {
       serviceAreas: validated.body.serviceAreas!.map((id: string) => new Types.ObjectId(id)),
     }),
     ...((validated.body.amenities?.length ?? 0) > 0 && {
-      amenities: validated.body.amenities!.map((id: string) => new Types.ObjectId(id)),
+      amenities: validated.body.amenities,
     }),
     ...(imageUrls.length > 0 && { images: imageUrls }),
   };
@@ -291,7 +291,7 @@ const publishDraft = catchAsync(async (req, res) => {
       serviceAreas: validated.body.serviceAreas!.map((id: string) => new Types.ObjectId(id)),
     }),
     ...((validated.body.amenities?.length ?? 0) > 0 && {
-      amenities: validated.body.amenities!.map((id: string) => new Types.ObjectId(id)),
+      amenities: validated.body.amenities,
     }),
     ...(imageUrls.length > 0 && { images: imageUrls }),
   };

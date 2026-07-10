@@ -3,10 +3,23 @@ import { Types } from 'mongoose';
 import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { VendorService } from './vendorService.model';
-import { TVendorService } from './vendorService.interface';
 import { User } from '../User/user.model';
 import { ReviewServices } from '../Review/review.services';
 import { VendorPromotion } from '../Promotion/promotion.model';
+
+// ── Helper: split amenities into ObjectId refs + custom free-text ──
+const processAmenitiesInput = (amenities: string[]) => {
+  const refs: Types.ObjectId[] = [];
+  const custom: string[] = [];
+  for (const item of amenities) {
+    if (Types.ObjectId.isValid(item)) {
+      refs.push(new Types.ObjectId(item));
+    } else {
+      custom.push(item);
+    }
+  }
+  return { amenities: refs, customAmenities: custom };
+};
 
 const getAllVendorServicesFromDB = async (query: Record<string, unknown>) => {
   const serviceQuery = new QueryBuilder(
@@ -351,6 +364,7 @@ const getPublicVendorServicesFromDB = async (
       eventTypes: { _id: 1, name: 1, image: 1 },
       serviceAreas: { _id: 1, name: 1, region: 1 },
       amenities: { _id: 1, name: 1, icon: 1 },
+      customAmenities: 1,
       'vendor._id': 1,
       'vendor.firstName': 1,
       'vendor.lastName': 1,
@@ -436,11 +450,19 @@ const createVendorServiceIntoDB = async (
   vendorId: string,
   payload: Record<string, unknown>,
 ) => { 
-  const serviceData = {
-    ...payload,
+  const { amenities: am, ...rest } = payload;
+  const serviceData: any = {
+    ...rest,
     vendor: new Types.ObjectId(vendorId),
     isDraft: false,
-  } as TVendorService;
+  };
+
+  // Split amenities into ObjectId refs and custom text
+  if (am && Array.isArray(am)) {
+    const processed = processAmenitiesInput(am as string[]);
+    serviceData.amenities = processed.amenities;
+    serviceData.customAmenities = processed.customAmenities;
+  }
 
   const result = await VendorService.create(serviceData);
   return result;
@@ -457,18 +479,26 @@ const updateVendorServiceInDB = async (
   });
   if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Service not found or unauthorized');
 
+  // Split amenities into ObjectId refs and custom text
+  const { amenities: am, images, ...rest } = payload;
+  const updateData: any = { ...rest };
+  if (am && Array.isArray(am)) {
+    const processed = processAmenitiesInput(am as string[]);
+    updateData.amenities = processed.amenities;
+    updateData.customAmenities = processed.customAmenities;
+  }
+
   // If images are provided, append them to existing images instead of replacing
-  if (payload.images && Array.isArray(payload.images) && payload.images.length > 0) {
-    const { images, ...otherUpdates } = payload;
+  if (images && Array.isArray(images) && images.length > 0) {
     const result = await VendorService.findByIdAndUpdate(
       serviceId,
-      { $set: otherUpdates, $push: { images: { $each: images as string[] } } },
+      { $set: updateData, $push: { images: { $each: images as string[] } } },
       { new: true, runValidators: true },
     );
     return result;
   }
 
-  const result = await VendorService.findByIdAndUpdate(serviceId, payload, {
+  const result = await VendorService.findByIdAndUpdate(serviceId, updateData, {
     new: true,
     runValidators: true,
   });
@@ -530,11 +560,19 @@ const saveDraftInDB = async (
   vendorId: string,
   payload: Record<string, unknown>,
 ) => {
-  const draftData = {
-    ...payload,
+  const { amenities: am, ...rest } = payload;
+  const draftData: any = {
+    ...rest,
     vendor: new Types.ObjectId(vendorId),
     isDraft: true,
-  } as TVendorService;
+  };
+
+  // Split amenities into ObjectId refs and custom text
+  if (am && Array.isArray(am)) {
+    const processed = processAmenitiesInput(am as string[]);
+    draftData.amenities = processed.amenities;
+    draftData.customAmenities = processed.customAmenities;
+  }
 
   const result = await VendorService.create(draftData);
   return result;
@@ -567,9 +605,18 @@ const publishDraftFromDB = async (
   });
   if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Draft not found or unauthorized');
 
+  // Split amenities into ObjectId refs and custom text
+  const { amenities: am, ...rest } = payload;
+  const updateData: any = { ...rest, isDraft: false };
+  if (am && Array.isArray(am)) {
+    const processed = processAmenitiesInput(am as string[]);
+    updateData.amenities = processed.amenities;
+    updateData.customAmenities = processed.customAmenities;
+  }
+
   const result = await VendorService.findByIdAndUpdate(
     draftId,
-    { $set: { ...payload, isDraft: false } },
+    { $set: updateData },
     { new: true, runValidators: true },
   );
   return result;

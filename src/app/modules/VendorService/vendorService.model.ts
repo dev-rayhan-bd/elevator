@@ -56,6 +56,7 @@ const vendorServiceSchema = new Schema<TVendorService>(
     eventTypes: [{ type: Schema.Types.ObjectId, ref: 'EventType' }],
     serviceAreas: [{ type: Schema.Types.ObjectId, ref: 'ServiceArea' }],
     amenities: [{ type: Schema.Types.ObjectId, ref: 'Amenity' }],
+    customAmenities: [{ type: String }],
     images: [{ type: String }],
     termsAndCondition: {
       type: String,

@@ -14,6 +14,7 @@ export interface TVendorService {
   eventTypes?: Types.ObjectId[];
   serviceAreas?: Types.ObjectId[];
   amenities?: Types.ObjectId[];
+  customAmenities?: string[];
   images?: string[];
   termsAndCondition?: string;
   isActive: boolean;

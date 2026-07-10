@@ -40,8 +40,21 @@ const deleteReview = catchAsync(async (req, res) => {
   });
 });
 
+// ── Vendor: Get all reviews for my services ──
+const getVendorReviews = catchAsync(async (req, res) => {
+  const vendorId = req.user.userId;
+  const result = await ReviewServices.getVendorReviewsFromDB(vendorId, req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Your service reviews retrieved successfully',
+    data: result,
+  });
+});
+
 export const ReviewControllers = {
   createReview,
   getServiceReviews,
   deleteReview,
+  getVendorReviews,
 };

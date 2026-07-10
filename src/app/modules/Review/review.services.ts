@@ -135,9 +135,53 @@ const getServiceReviewsWithSummary = async (serviceId: string, page = 1, limit =
   };
 };
 
+// ── Vendor: Get all reviews for my services ──
+const getVendorReviewsFromDB = async (
+  vendorId: string,
+  query: Record<string, unknown>,
+) => {
+  const page = Math.max(Number(query.page) || 1, 1);
+  const limit = Math.min(Number(query.limit) || 10, 50);
+  const skip = (page - 1) * limit;
+  const sort = (query.sort as string) || '-createdAt';
+  const search = query.search as string | undefined;
+
+  const filter: Record<string, unknown> = { vendor: vendorId, isDeleted: false };
+
+  // Optional search in comment
+  if (search) {
+    filter.comment = { $regex: search, $options: 'i' };
+  }
+
+  // Optional filter by rating
+  if (query.rating) {
+    filter.rating = Number(query.rating);
+  }
+
+  const [reviews, total, allRatings] = await Promise.all([
+    Review.find(filter)
+      .populate('user', 'firstName lastName image email')
+      .populate('service', 'title images pricingType price')
+      .sort(sort)
+      .skip(skip)
+      .limit(limit),
+    Review.countDocuments(filter),
+    Review.find(filter).select('rating').lean(),
+  ]);
+
+  const summary = computeRatingSummary(allRatings);
+
+  return {
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    reviews,
+    summary,
+  };
+};
+
 export const ReviewServices = {
   createReviewInDB,
   getServiceReviewsFromDB,
   getServiceReviewsWithSummary,
   deleteReviewInDB,
+  getVendorReviewsFromDB,
 };

@@ -7,6 +7,13 @@ import { ReviewValidations } from './review.validation';
 
 const router = express.Router();
 
+// ── Vendor: Get all reviews for my services (must be before /:serviceId) ──
+router.get(
+  '/my-reviews',
+  auth('vendor'),
+  ReviewControllers.getVendorReviews,
+);
+
 // ── Create review (logged-in user) ──
 router.post(
   '/',
