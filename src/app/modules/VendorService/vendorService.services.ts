@@ -8,6 +8,7 @@ import { ReviewServices } from '../Review/review.services';
 import { VendorPromotion } from '../Promotion/promotion.model';
 import { sendNotification } from '../../utils/sendNotification';
 import { LeadClick } from './leadClick.model';
+import { UserServices } from '../User/user.services';
 
 // ── Helper: split amenities into ObjectId refs + custom free-text ──
 const processAmenitiesInput = (amenities: string[]) => {
@@ -467,6 +468,10 @@ const createVendorServiceIntoDB = async (
   }
 
   const result = await VendorService.create(serviceData);
+
+  // Trigger visibility score recalculation for Services Variety task
+  void UserServices.calculateAndUpdateVisibilityScore(vendorId);
+
   return result;
 };
 
@@ -579,6 +584,10 @@ const deleteVendorServiceFromDB = async (vendorId: string, serviceId: string) =>
   });
   if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Service not found or unauthorized');
   await VendorService.findByIdAndDelete(serviceId);
+
+  // Trigger visibility score recalculation (dynamic reversion)
+  void UserServices.calculateAndUpdateVisibilityScore(vendorId);
+
   return service;
 };
 
@@ -667,6 +676,10 @@ const publishDraftFromDB = async (
     { $set: updateData },
     { new: true, runValidators: true },
   );
+
+  // Trigger visibility score recalculation when draft goes live
+  void UserServices.calculateAndUpdateVisibilityScore(vendorId);
+
   return result;
 };
 

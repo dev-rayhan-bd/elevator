@@ -34,7 +34,8 @@ export interface TVendorDetails {
   availability: TVendorAvailability[];
   profileScore: number; // 0-100
   isVerifiedBadge: boolean;
-      isProfileCompleted: boolean;
+  isProfileCompleted: boolean;
+  completedTasks: string[]; // e.g. ['BUSINESS_VERIFICATION', 'SERVICES_VARIETY']
 }
 
 export interface TUser {
@@ -60,6 +61,7 @@ export interface TUser {
   passwordChangedAt?: Date;
   fcmToken?: string | null;
   favoriteServices?: Types.ObjectId[];
+  lastActiveAt?: Date;
 }
 
 export interface IUserMethods {

@@ -142,8 +142,11 @@ const loginUser = async (payload: { identifier: string; password: string; fcmTok
   // Update FCM token for push notifications (latest device)
   if (payload.fcmToken) {
     user.fcmToken = payload.fcmToken;
-    await user.save();
   }
+
+  // Track last activity for visibility score (fire-and-forget)
+  user.lastActiveAt = new Date();
+  await user.save();
 
   const jwtPayload = { userId: user._id.toString(), role: user.role };
   return {

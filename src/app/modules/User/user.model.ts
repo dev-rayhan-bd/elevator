@@ -65,7 +65,9 @@ const userSchema = new Schema<TUser, UserModel, IUserMethods>(
       isVerifiedBadge: { type: Boolean, default: false },
       passwordChangedAt: { type: Date },
       isProfileCompleted: { type: Boolean, default: false },
+      completedTasks: { type: [String], default: [] },
     },
+    lastActiveAt: { type: Date },
   },
   { timestamps: true },
 );

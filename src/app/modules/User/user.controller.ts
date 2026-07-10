@@ -120,6 +120,20 @@ const getVendorProfile = catchAsync(async (req, res) => {
   });
 });
 
+// ══════════════════════════════════════════════
+//  VISIBILITY SCORE
+// ══════════════════════════════════════════════
+
+const getMyVisibilityTasks = catchAsync(async (req, res) => {
+  const result = await UserServices.getMyVisibilityTasksFromDB(req.user.userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Visibility tasks retrieved',
+    data: result,
+  });
+});
+
 export const UserControllers = {
   getAllUsers,
   updateProfile,
@@ -130,4 +144,5 @@ export const UserControllers = {
   getMe,
   updateAvailabilityStatus,
   getVendorProfile,
+  getMyVisibilityTasks,
 };

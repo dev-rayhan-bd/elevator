@@ -4,6 +4,7 @@ import AppError from '../../errors/AppError';
 import { ServicePackage } from './package.model';
 import { TServicePackage } from './package.interface';
 import { VendorService } from '../VendorService/vendorService.model';
+import { UserServices } from '../User/user.services';
 
 /**
  * Get all packages of the logged-in vendor with features (VendorService) populated,
@@ -113,6 +114,10 @@ const createPackageIntoDB = async (
   };
 
   const result = await ServicePackage.create(packageData);
+
+  // Trigger visibility score recalculation for Packages & Pricing task
+  void UserServices.calculateAndUpdateVisibilityScore(vendorId);
+
   return result;
 };
 
@@ -147,6 +152,10 @@ const updatePackageInDB = async (
     new: true,
     runValidators: true,
   });
+
+  // Trigger visibility score recalculation (package status may have changed)
+  void UserServices.calculateAndUpdateVisibilityScore(vendorId);
+
   return result;
 };
 
@@ -166,6 +175,10 @@ const deletePackageFromDB = async (vendorId: string, packageId: string) => {
   }
 
   await ServicePackage.findByIdAndDelete(packageId);
+
+  // Trigger visibility score recalculation (dynamic reversion)
+  void UserServices.calculateAndUpdateVisibilityScore(vendorId);
+
   return pkg;
 };
 
