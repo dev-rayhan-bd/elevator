@@ -1,5 +1,6 @@
 import express from 'express';
 import auth from '../../middleware/auth';
+import optionalAuth from '../../middleware/optionalAuth';
 import validateRequest from '../../middleware/validateRequest';
 import { USER_ROLE } from '../Auth/auth.constant';
 import { AdvisorControllers } from './advisor.controller';
@@ -48,7 +49,21 @@ router.delete(
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   AdvisorControllers.deleteAdvisorService,
 );
+// ══════════════════════════════════════════════
+//  ADMIN: VIEW & DELETE ALL REVIEWS
+// ══════════════════════════════════════════════
 
+router.get(
+  '/reviews/admin',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  AdvisorControllers.adminGetAllReviews,
+);
+
+router.delete(
+  '/reviews/admin/:reviewId',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  AdvisorControllers.adminDeleteAdvisorReview,
+);
 // ══════════════════════════════════════════════
 //  USER: ADVISOR BOOKING
 // ══════════════════════════════════════════════
@@ -121,5 +136,30 @@ router.get(
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   AdvisorControllers.exportAllData,
 );
+
+// ══════════════════════════════════════════════
+//  USER: ADVISOR REVIEWS (purchase-gated)
+// ══════════════════════════════════════════════
+
+router.post(
+  '/reviews',
+  auth(USER_ROLE.user),
+  validateRequest(AdvisorValidations.createAdvisorReviewSchema),
+  AdvisorControllers.createAdvisorReview,
+);
+
+router.get(
+  '/reviews/:advisorServiceId',
+  optionalAuth,
+  AdvisorControllers.getAdvisorServiceReviews,
+);
+
+router.delete(
+  '/reviews/:reviewId',
+  auth(USER_ROLE.user),
+  AdvisorControllers.deleteAdvisorReview,
+);
+
+
 
 export const AdvisorRoutes = router;

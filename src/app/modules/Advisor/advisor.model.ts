@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose';
-import { IAdvisorService, IAdvisorBooking } from './advisor.interface';
+import { IAdvisorService, IAdvisorBooking, IAdvisorReview } from './advisor.interface';
 
 // ══════════════════════════════════════════════
 //  ADVISOR SERVICE SCHEMA
@@ -76,4 +76,41 @@ advisorBookingSchema.index({ email: 1 });
 export const AdvisorBooking = model<IAdvisorBooking>(
   'AdvisorBooking',
   advisorBookingSchema,
+);
+
+// ══════════════════════════════════════════════
+//  ADVISOR REVIEW SCHEMA
+// ══════════════════════════════════════════════
+
+const advisorReviewSchema = new Schema<IAdvisorReview>(
+  {
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    advisorService: {
+      type: Schema.Types.ObjectId,
+      ref: 'AdvisorService',
+      required: true,
+    },
+    booking: {
+      type: Schema.Types.ObjectId,
+      ref: 'AdvisorBooking',
+      required: true,
+    },
+    rating: { type: Number, required: true, min: 1, max: 5 },
+    comment: { type: String, required: true, trim: true },
+    isDeleted: { type: Boolean, default: false },
+  },
+  { timestamps: true },
+);
+
+// One review per user per advisor-service (soft-delete aware)
+advisorReviewSchema.index(
+  { user: 1, advisorService: 1 },
+  { unique: true, partialFilterExpression: { isDeleted: false } },
+);
+
+advisorReviewSchema.index({ advisorService: 1, isDeleted: 1 });
+
+export const AdvisorReview = model<IAdvisorReview>(
+  'AdvisorReview',
+  advisorReviewSchema,
 );

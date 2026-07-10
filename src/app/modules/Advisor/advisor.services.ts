@@ -5,6 +5,7 @@ import QueryBuilder from '../../builder/QueryBuilder';
 import {
   AdvisorService,
   AdvisorBooking,
+  AdvisorReview,
 } from './advisor.model';
 import { User } from '../User/user.model';
 
@@ -411,6 +412,175 @@ const exportAllDataFromDB = async () => {
   return { services, bookings };
 };
 
+// ══════════════════════════════════════════════
+//  USER: ADVISOR REVIEW
+// ══════════════════════════════════════════════
+
+const createAdvisorReviewInDB = async (userId: string, payload: {
+  advisorService: string;
+  rating: number;
+  comment: string;
+}) => {
+  const { advisorService, rating, comment } = payload;
+
+  // 1. Verify the advisor service exists & is active
+  const service = await AdvisorService.findById(advisorService);
+  if (!service) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Advisor service not found');
+  }
+
+  // 2. Verify the user has a completed booking for this service (purchase check)
+  const booking = await AdvisorBooking.findOne({
+    user: new Types.ObjectId(userId),
+    advisorService: new Types.ObjectId(advisorService),
+    status: { $in: ['in_progress', 'completed'] },
+  });
+  if (!booking) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'You can only review an advisor service you have purchased and used.',
+    );
+  }
+
+  // 3. Check for existing review (one per user per advisor service)
+  const existing = await AdvisorReview.findOne({
+    user: new Types.ObjectId(userId),
+    advisorService: new Types.ObjectId(advisorService),
+    isDeleted: false,
+  });
+  if (existing) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'You have already reviewed this advisor service.',
+    );
+  }
+
+  // 4. Create the review
+  const result = await AdvisorReview.create({
+    user: new Types.ObjectId(userId),
+    advisorService: new Types.ObjectId(advisorService),
+    booking: booking._id,
+    rating,
+    comment,
+  });
+
+  return result;
+};
+
+const getAdvisorServiceReviewsFromDB = async (
+  advisorServiceId: string,
+  query: Record<string, unknown>,
+  userId?: string,
+) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const [reviews, total] = await Promise.all([
+    AdvisorReview.find({ advisorService: advisorServiceId, isDeleted: false })
+      .populate('user', 'firstName lastName image')
+      .sort('-createdAt')
+      .skip(skip)
+      .limit(limit),
+    AdvisorReview.countDocuments({ advisorService: advisorServiceId, isDeleted: false }),
+  ]);
+
+  // Rating summary
+  const allReviews = await AdvisorReview.find({
+    advisorService: advisorServiceId,
+    isDeleted: false,
+  })
+    .select('rating')
+    .lean();
+  const summary = computeAdvisorRatingSummary(allReviews);
+
+  // Add isOwnReview flag
+  const reviewsWithFlag = reviews.map((review) => ({
+    ...review.toObject(),
+    isOwnReview: userId ? review.user._id.toString() === userId : false,
+  }));
+
+  return {
+    meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    reviews: reviewsWithFlag,
+    summary,
+  };
+};
+
+const deleteAdvisorReviewInDB = async (userId: string, reviewId: string) => {
+  const review = await AdvisorReview.findOne({
+    _id: reviewId,
+    user: userId,
+    isDeleted: false,
+  });
+  if (!review) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Review not found or unauthorized');
+  }
+
+  review.isDeleted = true;
+  await review.save();
+  return review;
+};
+
+const adminGetAllReviewsFromDB = async (query: Record<string, unknown>) => {
+  const reviewQuery = new QueryBuilder(
+    AdvisorReview.find()
+      .populate('user', 'firstName lastName email image phone')
+      .populate('advisorService', 'name description price')
+      .populate('booking', 'status budget createdAt'),
+    query,
+  )
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const result = await reviewQuery.modelQuery;
+  const meta = await reviewQuery.countTotal();
+
+  // Overall rating summary
+  const allReviews = await AdvisorReview.find().select('rating').lean();
+  const summary = computeAdvisorRatingSummary(allReviews);
+
+  return { meta, result, summary };
+};
+
+const adminDeleteAdvisorReviewFromDB = async (reviewId: string) => {
+  const review = await AdvisorReview.findByIdAndUpdate(
+    reviewId,
+    { isDeleted: true },
+    { new: true },
+  );
+  if (!review) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
+  }
+  return review;
+};
+
+// ── Helper ──
+const computeAdvisorRatingSummary = (reviews: any[]) => {
+  const total = reviews.length;
+  if (total === 0) {
+    return {
+      average: 0,
+      total: 0,
+      distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+    };
+  }
+
+  const sum = reviews.reduce((acc: number, r: any) => acc + r.rating, 0);
+  const distribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  for (const r of reviews) {
+    distribution[r.rating as keyof typeof distribution]++;
+  }
+
+  return {
+    average: Math.round((sum / total) * 10) / 10,
+    total,
+    distribution,
+  };
+};
+
 export const AdvisorServices = {
   createAdvisorServiceIntoDB,
   updateAdvisorServiceInDB,
@@ -427,4 +597,9 @@ export const AdvisorServices = {
   adminUpdateBookingStatusInDB,
   getAdvisorDashboardStatsFromDB,
   exportAllDataFromDB,
+  createAdvisorReviewInDB,
+  getAdvisorServiceReviewsFromDB,
+  deleteAdvisorReviewInDB,
+  adminDeleteAdvisorReviewFromDB,
+  adminGetAllReviewsFromDB,
 };

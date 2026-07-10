@@ -194,6 +194,74 @@ const exportAllData = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ══════════════════════════════════════════════
+//  USER: ADVISOR REVIEW
+// ══════════════════════════════════════════════
+
+const createAdvisorReview = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdvisorServices.createAdvisorReviewInDB(
+    req.user.userId,
+    req.body,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Review submitted successfully',
+    data: result,
+  });
+});
+
+const getAdvisorServiceReviews = catchAsync(async (req: Request, res: Response) => {
+  const { advisorServiceId } = req.params;
+  const userId = (req as any).user?.userId;
+  const result = await AdvisorServices.getAdvisorServiceReviewsFromDB(
+    advisorServiceId,
+    req.query,
+    userId,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Reviews retrieved successfully',
+    data: result,
+  });
+});
+
+const deleteAdvisorReview = catchAsync(async (req: Request, res: Response) => {
+  const { reviewId } = req.params;
+  const result = await AdvisorServices.deleteAdvisorReviewInDB(
+    req.user.userId,
+    reviewId,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Review deleted successfully',
+    data: result,
+  });
+});
+
+const adminGetAllReviews = catchAsync(async (req: Request, res: Response) => {
+  const result = await AdvisorServices.adminGetAllReviewsFromDB(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All reviews retrieved successfully',
+    data: result,
+  });
+});
+
+const adminDeleteAdvisorReview = catchAsync(async (req: Request, res: Response) => {
+  const { reviewId } = req.params;
+  const result = await AdvisorServices.adminDeleteAdvisorReviewFromDB(reviewId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Review deleted by admin successfully',
+    data: result,
+  });
+});
+
 export const AdvisorControllers = {
   createAdvisorService,
   updateAdvisorService,
@@ -210,4 +278,9 @@ export const AdvisorControllers = {
   adminUpdateBookingStatus,
   getDashboardStats,
   exportAllData,
+  createAdvisorReview,
+  getAdvisorServiceReviews,
+  deleteAdvisorReview,
+  adminDeleteAdvisorReview,
+  adminGetAllReviews,
 };

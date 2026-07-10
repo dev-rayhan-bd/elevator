@@ -41,3 +41,14 @@ export interface IAdvisorBooking extends Document {
   cancellationReason?: string;
   adminNotes?: string;
 }
+
+// ── Advisor Review (only purchasers can review) ──
+
+export interface IAdvisorReview extends Document {
+  user: Types.ObjectId;
+  advisorService: Types.ObjectId;
+  booking: Types.ObjectId;
+  rating: number;
+  comment: string;
+  isDeleted: boolean;
+}
