@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
+import uploadImage from '../../middleware/upload';
 import { NotificationServices } from './notification.services';
 
 const getMyNotifications = catchAsync(async (req: Request, res: Response) => {
@@ -34,13 +35,22 @@ const markSingleAsRead = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// ── Broadcast Notification (Admin) ──
+// ── Broadcast Notification (Admin) — supports FormData with image upload ──
 const broadcastNotification = catchAsync(async (req: Request, res: Response) => {
-  const { title, message, image, target, actionLink } = req.body;
+  // Upload image to Cloudinary if provided
+  let imageUrl = '';
+  if (req.file) {
+    imageUrl = await uploadImage(req);
+  }
+
+  // Parse FormData — supports both JSON body and FormData with 'data' field
+  const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+  const { title, message, target, actionLink } = rawData;
+
   const result = await NotificationServices.sendBroadcastNotification({
     title,
     message,
-    image,
+    image: imageUrl,
     target,
     actionLink,
   });
