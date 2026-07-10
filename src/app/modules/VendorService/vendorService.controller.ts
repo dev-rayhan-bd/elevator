@@ -464,6 +464,21 @@ const getLeadStats = catchAsync(async (req, res) => {
   });
 });
 
+// ══════════════════════════════════════════════
+//  PUBLIC: GET SIMILAR SERVICES
+// ══════════════════════════════════════════════
+
+const getSimilarServices = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await VendorServiceServices.getSimilarServicesFromDB(id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Similar services retrieved successfully',
+    data: result,
+  });
+});
+
 export const VendorServiceControllers = {
   getAllVendorServices,
   getMyServices,
@@ -488,4 +503,5 @@ export const VendorServiceControllers = {
   getKarachiVenues,
   trackContactClick,
   getLeadStats,
+  getSimilarServices,
 };

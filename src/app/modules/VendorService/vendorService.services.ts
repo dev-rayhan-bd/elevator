@@ -267,7 +267,12 @@ const getPublicVendorServicesFromDB = async (
   });
   pipeline.push({
     $addFields: {
-      isSponsored: { $gt: [{ $size: '$activePromotion' }, 0] },
+      isSponsored: {
+        $and: [
+          { $gt: [{ $size: '$activePromotion' }, 0] },
+          { $eq: ['$vendor.isSponsored', true] },
+        ],
+      },
     },
   });
 
@@ -856,7 +861,7 @@ const getFeaturedVendorServicesFromDB = async (
   const skip = (page - 1) * limit;
   const now = new Date();
 
-  // 1. Find vendor IDs with an active 'featured' promotion
+  // 1a. Vendor IDs with active 'featured' VendorPromotion
   const featuredPromos = await VendorPromotion.find({
     promotionCategory: 'featured',
     status: 'active',
@@ -866,7 +871,21 @@ const getFeaturedVendorServicesFromDB = async (
     .select('vendor')
     .lean();
 
-  const vendorIds = [...new Set(featuredPromos.map((p) => p.vendor.toString()))];
+  // 1b. Vendor IDs whose User.isFeatured flag is true
+  const featuredVendors = await User.find({
+    role: 'vendor',
+    isFeatured: true,
+    isDeleted: false,
+    status: 'active',
+  })
+    .select('_id')
+    .lean();
+
+  const promoVendorIds = new Set(featuredPromos.map((p) => p.vendor.toString()));
+  const userFlaggedIds = new Set(featuredVendors.map((u) => u._id.toString()));
+
+  // AND logic: only include vendors present in BOTH sets
+  const vendorIds = [...promoVendorIds].filter((id) => userFlaggedIds.has(id));
   if (vendorIds.length === 0) {
     return {
       meta: { page: 1, limit, total: 0, totalPage: 0 },
@@ -916,12 +935,14 @@ const getFeaturedVendorServicesFromDB = async (
     }),
   ]);
 
-  // 4. Enrich each service with isSponsored tag
+  // 4. Enrich each service with isSponsored tag (check both VendorPromotion + User.isSponsored)
   let enrichedResult = result.map((service: any) => {
     const vendorId = service.vendor?._id?.toString() || service.vendor?.toString();
+    const hasPromo = sponsoredSet.has(vendorId);
+    const userFlagged = service.vendor?.vendor?.isSponsored === true || service.vendor?.isSponsored === true;
     return {
       ...service,
-      isSponsored: sponsoredSet.has(vendorId),
+      isSponsored: hasPromo && userFlagged,
     };
   });
 
@@ -929,7 +950,7 @@ const getFeaturedVendorServicesFromDB = async (
   enrichedResult.sort((a: any, b: any) => {
     if (a.isSponsored && !b.isSponsored) return -1;
     if (!a.isSponsored && b.isSponsored) return 1;
-    return (b.vendor?.profileScore || 0) - (a.vendor?.profileScore || 0);
+    return (b.vendor?.vendor?.profileScore || b.vendor?.profileScore || 0) - (a.vendor?.vendor?.profileScore || a.vendor?.profileScore || 0);
   });
 
   // 5. Attach favourite flag if user is logged in
@@ -1111,6 +1132,231 @@ const getLeadStatsFromDB = async (vendorId: string) => {
   };
 };
 
+// ══════════════════════════════════════════════
+//  PUBLIC: GET SIMILAR SERVICES (Weighted Scoring)
+// ══════════════════════════════════════════════
+
+const getSimilarServicesFromDB = async (serviceId: string) => {
+  // ── Stage 0: Validate ID ──
+  if (!Types.ObjectId.isValid(serviceId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid service ID');
+  }
+
+  // ── Stage 1: Find the source service ──
+  const source = await VendorService.findOne({
+    _id: new Types.ObjectId(serviceId),
+    isActive: true,
+    isDraft: { $ne: true },
+  }).lean();
+
+  if (!source) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
+  }
+
+  if (!source.category) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Source service has no category');
+  }
+
+  const sourceVendorId = source.vendor?.toString();
+  const sourceCategory = source.category;
+  const sourceSubcategory = source.subcategory;
+  const sourcePrice = source.price || 0;
+  const sourceAreas = (source.serviceAreas || []).map((a: any) => a.toString());
+
+  // ── Build Aggregation Pipeline ──
+  const pipeline: any[] = [
+    // ── Stage 2: Match candidates (same category, exclude source + same vendor) ──
+    {
+      $match: {
+        _id: { $ne: new Types.ObjectId(serviceId) },
+        vendor: { $ne: new Types.ObjectId(sourceVendorId) },   // ← exclude own vendor
+        category: new Types.ObjectId(sourceCategory.toString()),
+        isActive: true,
+        isDraft: { $ne: true },
+      },
+    },
+
+    // ── Stage 3: Lookup vendor (User) ──
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'vendor',
+        foreignField: '_id',
+        as: 'vendorData',
+      },
+    },
+    { $unwind: { path: '$vendorData', preserveNullAndEmptyArrays: false } },
+    {
+      $match: {
+        'vendorData.isDeleted': { $ne: true },
+        'vendorData.role': 'vendor',
+      },
+    },
+
+    // ── Stage 4: Lookup ratings ──
+    {
+      $lookup: {
+        from: 'reviews',
+        let: { serviceId: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ['$service', '$$serviceId'] },
+              isDeleted: false,
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              avgRating: { $avg: '$rating' },
+              reviewCount: { $sum: 1 },
+            },
+          },
+        ],
+        as: 'ratingData',
+      },
+    },
+
+    // ── Stage 5: Weighted Scoring (price is a scoring factor, NOT a hard filter) ──
+    {
+      $addFields: {
+        avgRating: {
+          $ifNull: [{ $round: [{ $arrayElemAt: ['$ratingData.avgRating', 0] }, 1] }, 0],
+        },
+        reviewCount: {
+          $ifNull: [{ $arrayElemAt: ['$ratingData.reviewCount', 0] }, 0],
+        },
+
+        // ── Price Similarity (0–200 pts): closer price = higher score ──
+        priceSimilarity: {
+          $cond: {
+            if: { $eq: [sourcePrice, 0] },
+            then: 0,
+            else: {
+              $let: {
+                vars: {
+                  diff: { $abs: { $subtract: ['$price', sourcePrice] } },
+                },
+                in: {
+                  $max: [
+                    0,
+                    {
+                      $subtract: [
+                        200,
+                        {
+                          $multiply: [
+                            { $divide: ['$$diff', sourcePrice] },
+                            200,
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+
+        // --- Total Similarity Score ---
+        similarityScore: {
+          $add: [
+            // 1. Promotion Boost (+1000)
+            {
+              $cond: {
+                if: {
+                  $or: [
+                    { $eq: ['$vendorData.isSponsored', true] },
+                    { $eq: ['$vendorData.isFeatured', true] },
+                  ],
+                },
+                then: 1000,
+                else: 0,
+              },
+            },
+            // 2. Subcategory Match (+500)
+            {
+              $cond: {
+                if: sourceSubcategory
+                  ? { $eq: ['$subcategory', new Types.ObjectId(sourceSubcategory.toString())] }
+                  : false,
+                then: 500,
+                else: 0,
+              },
+            },
+            // 3. Area Match (+300)
+            {
+              $cond: {
+                if: {
+                  $gt: [
+                    {
+                      $size: {
+                        $setIntersection: [
+                          { $ifNull: ['$serviceAreas', []] },
+                          sourceAreas.map((a: any) => new Types.ObjectId(a)),
+                        ],
+                      },
+                    },
+                    0,
+                  ],
+                },
+                then: 300,
+                else: 0,
+              },
+            },
+            // 4. Price Similarity (0–200)
+            { $ifNull: ['$priceSimilarity', 0] },
+            // 5. Trust Factor (profileScore 0–100)
+            { $ifNull: ['$vendorData.vendor.profileScore', 0] },
+            // 6. Rating Factor (avgRating × 20 = 0–100)
+            {
+              $multiply: [
+                { $ifNull: [{ $arrayElemAt: ['$ratingData.avgRating', 0] }, 0] },
+                20,
+              ],
+            },
+          ],
+        },
+      },
+    },
+
+    // ── Stage 6: Sort by similarityScore DESC ──
+    { $sort: { similarityScore: -1, reviewCount: -1 } },
+
+    // ── Stage 7: Limit to 6 ──
+    { $limit: 6 },
+
+    // ── Stage 8: Project only necessary fields ──
+    {
+      $project: {
+        _id: 1,
+        title: 1,
+        description: 1,
+        images: 1,
+        price: 1,
+        pricingType: 1,
+        avgRating: 1,
+        reviewCount: 1,
+        similarityScore: 1,
+        'vendorData._id': 1,
+        'vendorData.firstName': 1,
+        'vendorData.lastName': 1,
+        'vendorData.image': 1,
+        'vendorData.vendor.businessName': 1,
+        'vendorData.vendor.location': 1,
+        'vendorData.vendor.isVerifiedBadge': 1,
+        'vendorData.vendor.profileScore': 1,
+        'vendorData.isSponsored': 1,
+        'vendorData.isFeatured': 1,
+      },
+    },
+  ];
+
+  const results = await VendorService.aggregate(pipeline);
+
+  return results;
+};
+
 export const VendorServiceServices = {
   getAllVendorServicesFromDB,
   getVendorServicesByVendorFromDB,
@@ -1133,5 +1379,6 @@ export const VendorServiceServices = {
   getFeaturedVendorServicesFromDB,
   getActiveServicesByVendorFromDB,
   trackContactClickInDB,
+  getSimilarServicesFromDB,
   getLeadStatsFromDB,
 };

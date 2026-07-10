@@ -4,6 +4,7 @@ import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { Verification } from './verification.model';
 import { User } from '../User/user.model';
+import { UserServices } from '../User/user.services';
 import { TVerification } from './verification.interface';
 
 // ══════════════════════════════════════════════
@@ -161,11 +162,17 @@ const adminUpdateVerificationStatusInDB = async (
     } catch (err) {
       console.error('Failed to activate vendor promotion:', err);
     }
+
+    // Trigger visibility score recalculation for Business Verification task
+    void UserServices.calculateAndUpdateVisibilityScore(verification.vendor.toString());
   } else if (payload.status === 'rejected') {
     // Ensure badge is removed when rejected
     await User.findByIdAndUpdate(verification.vendor, {
       'vendor.isVerifiedBadge': false,
     });
+
+    // Trigger visibility score recalculation (dynamic reversion)
+    void UserServices.calculateAndUpdateVisibilityScore(verification.vendor.toString());
   }
 
   return verification;

@@ -5,6 +5,7 @@ import QueryBuilder from '../../builder/QueryBuilder';
 import { PromotionPlan, VendorPromotion } from './promotion.model';
 import { TPromotionPlanConfig, TVendorPromotion } from './promotion.interface';
 import { User } from '../User/user.model';
+import { UserServices } from '../User/user.services';
 import { Verification } from '../Verification/verification.model';
 
 // ── Utility: Mark expired promotions & revert user flags ──
@@ -42,6 +43,9 @@ const expireOverduePromotions = async () => {
         } else if (category === 'verified') {
           await User.findByIdAndUpdate(vendorId, { 'vendor.isVerifiedBadge': false });
         }
+
+        // Trigger visibility score recalculation when promotion expires
+        void UserServices.calculateAndUpdateVisibilityScore(vendorId.toString());
       }
     }
   }
@@ -217,6 +221,17 @@ const purchasePromotionIntoDB = async (
   }
 
   const result = await VendorPromotion.create(promotionData);
+
+  // ── Sync User flags immediately (sponsored/featured start right away) ──
+  if (plan.promotionCategory === 'sponsored') {
+    await User.findByIdAndUpdate(vendorId, { isSponsored: true });
+  } else if (plan.promotionCategory === 'featured') {
+    await User.findByIdAndUpdate(vendorId, { isFeatured: true });
+  }
+
+  // Trigger visibility score recalculation for Ads & Promotion task
+  void UserServices.calculateAndUpdateVisibilityScore(vendorId);
+
   return result;
 };
 
@@ -338,9 +353,35 @@ const cancelMyPromotionFromDB = async (vendorId: string, promotionId: string) =>
     throw new AppError(httpStatus.BAD_REQUEST, 'Promotion is not active');
   }
 
+  const category = promotion.promotionCategory;
+
   promotion.status = 'cancelled';
   promotion.isActive = false;
   await promotion.save();
+
+  // ── Revert User flag only if no other active promotion of same category ──
+  const otherActive = await VendorPromotion.countDocuments({
+    vendor: vendorId,
+    promotionCategory: category,
+    status: 'active',
+    isActive: true,
+    _id: { $ne: promotion._id },
+    endDate: { $gte: new Date() },
+  });
+
+  if (otherActive === 0) {
+    if (category === 'sponsored') {
+      await User.findByIdAndUpdate(vendorId, { isSponsored: false });
+    } else if (category === 'featured') {
+      await User.findByIdAndUpdate(vendorId, { isFeatured: false });
+    } else if (category === 'verified') {
+      await User.findByIdAndUpdate(vendorId, { 'vendor.isVerifiedBadge': false });
+    }
+  }
+
+  // Trigger visibility score recalculation (dynamic reversion)
+  void UserServices.calculateAndUpdateVisibilityScore(vendorId.toString());
+
   return promotion;
 };
 
@@ -415,6 +456,9 @@ const adminUpdatePaymentStatusInDB = async (
     } else if (category === 'verified') {
       await User.findByIdAndUpdate(vendorId, { 'vendor.isVerifiedBadge': true });
     }
+
+    // Trigger visibility score recalculation for Ads & Promotion task
+    void UserServices.calculateAndUpdateVisibilityScore(vendorId.toString());
   } else if (paymentStatus === 'refunded' && promotion.paymentStatus === 'paid') {
     // Revert flag when payment is refunded (only if no other active promotion of same category)
     const otherActive = await VendorPromotion.countDocuments({
@@ -435,6 +479,9 @@ const adminUpdatePaymentStatusInDB = async (
         await User.findByIdAndUpdate(vendorId, { 'vendor.isVerifiedBadge': false });
       }
     }
+
+    // Trigger visibility score recalculation (dynamic reversion)
+    void UserServices.calculateAndUpdateVisibilityScore(vendorId.toString());
   }
 
   promotion.paymentStatus = paymentStatus;
@@ -474,6 +521,45 @@ const adminToggleVendorPromotionIsActiveInDB = async (id: string) => {
 
   promotion.isActive = !promotion.isActive;
   await promotion.save();
+
+  const vendorId = promotion.vendor.toString();
+  const category = promotion.promotionCategory;
+
+  // ── Sync User flags based on new active state ──
+  if (promotion.isActive && promotion.status === 'active') {
+    // Promotion reactivated → set flag
+    if (category === 'sponsored') {
+      await User.findByIdAndUpdate(vendorId, { isSponsored: true });
+    } else if (category === 'featured') {
+      await User.findByIdAndUpdate(vendorId, { isFeatured: true });
+    } else if (category === 'verified') {
+      await User.findByIdAndUpdate(vendorId, { 'vendor.isVerifiedBadge': true });
+    }
+  } else {
+    // Promotion deactivated → revert flag (only if no other active)
+    const otherActive = await VendorPromotion.countDocuments({
+      vendor: vendorId,
+      promotionCategory: category,
+      status: 'active',
+      isActive: true,
+      _id: { $ne: promotion._id },
+      endDate: { $gte: new Date() },
+    });
+
+    if (otherActive === 0) {
+      if (category === 'sponsored') {
+        await User.findByIdAndUpdate(vendorId, { isSponsored: false });
+      } else if (category === 'featured') {
+        await User.findByIdAndUpdate(vendorId, { isFeatured: false });
+      } else if (category === 'verified') {
+        await User.findByIdAndUpdate(vendorId, { 'vendor.isVerifiedBadge': false });
+      }
+    }
+  }
+
+  // Trigger visibility score recalculation
+  void UserServices.calculateAndUpdateVisibilityScore(vendorId);
+
   return promotion;
 };
 
