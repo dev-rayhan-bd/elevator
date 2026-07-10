@@ -4,6 +4,7 @@ import AppError from '../../errors/AppError';
 import { Inspiration } from './inspiration.model';
 import { User } from '../User/user.model';
 import { Types } from 'mongoose';
+import { sendNotificationToMultipleUsers } from '../../utils/sendNotification';
 
 // ── Admin: Create ──
 const createInspirationIntoDB = async (payload: Record<string, unknown>) => {
@@ -17,6 +18,28 @@ const createInspirationIntoDB = async (payload: Record<string, unknown>) => {
   }
 
   const result = await Inspiration.create(payload);
+
+  // ── Bulk push to all active users ──
+  try {
+    const activeUsers = await User.find({
+      role: { $in: ['user', 'vendor'] },
+      status: 'active',
+      isDeleted: false,
+    }).select('_id');
+
+    if (activeUsers.length > 0) {
+      sendNotificationToMultipleUsers(
+        activeUsers.map((u) => u._id.toString()),
+        '📸 Fresh Wedding Inspo Inside!',
+        'Tap to get inspired!',
+        'new_inspiration',
+        { inspirationId: result._id.toString(), action: 'new_inspiration' },
+      );
+    }
+  } catch (error) {
+    console.error('❌ Error sending inspiration bulk notification:', error);
+  }
+
   return result;
 };
 

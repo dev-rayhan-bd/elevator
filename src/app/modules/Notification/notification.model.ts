@@ -7,11 +7,14 @@ const notificationSchema = new Schema({
   type: { 
     type: String, 
     enum: [
-      'vendor_approved', 'vendor_rejected', 'profile_score_changed',
+      'general', 'vendor_approved', 'vendor_rejected', 'profile_score_changed',
       'profile_visibility_changed', 'new_review', 'vendor_application',
       'new_vendor_registered', 'vendor_verification', 'availability_update',
-      'booking_update', 'new_quote', 'counter_offer', 'quote_accepted',
-      'quote_declined', 'quote_won', 'quote_lost', 'request_cancelled', 'request_closed'
+      'booking_update', 'new_quote', 'new_quote_request', 'counter_offer',
+      'quote_accepted', 'quote_declined', 'quote_won', 'quote_lost',
+      'quote_milestone', 'lead_alert', 'price_drop', 'profile_score_nudge',
+      'new_inspiration', 'advisor_offer', 'new_requirement',
+      'request_cancelled', 'request_closed'
     ], 
     default: 'general' 
   },

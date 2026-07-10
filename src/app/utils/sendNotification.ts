@@ -105,6 +105,28 @@ const sendFCMPush = async (
 /**
  * Send notification to all admin / superAdmin users.
  */
+/**
+ * Send notification to multiple users (bulk).
+ */
+export const sendNotificationToMultipleUsers = async (
+  userIds: string[],
+  title: string,
+  message: string,
+  type: string = 'general',
+  data: Record<string, string> = {}
+) => {
+  try {
+    if (userIds.length === 0) return;
+    const notificationPromises = userIds.map((userId) =>
+      sendNotification(userId, title, message, type, data)
+    );
+    await Promise.all(notificationPromises);
+    console.log(`🚀 Bulk notifications sent to ${userIds.length} users.`);
+  } catch (error) {
+    console.error('❌ Error sending bulk notifications:', error);
+  }
+};
+
 export const sendNotificationToAdmins = async (
   title: string,
   message: string,

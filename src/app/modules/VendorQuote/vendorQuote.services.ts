@@ -48,10 +48,10 @@ const sendQuoteInDB = async (userId: string, payload: Partial<TVendorQuote>) => 
   const userName = user ? `${user.firstName} ${user.lastName}` : 'A customer';
   sendNotification(
     vendorId.toString(),
-    'New Quote Request',
-    `${userName} sent a quote request for your service.`,
-    'new_quote',
-    { quoteId: quote._id.toString(), action: 'new_quote' },
+    '📋 New Quote Request!',
+    'Send a professional quote now.',
+    'new_quote_request',
+    { quoteId: quote._id.toString(), action: 'new_quote_request' },
   );
 
   return quote;

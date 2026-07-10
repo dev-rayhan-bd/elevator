@@ -34,8 +34,27 @@ const markSingleAsRead = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ── Broadcast Notification (Admin) ──
+const broadcastNotification = catchAsync(async (req: Request, res: Response) => {
+  const { title, message, image, target, actionLink } = req.body;
+  const result = await NotificationServices.sendBroadcastNotification({
+    title,
+    message,
+    image,
+    target,
+    actionLink,
+  });
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: { totalSent: result.totalSent },
+  });
+});
+
 export const NotificationControllers = {
   getMyNotifications,
   markAllAsRead,
-  markSingleAsRead
+  markSingleAsRead,
+  broadcastNotification,
 };

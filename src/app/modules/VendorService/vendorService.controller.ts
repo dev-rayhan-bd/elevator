@@ -433,6 +433,37 @@ const getKarachiVenues = catchAsync(async (req, res) => {
   });
 });
 
+// ══════════════════════════════════════════════
+//  LEAD TRACKING: WhatsApp / Call Click
+// ══════════════════════════════════════════════
+
+const trackContactClick = catchAsync(async (req, res) => {
+  const { vendorId, type } = req.body;
+  const userId = (req.user as any)?.userId;
+  await VendorServiceServices.trackContactClickInDB(vendorId, type, userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Lead tracked successfully',
+    data: null,
+  });
+});
+
+// ══════════════════════════════════════════════
+//  LEAD STATS: Get click counts for vendor
+// ══════════════════════════════════════════════
+
+const getLeadStats = catchAsync(async (req, res) => {
+  const vendorId = (req.user as any)?.userId;
+  const result = await VendorServiceServices.getLeadStatsFromDB(vendorId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Lead stats retrieved successfully',
+    data: result,
+  });
+});
+
 export const VendorServiceControllers = {
   getAllVendorServices,
   getMyServices,
@@ -455,4 +486,6 @@ export const VendorServiceControllers = {
   getFeaturedVendorServices,
   getActiveServicesByVendor,
   getKarachiVenues,
+  trackContactClick,
+  getLeadStats,
 };

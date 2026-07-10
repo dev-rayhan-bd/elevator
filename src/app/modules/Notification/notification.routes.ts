@@ -26,4 +26,11 @@ router.patch(
   NotificationControllers.markSingleAsRead
 );
 
+// ── Admin: Broadcast Notification ──
+router.post(
+  '/admin/broadcast',
+  auth(USER_ROLE.superAdmin, USER_ROLE.admin),
+  NotificationControllers.broadcastNotification,
+);
+
 export const NotificationRoutes = router;

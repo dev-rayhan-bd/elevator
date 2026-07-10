@@ -6,6 +6,8 @@ import { VendorService } from './vendorService.model';
 import { User } from '../User/user.model';
 import { ReviewServices } from '../Review/review.services';
 import { VendorPromotion } from '../Promotion/promotion.model';
+import { sendNotification } from '../../utils/sendNotification';
+import { LeadClick } from './leadClick.model';
 
 // ── Helper: split amenities into ObjectId refs + custom free-text ──
 const processAmenitiesInput = (amenities: string[]) => {
@@ -479,6 +481,9 @@ const updateVendorServiceInDB = async (
   });
   if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Service not found or unauthorized');
 
+  // Capture old price for price-drop detection
+  const oldPrice = service.price;
+
   // Split amenities into ObjectId refs and custom text
   const { amenities: am, images, ...rest } = payload;
   const updateData: any = { ...rest };
@@ -495,6 +500,12 @@ const updateVendorServiceInDB = async (
       { $set: updateData, $push: { images: { $each: images as string[] } } },
       { new: true, runValidators: true },
     );
+
+    // Price-drop notification for wishlist users
+    if (payload.price !== undefined && Number(payload.price) < (oldPrice ?? 0)) {
+      void notifyWishlistPriceDrop(serviceId, oldPrice!, Number(payload.price));
+    }
+
     return result;
   }
 
@@ -502,7 +513,44 @@ const updateVendorServiceInDB = async (
     new: true,
     runValidators: true,
   });
+
+  // Price-drop notification for wishlist users
+  if (payload.price !== undefined && Number(payload.price) < (oldPrice ?? 0)) {
+    void notifyWishlistPriceDrop(serviceId, oldPrice!, Number(payload.price));
+  }
+
   return result;
+};
+
+// ── Helper: Price-drop wishlist notification ──
+const notifyWishlistPriceDrop = async (
+  serviceId: string,
+  oldPrice: number,
+  newPrice: number,
+) => {
+  try {
+    const users = await User.find({
+      favoriteServices: new Types.ObjectId(serviceId),
+      status: 'active',
+      isDeleted: false,
+    }).select('_id');
+
+    if (users.length === 0) return;
+
+    const promises = users.map((u) =>
+      sendNotification(
+        u._id.toString(),
+        '📉 Exclusive Offer!',
+        'A vendor on your wishlist just launched a special discount.',
+        'price_drop',
+        { serviceId, oldPrice: String(oldPrice), newPrice: String(newPrice), action: 'price_drop' },
+      ),
+    );
+    await Promise.all(promises);
+    console.log(`✅ Price-drop notifications sent to ${users.length} users.`);
+  } catch (error) {
+    console.error('❌ Error sending price-drop notifications:', error);
+  }
 };
 
 const deleteServiceImagesFromDB = async (
@@ -1006,6 +1054,50 @@ const getActiveServicesByVendorFromDB = async (
   };
 };
 
+// ── Lead Tracking: WhatsApp / Phone Call / Message Click ──
+const trackContactClickInDB = async (
+  vendorId: string,
+  type: 'whatsapp' | 'phone' | 'message',
+  userId?: string,
+) => {
+  // Persist the click event
+  const clickData: Record<string, unknown> = {
+    vendor: new Types.ObjectId(vendorId),
+    type,
+  };
+  if (userId) {
+    clickData.user = new Types.ObjectId(userId);
+  }
+  await LeadClick.create(clickData);
+
+  // Notify vendor
+  sendNotification(
+    vendorId,
+    '📞 Lead Alert!',
+    'A potential client just viewed your contact information.',
+    'lead_alert',
+    { type, userId: userId || 'anonymous', action: 'lead_alert' },
+  );
+};
+
+// ── Lead Stats: Get click counts grouped by type for a vendor ──
+const getLeadStatsFromDB = async (vendorId: string) => {
+  const stats = await LeadClick.aggregate([
+    { $match: { vendor: new Types.ObjectId(vendorId) } },
+    { $group: { _id: '$type', count: { $sum: 1 } } },
+  ]);
+
+  const result: Record<string, number> = { whatsapp: 0, phone: 0, message: 0 };
+  stats.forEach((s) => {
+    result[s._id] = s.count;
+  });
+
+  return {
+    ...result,
+    total: result.whatsapp + result.phone + result.message,
+  };
+};
+
 export const VendorServiceServices = {
   getAllVendorServicesFromDB,
   getVendorServicesByVendorFromDB,
@@ -1027,4 +1119,6 @@ export const VendorServiceServices = {
   getRecentVendorsFromDB,
   getFeaturedVendorServicesFromDB,
   getActiveServicesByVendorFromDB,
+  trackContactClickInDB,
+  getLeadStatsFromDB,
 };

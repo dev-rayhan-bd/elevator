@@ -145,7 +145,6 @@ const getAllAdmins = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
 export const AdminControllers = {
   loginAdmin,
   updateProfile,

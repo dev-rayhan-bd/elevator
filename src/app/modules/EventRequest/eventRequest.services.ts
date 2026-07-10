@@ -4,7 +4,8 @@ import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { EventRequest } from './eventRequest.model';
 import { EventQuote } from '../EventQuote/eventQuote.model';
-import { sendNotification } from '../../utils/sendNotification';
+import { User } from '../User/user.model';
+import { sendNotification, sendNotificationToMultipleUsers } from '../../utils/sendNotification';
 
 /**
  * User: Create a new event request (post requirement)
@@ -24,6 +25,30 @@ const createEventRequestIntoDB = async (userId: string, payload: Record<string, 
   };
 
   const result = await EventRequest.create(requestData);
+
+  // ── Push notification to relevant vendors ──
+  try {
+    const relevantVendors = await User.find({
+      role: 'vendor',
+      status: 'active',
+      isDeleted: false,
+      'vendor.categories': payload.serviceCategory as string,
+      'vendor.serviceArea': payload.area as string,
+    }).select('_id');
+
+    if (relevantVendors.length > 0) {
+      sendNotificationToMultipleUsers(
+        relevantVendors.map((v) => v._id.toString()),
+        '⏳ New Project Posted!',
+        'Submit your quotation before others take the lead!',
+        'new_requirement',
+        { eventRequestId: result._id.toString(), action: 'new_requirement' },
+      );
+    }
+  } catch (error) {
+    console.error('❌ Error sending new-requirement vendor notification:', error);
+  }
+
   return result;
 };
 

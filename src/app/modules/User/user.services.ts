@@ -5,6 +5,8 @@ import httpStatus from 'http-status'
 import AppError from '../../errors/AppError';
 import { Admin } from '../Admin/admin.model';
 import { sendNotification, sendNotificationToAdmins } from '../../utils/sendNotification';
+import { VendorService } from '../VendorService/vendorService.model';
+import { ServicePackage } from '../ServicePackage/package.model';
 
 const getAllUsersFromDB = async (query: Record<string, unknown>) => {
   const userQuery = new QueryBuilder(User.find({ isDeleted: false }), query)
@@ -245,6 +247,81 @@ const getVendorProfileFromDB = async (vendorId: string) => {
   return vendor;
 };
 
+// ══════════════════════════════════════════════
+//  PROFILE VISIBILITY NUDGE (Cron + Manual)
+// ══════════════════════════════════════════════
+
+/**
+ * Sends profile-visibility push nudges to vendors missing key sections.
+ * Designed to be called from a weekly cron job.
+ */
+const sendProfileNudgeNotifications = async () => {
+  try {
+    console.log('⏰ [CRON] Running profile visibility nudges...');
+
+    // 1. Missing Verification
+    const unverifiedVendors = await User.find({
+      role: 'vendor',
+      status: 'active',
+      isDeleted: false,
+      'vendor.isVerifiedBadge': { $ne: true },
+    }).select('_id');
+    if (unverifiedVendors.length > 0) {
+      const promises = unverifiedVendors.map((v) =>
+        sendNotification(
+          v._id.toString(),
+          '🛡️ Boost Your Visibility by 25%!',
+          'Complete your Business Verification now.',
+          'profile_score_nudge',
+          { action: 'verification_nudge' },
+        ),
+      );
+      await Promise.all(promises);
+      console.log(`✅ Verification nudges sent to ${unverifiedVendors.length} vendors.`);
+    }
+
+    // 2. Low Service Variety (fewer than 3 services)
+    const allVendors = await User.find({
+      role: 'vendor',
+      status: 'active',
+      isDeleted: false,
+    }).select('_id');
+    for (const vendor of allVendors) {
+      const serviceCount = await VendorService.countDocuments({
+        vendor: vendor._id,
+        isDraft: { $ne: true },
+      });
+      if (serviceCount < 3) {
+        sendNotification(
+          vendor._id.toString(),
+          '🛠️ Add More Services!',
+          'Gain +20% visibility score.',
+          'profile_score_nudge',
+          { action: 'service_variety_nudge' },
+        );
+      }
+    }
+
+    // 3. No Packages
+    for (const vendor of allVendors) {
+      const packageCount = await ServicePackage.countDocuments({ vendor: vendor._id });
+      if (packageCount === 0) {
+        sendNotification(
+          vendor._id.toString(),
+          '📦 Missing Packages?',
+          'Clients prefer vendors with clear pricing.',
+          'profile_score_nudge',
+          { action: 'packages_nudge' },
+        );
+      }
+    }
+
+    console.log('✅ [CRON] Profile visibility nudges completed.');
+  } catch (error) {
+    console.error('❌ [CRON] Profile visibility nudges error:', error);
+  }
+};
+
 export const UserServices = {
   getAllUsersFromDB,
   updateProfileInDB,
@@ -257,4 +334,5 @@ export const UserServices = {
   triggerVendorApprovalNotification,
   triggerVendorVerificationNotification,
   triggerBookingNotification,
+  sendProfileNudgeNotifications,
 };

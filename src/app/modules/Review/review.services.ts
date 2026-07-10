@@ -5,12 +5,27 @@ import { TReview } from './review.interface';
 import { User } from '../User/user.model';
 import { VendorService } from '../VendorService/vendorService.model';
 import { sendNotification } from '../../utils/sendNotification';
+import { VendorQuote } from '../VendorQuote/vendorQuote.model';
 
-// ── Create Review (one per user per service) ──
+// ── Create Review (one per user per service, purchase-gated) ──
 const createReviewInDB = async (payload: TReview) => {
   const service = await VendorService.findById(payload.service);
   if (!service) {
     throw new AppError(httpStatus.NOT_FOUND, 'Service not found!');
+  }
+
+  // Ensure the user has purchased this service
+  const purchase = await VendorQuote.findOne({
+    user: payload.user,
+    service: payload.service,
+    status: { $in: ['accepted', 'won'] },
+    isDeleted: false,
+  });
+  if (!purchase) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'You can only review a service you have purchased.',
+    );
   }
 
   // Auto-detect vendor from the service — frontend doesn't send vendor ID

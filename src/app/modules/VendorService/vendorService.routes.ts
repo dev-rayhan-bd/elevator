@@ -98,6 +98,20 @@ router.get(
   VendorServiceControllers.getFavServices,
 );
 
+// ── Lead Tracking: WhatsApp / Call Click (optional auth) ──
+router.post(
+  '/track-contact',
+  optionalAuth,
+  VendorServiceControllers.trackContactClick,
+);
+
+// ── Lead Stats: Vendor sees own click counts (vendor auth) ──
+router.get(
+  '/lead-stats',
+  auth(USER_ROLE.vendor),
+  VendorServiceControllers.getLeadStats,
+);
+
 // ── Admin Routes ──
 router.get(
   '/admin/all',

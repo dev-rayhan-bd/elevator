@@ -64,14 +64,29 @@ const sendQuoteIntoDB = async (vendorId: string, payload: {
 
   const result = await EventQuote.create(quoteData);
 
-  // Notify user about new quote (fire-and-forget)
+  // ── Notify user about new quote ──
   sendNotification(
     eventRequest.user.toString(),
-    'New Quote Received',
-    `A vendor has sent you a quote of PKR ${payload.quoteAmount.toLocaleString()} for your event.`,
+    '🎉 New Quotation Received!',
+    'A top vendor has just responded to your event requirement.',
     'new_quote',
     { quoteId: result._id.toString(), action: 'new_quote' }
   );
+
+  // ── 5-Quotes Milestone ──
+  const totalQuotes = await EventQuote.countDocuments({
+    eventRequest: new Types.ObjectId(payload.eventRequest),
+    status: { $nin: ['lost', 'declined'] },
+  });
+  if (totalQuotes >= 5) {
+    sendNotification(
+      eventRequest.user.toString(),
+      '🔥 You\'ve received 5+ quotations!',
+      'Compare prices now!',
+      'quote_milestone',
+      { eventRequestId: payload.eventRequest, action: 'quote_milestone' }
+    );
+  }
 
   return result;
 };
