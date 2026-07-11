@@ -445,6 +445,24 @@ const getKarachiVenues = catchAsync(async (req, res) => {
     userId,
   );
 
+  // ── Geo fallback: if geo params present but 0 results, re-run without category ──
+  const hasGeo = Number(parsed.lat) && Number(parsed.lng) && Number(parsed.maxDistance);
+  if (result.result.length === 0 && hasGeo && parsed.category) {
+    const fallbackQuery = { ...parsed, category: undefined };
+    const fallbackResult = await VendorServiceServices.getPublicVendorServicesFromDB(
+      fallbackQuery as unknown as Record<string, unknown>,
+      userId,
+    );
+    if (fallbackResult.result.length > 0) {
+      return sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: 'No venues nearby — showing other nearby services',
+        data: { ...fallbackResult, meta: { ...fallbackResult.meta, isFallback: true } },
+      });
+    }
+  }
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

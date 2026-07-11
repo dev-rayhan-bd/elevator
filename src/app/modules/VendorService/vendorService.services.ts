@@ -156,6 +156,35 @@ const getPublicVendorServicesFromDB = async (
   // ── 3b. Filter: only non-deleted vendors ──
   pipeline.push({ $match: { 'vendor.isDeleted': { $ne: true }, 'vendor.role': 'vendor' } });
 
+  // ── 3a-b2. Lookup category + subcategory ──
+  pipeline.push({
+    $lookup: {
+      from: 'servicecategories',
+      localField: 'category',
+      foreignField: '_id',
+      as: 'category',
+    },
+  });
+  pipeline.push({
+    $addFields: {
+      category: { $arrayElemAt: ['$category', 0] },
+    },
+  });
+
+  pipeline.push({
+    $lookup: {
+      from: 'servicesubcategories',
+      localField: 'subcategory',
+      foreignField: '_id',
+      as: 'subcategory',
+    },
+  });
+  pipeline.push({
+    $addFields: {
+      subcategory: { $arrayElemAt: ['$subcategory', 0] },
+    },
+  });
+
   // ── 3c. isVerified filter ──
   const needVerified = isVerified === 'true' || isVerified === true;
   if (needVerified) {
