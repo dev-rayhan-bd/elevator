@@ -19,4 +19,10 @@ export interface TVendorService {
   termsAndCondition?: string;
   isActive: boolean;
   isDraft?: boolean;
+  entireCity?: boolean;
+    location?: {
+    lat: number;
+    long: number;
+    address?: string;
+  };
 }

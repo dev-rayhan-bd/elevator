@@ -4,6 +4,8 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import uploadImage from '../../middleware/upload';
 import AppError from '../../errors/AppError';
+import { User } from '../User/user.model';
+import { ServiceCategory } from '../ServiceCategory/category.model';
 import { VendorServiceServices } from './vendorService.services';
 import { VendorServiceValidations } from './vendorService.validation';
 
@@ -77,7 +79,7 @@ const createVendorService = catchAsync(async (req, res) => {
     body: rawData,
   });
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     ...validated.body,
     category: new Types.ObjectId(validated.body.category),
     subcategory: new Types.ObjectId(validated.body.subcategory),
@@ -92,6 +94,24 @@ const createVendorService = catchAsync(async (req, res) => {
     }),
     ...(imageUrls.length > 0 && { images: imageUrls }),
   };
+
+  // ── Venue category: auto-fetch vendor location (must required) ──
+  const categoryDoc = await ServiceCategory.findById(validated.body.category);
+  if (categoryDoc && categoryDoc.name.toLowerCase() === 'venue') {
+    const vendor = await User.findById(req.user.userId);
+    const vendorLat = vendor?.lat ?? vendor?.vendor?.lat;
+    const vendorLong = vendor?.long ?? vendor?.vendor?.long;
+    if (!vendorLat || !vendorLong) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Your location (latitude/longitude) is not set. Please update your vendor profile first.',
+      );
+    }
+    payload.location = {
+      lat: vendorLat,
+      long: vendorLong,
+    };
+  }
 
   const result = await VendorServiceServices.createVendorServiceIntoDB(
     req.user.userId,

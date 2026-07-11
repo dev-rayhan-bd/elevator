@@ -14,6 +14,7 @@ export const createVendorServiceSchema = z.object({
     amenities: z.array(z.string()).optional(),
     termsAndCondition: z.string().min(1, 'Terms and condition is required'),
     isActive: z.boolean().optional(),
+    entireCity: z.boolean().optional(),
   }),
 });
 
@@ -31,6 +32,7 @@ export const updateVendorServiceSchema = z.object({
     amenities: z.array(z.string()).optional(),
     termsAndCondition: z.string().min(1).optional(),
     isActive: z.boolean().optional(),
+    entireCity: z.boolean().optional(),
   }),
 });
 
@@ -62,6 +64,7 @@ export const draftVendorServiceSchema = z.object({
     amenities: z.array(z.string()).optional(),
     termsAndCondition: z.string().optional(),
     isActive: z.boolean().optional(),
+    entireCity: z.boolean().optional(),
   }),
 });
 
@@ -79,6 +82,7 @@ export const publishDraftSchema = z.object({
     amenities: z.array(z.string()).optional(),
     termsAndCondition: z.string().min(1, 'Terms and condition is required'),
     isActive: z.boolean().optional(),
+    entireCity: z.boolean().optional(),
   }),
 });
 
