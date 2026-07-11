@@ -3,6 +3,7 @@ import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { Amenity } from './amenity.model';
 import { TAmenity } from './amenity.interface';
+import { ServiceSubcategory } from '../ServiceSubcategory/subcategory.model';
 
 const getAllAmenitiesFromDB = async (query: Record<string, unknown>) => {
   const amenityQuery = new QueryBuilder(
@@ -33,6 +34,15 @@ const getSingleAmenityFromDB = async (id: string) => {
 const createAmenityIntoDB = async (payload: TAmenity) => {
   const existing = await Amenity.findOne({ name: payload.name });
   if (existing) throw new AppError(httpStatus.CONFLICT, 'Amenity already exists');
+
+  // Validate subcategory exists if provided
+  if (payload.subcategory) {
+    const subcat = await ServiceSubcategory.findById(payload.subcategory);
+    if (!subcat) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Subcategory not found');
+    }
+  }
+
   const result = await Amenity.create(payload);
   return result;
 };

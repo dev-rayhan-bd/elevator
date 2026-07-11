@@ -3,6 +3,7 @@ import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { ServiceSubcategory } from './subcategory.model';
 import { TServiceSubcategory } from './subcategory.interface';
+import { Amenity } from '../Amenity/amenity.model';
 
 const getAllSubcategoriesFromDB = async (query: Record<string, unknown>) => {
   const subcategoryQuery = new QueryBuilder(
@@ -46,6 +47,14 @@ const updateSubcategoryInDB = async (id: string, payload: Partial<TServiceSubcat
 };
 
 const deleteSubcategoryFromDB = async (id: string) => {
+  // Block deletion if amenities exist under this subcategory
+  const amenityCount = await Amenity.countDocuments({ subcategory: id });
+  if (amenityCount > 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot delete subcategory — ${amenityCount} amenit${amenityCount === 1 ? 'y' : 'ies'} still exist under it`,
+    );
+  }
   const result = await ServiceSubcategory.findByIdAndDelete(id);
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Subcategory not found');
   return result;
