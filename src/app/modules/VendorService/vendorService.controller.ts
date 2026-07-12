@@ -540,7 +540,8 @@ const trackServiceView = catchAsync(async (req, res) => {
 
 const getViewStats = catchAsync(async (req, res) => {
   const vendorId = (req.user as any)?.userId;
-  const result = await VendorServiceServices.getViewStatsFromDB(vendorId);
+  const year = req.query.year ? Number(req.query.year) : undefined;
+  const result = await VendorServiceServices.getViewStatsFromDB(vendorId, year);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

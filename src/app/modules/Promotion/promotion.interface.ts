@@ -28,4 +28,7 @@ export interface TVendorPromotion {
   status: TPromotionStatus;
   paymentStatus: TPaymentStatus;
   isPostCreated: boolean; // For inspiration tracking — admin marks when blog post is created
+  // ── Analytics tracking (incremented by frontend / tracking service) ──
+  impressions: number; // times the promoted listing was shown
+  clicks: number;      // times users clicked on the promoted listing
 }

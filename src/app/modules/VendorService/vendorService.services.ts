@@ -1231,16 +1231,40 @@ const trackServiceViewInDB = async (
 
 // ══════════════════════════════════════════════
 //  VENDOR PROFILE VIEW STATS — Analytics
-//  Returns: summary, daily chart (30 days),
-//           recent viewers, top services
+//  Returns: summary, monthly chart, recent viewers, top services
 // ══════════════════════════════════════════════
 
-const getViewStatsFromDB = async (vendorId: string) => {
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const getViewStatsFromDB = async (vendorId: string, filterYear?: number) => {
   const vid = new Types.ObjectId(vendorId);
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const [totalStats, typeBreakdown, dailyViews, recentViews, topServices] =
+  // ── Chart range: if year → Jan 1 – Dec 31 of that year, else last 6 months ──
+  let chartStart: Date;
+  let chartEnd: Date;
+  let chartMonths: string[];  // e.g. ['2026-01', '2026-02', ...]
+
+  if (filterYear) {
+    chartStart = new Date(filterYear, 0, 1);
+    chartEnd = new Date(filterYear, 11, 31, 23, 59, 59, 999);
+    chartMonths = [];
+    for (let m = 0; m < 12; m++) {
+      chartMonths.push(`${filterYear}-${String(m + 1).padStart(2, '0')}`);
+    }
+  } else {
+    // Default: last 6 months
+    chartStart = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    chartEnd = now;
+    chartMonths = [];
+    for (let m = 5; m >= 0; m--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - m, 1);
+      chartMonths.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+    }
+  }
+
+  const [totalStats, typeBreakdown, monthlyViews, recentViews, topServices] =
     await Promise.all([
       // 1. Total + Unique views (all time)
       ServiceView.aggregate([
@@ -1266,21 +1290,21 @@ const getViewStatsFromDB = async (vendorId: string) => {
         },
       ]),
 
-      // 3. Daily views (last 30 days)
+      // 3. Monthly views — chart data (filtered by year or last 6 months)
       ServiceView.aggregate([
-        { $match: { vendor: vid, createdAt: { $gte: thirtyDaysAgo } } },
+        { $match: { vendor: vid, createdAt: { $gte: chartStart, $lte: chartEnd } } },
         {
           $group: {
             _id: {
-              date: {
-                $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+              month: {
+                $dateToString: { format: '%Y-%m', date: '$createdAt' },
               },
             },
             total: { $sum: 1 },
             unique: { $sum: { $cond: ['$isUnique', 1, 0] } },
           },
         },
-        { $sort: { '_id.date': 1 } },
+        { $sort: { '_id.month': 1 } },
       ]),
 
       // 4. Last 10 view events (activity feed)
@@ -1342,20 +1366,19 @@ const getViewStatsFromDB = async (vendorId: string) => {
     byType[t._id] = { total: t.total, unique: t.unique };
   });
 
-  // Fill daily views with 0s for missing days
-  const dailyViewMap = new Map<string, { total: number; unique: number }>();
-  dailyViews.forEach((d: any) => {
-    dailyViewMap.set(d._id.date, { total: d.total, unique: d.unique });
+  // ── Fill monthly chart with 0s for missing months ──
+  const monthlyViewMap = new Map<string, { total: number; unique: number }>();
+  monthlyViews.forEach((d: any) => {
+    monthlyViewMap.set(d._id.month, { total: d.total, unique: d.unique });
   });
-  const dailyChart: { date: string; total: number; unique: number }[] = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
-    dailyChart.push({
-      date: dateStr,
-      total: dailyViewMap.get(dateStr)?.total ?? 0,
-      unique: dailyViewMap.get(dateStr)?.unique ?? 0,
+  const monthlyChart: { month: string; label: string; total: number; unique: number }[] = [];
+  for (const ym of chartMonths) {
+    const [y, m] = ym.split('-');
+    monthlyChart.push({
+      month: ym,
+      label: MONTHS[Number(m) - 1],
+      total: monthlyViewMap.get(ym)?.total ?? 0,
+      unique: monthlyViewMap.get(ym)?.unique ?? 0,
     });
   }
 
@@ -1369,7 +1392,7 @@ const getViewStatsFromDB = async (vendorId: string) => {
       profile: byType.profile ?? { total: 0, unique: 0 },
       service: byType.service ?? { total: 0, unique: 0 },
     },
-    dailyChart,
+    monthlyChart,
     recentViews: recentViews.map((v: any) => ({
       _id: v._id,
       type: v.type,

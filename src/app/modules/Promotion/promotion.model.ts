@@ -65,6 +65,8 @@ const vendorPromotionSchema = new Schema<TVendorPromotion>(
       enum: ['pending', 'paid', 'refunded'],
       default: 'pending',
     },
+    impressions: { type: Number, default: 0, min: 0 },
+    clicks: { type: Number, default: 0, min: 0 },
   },
   { timestamps: true },
 );
