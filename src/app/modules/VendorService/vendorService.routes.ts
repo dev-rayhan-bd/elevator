@@ -113,6 +113,20 @@ router.get(
   VendorServiceControllers.getLeadStats,
 );
 
+// ── View Tracking: Record profile / service views (optional auth) ──
+router.post(
+  '/track-view',
+  optionalAuth,
+  VendorServiceControllers.trackServiceView,
+);
+
+// ── View Stats: Vendor profile view analytics ──
+router.get(
+  '/view-stats',
+  auth(USER_ROLE.vendor),
+  VendorServiceControllers.getViewStats,
+);
+
 // ── Admin Routes ──
 router.get(
   '/admin/all',

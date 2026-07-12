@@ -8,6 +8,7 @@ import { ReviewServices } from '../Review/review.services';
 import { VendorPromotion } from '../Promotion/promotion.model';
 import { sendNotification } from '../../utils/sendNotification';
 import { LeadClick } from './leadClick.model';
+import { ServiceView } from './serviceView.model';
 import { UserServices } from '../User/user.services';
 
 // ── Helper: split amenities into ObjectId refs + custom free-text ──
@@ -1167,6 +1168,224 @@ const getLeadStatsFromDB = async (vendorId: string) => {
 };
 
 // ══════════════════════════════════════════════
+//  VENDOR PROFILE VIEW TRACKING
+//  Industry-standard: IP-based 24h cooldown,
+//  metadata capture, unique/repeat tracking
+// ══════════════════════════════════════════════
+
+const VIEW_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+const trackServiceViewInDB = async (
+  vendorId: string,
+  serviceId?: string,
+  userId?: string,
+  type: 'profile' | 'service' = 'service',
+  metadata?: { ip?: string; userAgent?: string; referrer?: string },
+) => {
+  const now = new Date();
+  const vid = new Types.ObjectId(vendorId);
+
+  // ── IP-based 24h cooldown for deduplication ──
+  let isUnique = true;
+  if (metadata?.ip) {
+    const cooldownStart = new Date(now.getTime() - VIEW_COOLDOWN_MS);
+    const recentView = await ServiceView.findOne({
+      vendor: vid,
+      type,
+      ip: metadata.ip,
+      createdAt: { $gte: cooldownStart },
+    }).select('_id');
+    if (recentView) {
+      isUnique = false;
+    }
+  }
+
+  // ── Build view record ──
+  const viewData: Record<string, unknown> = {
+    vendor: vid,
+    type,
+    isUnique,
+  };
+  if (serviceId) viewData.service = new Types.ObjectId(serviceId);
+  if (userId) viewData.user = new Types.ObjectId(userId);
+  if (metadata?.ip) viewData.ip = metadata.ip;
+  if (metadata?.userAgent) viewData.userAgent = metadata.userAgent;
+  if (metadata?.referrer) viewData.referrer = metadata.referrer;
+
+  await ServiceView.create(viewData);
+
+  // ── Notify vendor only on unique views ──
+  if (isUnique) {
+    const label = type === 'profile' ? 'Profile' : 'Service';
+    sendNotification(
+      vendorId,
+      `👁️ New ${label} View!`,
+      `Someone just viewed your ${label.toLowerCase()}.`,
+      'view_alert',
+      { type, userId: userId || 'anonymous', action: 'view_alert' },
+    );
+  }
+
+  return { tracked: true, isUnique };
+};
+
+// ══════════════════════════════════════════════
+//  VENDOR PROFILE VIEW STATS — Analytics
+//  Returns: summary, daily chart (30 days),
+//           recent viewers, top services
+// ══════════════════════════════════════════════
+
+const getViewStatsFromDB = async (vendorId: string) => {
+  const vid = new Types.ObjectId(vendorId);
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  const [totalStats, typeBreakdown, dailyViews, recentViews, topServices] =
+    await Promise.all([
+      // 1. Total + Unique views (all time)
+      ServiceView.aggregate([
+        { $match: { vendor: vid } },
+        {
+          $group: {
+            _id: null,
+            totalViews: { $sum: 1 },
+            uniqueViews: { $sum: { $cond: ['$isUnique', 1, 0] } },
+          },
+        },
+      ]),
+
+      // 2. Views by type (profile vs service)
+      ServiceView.aggregate([
+        { $match: { vendor: vid } },
+        {
+          $group: {
+            _id: '$type',
+            total: { $sum: 1 },
+            unique: { $sum: { $cond: ['$isUnique', 1, 0] } },
+          },
+        },
+      ]),
+
+      // 3. Daily views (last 30 days)
+      ServiceView.aggregate([
+        { $match: { vendor: vid, createdAt: { $gte: thirtyDaysAgo } } },
+        {
+          $group: {
+            _id: {
+              date: {
+                $dateToString: { format: '%Y-%m-%d', date: '$createdAt' },
+              },
+            },
+            total: { $sum: 1 },
+            unique: { $sum: { $cond: ['$isUnique', 1, 0] } },
+          },
+        },
+        { $sort: { '_id.date': 1 } },
+      ]),
+
+      // 4. Last 10 view events (activity feed)
+      ServiceView.find({ vendor: vid })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate('user', 'firstName lastName image')
+        .populate('service', 'title')
+        .select('type isUnique ip createdAt')
+        .lean(),
+
+      // 5. Top viewed services (last 30 days)
+      ServiceView.aggregate([
+        {
+          $match: {
+            vendor: vid,
+            type: 'service',
+            service: { $exists: true, $ne: null },
+            createdAt: { $gte: thirtyDaysAgo },
+          },
+        },
+        {
+          $group: {
+            _id: '$service',
+            totalViews: { $sum: 1 },
+            uniqueViews: { $sum: { $cond: ['$isUnique', 1, 0] } },
+          },
+        },
+        { $sort: { totalViews: -1 } },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: 'vendorservices',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'serviceData',
+          },
+        },
+        {
+          $unwind: { path: '$serviceData', preserveNullAndEmptyArrays: true },
+        },
+        {
+          $project: {
+            _id: 1,
+            title: '$serviceData.title',
+            totalViews: 1,
+            uniqueViews: 1,
+          },
+        },
+      ]),
+    ]);
+
+  // ── Assemble response ──
+  const total = totalStats[0]?.totalViews ?? 0;
+  const unique = totalStats[0]?.uniqueViews ?? 0;
+
+  const byType: Record<string, { total: number; unique: number }> = {};
+  typeBreakdown.forEach((t: any) => {
+    byType[t._id] = { total: t.total, unique: t.unique };
+  });
+
+  // Fill daily views with 0s for missing days
+  const dailyViewMap = new Map<string, { total: number; unique: number }>();
+  dailyViews.forEach((d: any) => {
+    dailyViewMap.set(d._id.date, { total: d.total, unique: d.unique });
+  });
+  const dailyChart: { date: string; total: number; unique: number }[] = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    dailyChart.push({
+      date: dateStr,
+      total: dailyViewMap.get(dateStr)?.total ?? 0,
+      unique: dailyViewMap.get(dateStr)?.unique ?? 0,
+    });
+  }
+
+  return {
+    summary: {
+      totalViews: total,
+      uniqueViews: unique,
+      repeatViews: total - unique,
+    },
+    byType: {
+      profile: byType.profile ?? { total: 0, unique: 0 },
+      service: byType.service ?? { total: 0, unique: 0 },
+    },
+    dailyChart,
+    recentViews: recentViews.map((v: any) => ({
+      _id: v._id,
+      type: v.type,
+      isUnique: v.isUnique,
+      viewerName: v.user
+        ? `${v.user.firstName ?? ''} ${v.user.lastName ?? ''}`.trim()
+        : 'Anonymous',
+      viewerImage: v.user?.image ?? null,
+      serviceTitle: v.service?.title ?? null,
+      viewedAt: v.createdAt,
+    })),
+    topServices,
+  };
+};
+
+// ══════════════════════════════════════════════
 //  PUBLIC: GET SIMILAR SERVICES (Weighted Scoring)
 // ══════════════════════════════════════════════
 
@@ -1415,4 +1634,6 @@ export const VendorServiceServices = {
   trackContactClickInDB,
   getSimilarServicesFromDB,
   getLeadStatsFromDB,
+  trackServiceViewInDB,
+  getViewStatsFromDB,
 };

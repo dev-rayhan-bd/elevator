@@ -503,6 +503,53 @@ const getLeadStats = catchAsync(async (req, res) => {
 });
 
 // ══════════════════════════════════════════════
+//  VENDOR PROFILE VIEW TRACKING — IP dedup
+// ══════════════════════════════════════════════
+
+const trackServiceView = catchAsync(async (req, res) => {
+  const { vendorId, serviceId, type } = req.body;
+  const userId = (req.user as any)?.userId;
+
+  const metadata = {
+    ip: (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+      || req.socket?.remoteAddress
+      || '',
+    userAgent: (req.headers['user-agent'] as string) || '',
+    referrer: (req.headers['referer'] as string) || '',
+  };
+
+  const result = await VendorServiceServices.trackServiceViewInDB(
+    vendorId,
+    serviceId,
+    userId,
+    type || 'service',
+    metadata,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'View tracked successfully',
+    data: result,
+  });
+});
+
+// ══════════════════════════════════════════════
+//  VIEW STATS — Vendor profile view analytics
+// ══════════════════════════════════════════════
+
+const getViewStats = catchAsync(async (req, res) => {
+  const vendorId = (req.user as any)?.userId;
+  const result = await VendorServiceServices.getViewStatsFromDB(vendorId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'View stats retrieved successfully',
+    data: result,
+  });
+});
+
+// ══════════════════════════════════════════════
 //  PUBLIC: GET SIMILAR SERVICES
 // ══════════════════════════════════════════════
 
@@ -542,4 +589,6 @@ export const VendorServiceControllers = {
   trackContactClick,
   getLeadStats,
   getSimilarServices,
+  trackServiceView,
+  getViewStats,
 };

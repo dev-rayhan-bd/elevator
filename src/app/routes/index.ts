@@ -28,6 +28,7 @@ import { PromotionRoutes } from '../modules/Promotion/promotion.routes';
 import { VerificationRoutes } from '../modules/Verification/verification.routes';
 import { NewsletterRoutes } from '../modules/Newsletter/newsletter.routes';
 import { AdvisorRoutes } from '../modules/Advisor/advisor.routes';
+import { DashboardRoutes } from '../modules/Dashboard/dashboard.routes';
 
 
 const router = Router();
@@ -83,6 +84,7 @@ const moduleRoutes = [
   { path: '/verification', route: VerificationRoutes },
   { path: '/newsletter', route: NewsletterRoutes },
   { path: '/advisor', route: AdvisorRoutes },
+  { path: '/dashboard', route: DashboardRoutes },
 
 ];
 
