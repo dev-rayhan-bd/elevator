@@ -58,6 +58,7 @@ export interface TUser {
   isDeleted: boolean;
   isSponsored?: boolean;
   isFeatured?: boolean;
+  isOnline?: boolean;
   passwordChangedAt?: Date;
   fcmToken?: string | null;
   favoriteServices?: Types.ObjectId[];

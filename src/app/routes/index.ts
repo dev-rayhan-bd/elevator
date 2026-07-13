@@ -30,6 +30,7 @@ import { NewsletterRoutes } from '../modules/Newsletter/newsletter.routes';
 import { AdvisorRoutes } from '../modules/Advisor/advisor.routes';
 import { DashboardRoutes } from '../modules/Dashboard/dashboard.routes';
 import { AnalyticsRoutes } from '../modules/Analytics/analytics.routes';
+import { ChatRoutes } from '../modules/Chat/chat.routes';
 
 
 const router = Router();
@@ -87,6 +88,7 @@ const moduleRoutes = [
   { path: '/advisor', route: AdvisorRoutes },
   { path: '/dashboard', route: DashboardRoutes },
   { path: '/analytics', route: AnalyticsRoutes },
+  { path: '/chat', route: ChatRoutes },
 
 ];
 
