@@ -17,7 +17,16 @@ import {
 } from '../../constants/visibility';
 
 const getAllUsersFromDB = async (query: Record<string, unknown>) => {
-  const userQuery = new QueryBuilder(User.find({ isDeleted: false }), query)
+  // ── Handle isVerifiedBadge filter ──
+  // Convert string → boolean & map to the correct nested path `vendor.isVerifiedBadge`
+  const filteredQuery = { ...query };
+  if (filteredQuery.isVerifiedBadge !== undefined) {
+    filteredQuery['vendor.isVerifiedBadge'] =
+      filteredQuery.isVerifiedBadge === 'true' || filteredQuery.isVerifiedBadge === true;
+    delete filteredQuery.isVerifiedBadge;
+  }
+
+  const userQuery = new QueryBuilder(User.find({ isDeleted: false }), filteredQuery)
     .search(['firstName', 'lastName', 'email', 'phone'])
     .filter()
     .sort()

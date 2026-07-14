@@ -31,6 +31,7 @@ import { AdvisorRoutes } from '../modules/Advisor/advisor.routes';
 import { DashboardRoutes } from '../modules/Dashboard/dashboard.routes';
 import { AnalyticsRoutes } from '../modules/Analytics/analytics.routes';
 import { ChatRoutes } from '../modules/Chat/chat.routes';
+import { DisputeRoutes } from '../modules/Dispute/dispute.routes';
 
 
 const router = Router();
@@ -89,6 +90,7 @@ const moduleRoutes = [
   { path: '/dashboard', route: DashboardRoutes },
   { path: '/analytics', route: AnalyticsRoutes },
   { path: '/chat', route: ChatRoutes },
+  { path: '/dispute', route: DisputeRoutes },
 
 ];
 
