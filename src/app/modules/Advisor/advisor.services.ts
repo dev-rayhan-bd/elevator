@@ -14,6 +14,15 @@ import { User } from '../User/user.model';
 // ══════════════════════════════════════════════
 
 const createAdvisorServiceIntoDB = async (payload: any) => {
+  // ── Limit: Only 1 advisor service allowed for now ──
+  const totalCount = await AdvisorService.countDocuments();
+  if (totalCount >= 1) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Only one advisor service is allowed. Please update the existing service instead.',
+    );
+  }
+
   const existing = await AdvisorService.findOne({ name: payload.name });
   if (existing) {
     throw new AppError(httpStatus.CONFLICT, 'Advisor service name already exists');
