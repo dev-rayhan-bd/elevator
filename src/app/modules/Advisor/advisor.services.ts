@@ -8,6 +8,8 @@ import {
   AdvisorReview,
 } from './advisor.model';
 import { User } from '../User/user.model';
+import { getEmailTemplate } from '../../utils/emailTemplate';
+import PDFDocument from 'pdfkit';
 
 // ══════════════════════════════════════════════
 //  ADMIN: ADVISOR SERVICE CRUD
@@ -418,7 +420,130 @@ const exportAllDataFromDB = async () => {
     .populate('assignedAssociate', 'firstName lastName email phone')
     .lean();
 
-  return { services, bookings };
+  // Fetch logo buffer
+  let logoBuffer: Buffer | null = null;
+  try {
+    const res = await fetch("https://res.cloudinary.com/da1uxchgo/image/upload/v1781263900/un4seen/i9ti2hs0hnzi8apxz5fj.png");
+    if (res.ok) {
+      const arrayBuffer = await res.arrayBuffer();
+      logoBuffer = Buffer.from(arrayBuffer);
+    }
+  } catch (error) {
+    console.error("Failed to fetch logo for PDF", error);
+  }
+
+  return new Promise<Buffer>((resolve, reject) => {
+    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+    const buffers: Buffer[] = [];
+    doc.on('data', (chunk) => buffers.push(chunk));
+    doc.on('end', () => resolve(Buffer.concat(buffers)));
+    doc.on('error', (err) => reject(err));
+
+    // --- Header ---
+    doc.rect(0, 0, 595, 85).fill('#0f172a');
+    
+    if (logoBuffer) {
+      doc.image(logoBuffer, 50, 15, { height: 55 });
+    } else {
+      doc.fillColor('#ffffff').fontSize(26).font('Helvetica-Bold').text('WEEPLAN', 50, 30);
+    }
+
+    // Align text to the right side of the header so it doesn't overlap the logo
+    doc.fillColor('#94a3b8').fontSize(10).font('Helvetica').text(
+      `Advisor Data Report\nGenerated on ${new Date().toLocaleDateString()}`,
+      250, 30, { align: 'right', width: 295 }
+    );
+    
+    // Move cursor below the header
+    doc.y = 110;
+
+    // --- Helper function for dividers ---
+    const drawDivider = () => {
+      doc.moveDown(0.5);
+      doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#e2e8f0').lineWidth(1).stroke();
+      doc.moveDown(0.5);
+    };
+
+    // --- Services Section ---
+    doc.fillColor('#334155').fontSize(18).font('Helvetica-Bold').text('Advisor Services');
+    doc.moveTo(50, doc.y + 5).lineTo(545, doc.y + 5).strokeColor('#cbd5e1').lineWidth(2).stroke();
+    doc.moveDown(1.5);
+
+    if (services.length === 0) {
+      doc.fillColor('#64748b').fontSize(12).font('Helvetica').text('No advisor services found.');
+    } else {
+      services.forEach((s) => {
+        doc.fillColor('#0f172a').fontSize(14).font('Helvetica-Bold').text(s.name, { continued: true });
+        
+        // Status indicator (simulated with text on the same line using spaces, or just next line)
+        const statusColor = s.isActive ? '#10b981' : '#ef4444';
+        doc.fillColor(statusColor).fontSize(10).text(`   [ ${s.isActive ? 'ACTIVE' : 'INACTIVE'} ]`);
+        
+        doc.moveDown(0.5);
+        doc.fillColor('#475569').fontSize(11).font('Helvetica-Bold').text('Price: ', { continued: true })
+           .font('Helvetica').text(`$${s.price.toLocaleString()}`);
+        
+        doc.moveDown(0.5);
+        doc.fillColor('#64748b').fontSize(10).font('Helvetica').text(s.description);
+        
+        drawDivider();
+      });
+    }
+
+    doc.moveDown(2);
+
+    // --- Bookings Section ---
+    doc.fillColor('#334155').fontSize(18).font('Helvetica-Bold').text('Recent Bookings');
+    doc.moveTo(50, doc.y + 5).lineTo(545, doc.y + 5).strokeColor('#cbd5e1').lineWidth(2).stroke();
+    doc.moveDown(1.5);
+
+    if (bookings.length === 0) {
+      doc.fillColor('#64748b').fontSize(12).font('Helvetica').text('No bookings found.');
+    } else {
+      bookings.forEach((b: any) => {
+        doc.fillColor('#0f172a').fontSize(14).font('Helvetica-Bold').text(`${b.fullName}`, { continued: true });
+        
+        const bStatusColor = b.status === 'completed' ? '#10b981' : b.status === 'pending' ? '#f59e0b' : '#3b82f6';
+        doc.fillColor(bStatusColor).fontSize(10).text(`   [ ${b.status.toUpperCase()} ]`);
+        
+        doc.moveDown(0.3);
+        
+        // Grid-like layout using tabs/columns
+        const yStart = doc.y;
+        doc.fillColor('#475569').fontSize(10).font('Helvetica-Bold').text('Service:', 50, yStart, { width: 60 });
+        doc.font('Helvetica').text(b.advisorService?.name || 'N/A', 110, yStart, { width: 180 });
+        
+        doc.font('Helvetica-Bold').text('Client Email:', 300, yStart, { width: 70 });
+        doc.font('Helvetica').text(b.user?.email || 'N/A', 370, yStart);
+        
+        doc.moveDown(0.2);
+        const yRow2 = doc.y;
+        doc.font('Helvetica-Bold').text('Budget:', 50, yRow2, { width: 60 });
+        doc.font('Helvetica').text(`$${b.budget.toLocaleString()}`, 110, yRow2, { width: 180 });
+        
+        doc.font('Helvetica-Bold').text('Guests:', 300, yRow2, { width: 70 });
+        doc.font('Helvetica').text(b.guestCount.toString(), 370, yRow2);
+
+        doc.moveDown(0.2);
+        const yRow3 = doc.y;
+        doc.font('Helvetica-Bold').text('Wedding:', 50, yRow3, { width: 60 });
+        doc.font('Helvetica').text(`${new Date(b.weddingDate).toLocaleDateString()} at ${b.weddingLocation}`, 110, yRow3, { width: 400 });
+
+        doc.moveDown(0.2);
+        const yRow4 = doc.y;
+        doc.font('Helvetica-Bold').text('Assigned:', 50, yRow4, { width: 60 });
+        doc.font('Helvetica').text(b.assignedAssociate ? `${b.assignedAssociate.firstName} ${b.assignedAssociate.lastName}` : 'Unassigned', 110, yRow4, { width: 400 });
+
+        // Reset X to default margin after custom positions
+        doc.x = 50;
+        doc.moveDown(1);
+        
+        drawDivider();
+      });
+    }
+
+    doc.end();
+  });
 };
 
 // ══════════════════════════════════════════════

@@ -185,13 +185,15 @@ const getDashboardStats = catchAsync(async (req: Request, res: Response) => {
 // ══════════════════════════════════════════════
 
 const exportAllData = catchAsync(async (req: Request, res: Response) => {
-  const result = await AdvisorServices.exportAllDataFromDB();
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'All advisor data exported successfully',
-    data: result,
-  });
+  const pdfBuffer = await AdvisorServices.exportAllDataFromDB();
+  
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="Advisor_Data_Export_${new Date().getTime()}.pdf"`,
+  );
+
+  res.send(pdfBuffer);
 });
 
 // ══════════════════════════════════════════════

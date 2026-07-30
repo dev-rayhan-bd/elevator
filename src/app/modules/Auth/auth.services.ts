@@ -7,6 +7,7 @@ import config from '../../config';
 import { sendOTP } from '../../utils/twilio';
 import { getEmailTemplate } from '../../utils/emailTemplate';
 import sendEmail from '../../utils/sendEmail';
+import { sendNotification, sendNotificationToAdmins } from '../../utils/sendNotification';
 import { TResetPassword } from './auth.interface';
 import { TUser } from '../User/user.interface';
 
@@ -49,8 +50,8 @@ const registerUser = async (payload: TUser) => {
   
   payload.otp = plainOtp;
   payload.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-  payload.role = 'user'; 
-  payload.status = 'active'; 
+  payload.role = payload.role || 'user'; 
+  payload.status = payload.role === 'vendor' ? 'pending' : 'active'; 
   payload.isOtpVerified = false;
 
   // ── Security: Strip restricted fields that users must not set ──
@@ -60,7 +61,7 @@ const registerUser = async (payload: TUser) => {
   if (payload.vendor) {
     delete (payload.vendor as any).isVerifiedBadge;
     delete (payload.vendor as any).isProfileCompleted;
-    delete (payload.vendor as any).profileScore;
+    payload.vendor.profileScore = 40; // Default score for new vendors
     delete (payload.vendor as any).passwordChangedAt;
   }
 
@@ -122,6 +123,22 @@ const verifyOTPForRegistration = async (identifier: string, otp: string) => {
   user.otp = null;
   user.otpExpires = null;
   await user.save();
+
+  if (user.role === 'vendor' && user.status === 'pending') {
+    sendNotificationToAdmins(
+      'New Vendor Registration',
+      `${user.firstName} ${user.lastName} (${user.email}) has registered as a vendor.`,
+      'vendor_application',
+      { userId: user._id.toString(), action: 'vendor_application' }
+    );
+    sendNotification(
+      user._id.toString(),
+      'Registration Successful',
+      'Your vendor application has been submitted and is pending admin approval.',
+      'vendor_application',
+      { action: 'vendor_application' }
+    );
+  }
 
   const jwtPayload = { userId: user._id.toString(), role: user.role };
   return { 

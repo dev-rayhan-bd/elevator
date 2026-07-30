@@ -115,14 +115,15 @@ const addAdminNote = catchAsync(async (req, res) => {
 // ── Admin: Export dispute report ──
 const exportDisputeReport = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await DisputeServices.exportDisputeReportFromDB(id);
+  const pdfBuffer = await DisputeServices.exportDisputeReportFromDB(id);
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Dispute report generated successfully',
-    data: result,
-  });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="Dispute_Report_${id}.pdf"`,
+  );
+
+  res.send(pdfBuffer);
 });
 
 export const DisputeControllers = {
