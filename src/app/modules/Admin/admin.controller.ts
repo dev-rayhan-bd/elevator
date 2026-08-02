@@ -145,6 +145,18 @@ const getAllAdmins = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+const getMe = catchAsync(async (req, res) => {
+  const { userId, role } = req.user;
+  const result = await AdminServices.getMeFromDB(userId, role);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Profile retrieved successfully',
+    data: result,
+  });
+});
+
 export const AdminControllers = {
   loginAdmin,
   updateProfile,
@@ -159,4 +171,5 @@ export const AdminControllers = {
   deleteAdmin,
   blockUnblockAdmin,
   getAllAdmins,
+  getMe,
 };

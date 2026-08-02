@@ -28,6 +28,11 @@ router.post(
   AdminControllers.changePassword
 );
 
+router.get(
+  '/me',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  AdminControllers.getMe
+);
 
 router.get(
   '/pending-vendors',
