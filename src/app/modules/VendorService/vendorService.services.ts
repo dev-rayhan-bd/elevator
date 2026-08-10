@@ -901,6 +901,7 @@ const getFeaturedVendorServicesFromDB = async (
     promotionCategory: 'featured',
     status: 'active',
     isActive: true,
+    paymentStatus: 'paid',
     endDate: { $gt: now },
   })
     .select('vendor')
@@ -934,6 +935,7 @@ const getFeaturedVendorServicesFromDB = async (
     promotionCategory: 'sponsored',
     status: 'active',
     isActive: true,
+    paymentStatus: 'paid',
     endDate: { $gt: now },
   })
     .select('vendor')
