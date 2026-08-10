@@ -21,14 +21,14 @@ app.use(helmet()); // HTTP headers security
 app.use(mongoSanitizeMiddleware);// NoSQL injection protection (e.g: email: {"$gt": ""})
 
 // --- RATE LIMITING ---
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, //14 minutes
-  max: 100,
-  message: 'Too many requests from this IP, please try again after 15 minutes',
-  standardHeaders: true, 
-  legacyHeaders: false, 
-});
-app.use('/api', limiter); 
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, //14 minutes
+//   max: 100,
+//   message: 'Too many requests from this IP, please try again after 15 minutes',
+//   standardHeaders: true, 
+//   legacyHeaders: false, 
+// });
+// app.use('/api', limiter); 
 
 app.use(express.json({ limit: '10kb' })); // body size limit 10kb, to prevent DoS attacks
 
