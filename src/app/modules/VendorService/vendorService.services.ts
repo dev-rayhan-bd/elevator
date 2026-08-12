@@ -95,6 +95,9 @@ const getPublicVendorServicesFromDB = async (
     lat: queryLat,
     lng: queryLng,
     maxDistance,
+    sortByPrice,
+    sortBy,
+    sortOrder,
     page: pageStr,
     limit: limitStr,
   } = query as Record<string, unknown>;
@@ -193,10 +196,19 @@ const getPublicVendorServicesFromDB = async (
   }
 
   // ── 3d. Geo-spatial proximity filter (haversine in $addFields + $match) ──
-  const userLat = Number(queryLat);
-  const userLng = Number(queryLng);
-  const distKm = Number(maxDistance) || 0;
-  const hasGeoFilter = !isNaN(userLat) && !isNaN(userLng) && distKm > 0;
+  const rawLat = queryLat ?? (query as any).lat;
+  const rawLng = queryLng ?? (query as any).lng ?? (query as any).long;
+  const userLat = Number(rawLat);
+  const userLng = Number(rawLng);
+  const hasValidLatLng =
+    rawLat !== undefined &&
+    rawLat !== '' &&
+    rawLng !== undefined &&
+    rawLng !== '' &&
+    !isNaN(userLat) &&
+    !isNaN(userLng);
+  const distKm = maxDistance ? Number(maxDistance) : hasValidLatLng ? 5 : 0;
+  const hasGeoFilter = hasValidLatLng && distKm > 0;
 
   if (hasGeoFilter) {
     // Earth radius in km
@@ -206,10 +218,10 @@ const getPublicVendorServicesFromDB = async (
         distanceKm: {
           $let: {
             vars: {
-              dLat: { $degreesToRadians: { $subtract: [{ $ifNull: ['$vendor.vendor.lat', '$vendor.lat'] }, userLat] } },
-              dLng: { $degreesToRadians: { $subtract: [{ $ifNull: ['$vendor.vendor.long', '$vendor.long'] }, userLng] } },
+              dLat: { $degreesToRadians: { $subtract: [{ $ifNull: ['$location.lat', { $ifNull: ['$vendor.vendor.lat', '$vendor.lat'] }] }, userLat] } },
+              dLng: { $degreesToRadians: { $subtract: [{ $ifNull: ['$location.long', { $ifNull: ['$vendor.vendor.long', '$vendor.long'] }] }, userLng] } },
               lat1: { $degreesToRadians: userLat },
-              lat2: { $degreesToRadians: { $ifNull: ['$vendor.vendor.lat', '$vendor.lat'] } },
+              lat2: { $degreesToRadians: { $ifNull: ['$location.lat', { $ifNull: ['$vendor.vendor.lat', '$vendor.lat'] }] } },
             },
             in: {
               $multiply: [
@@ -360,22 +372,31 @@ const getPublicVendorServicesFromDB = async (
     pipeline.push({ $addFields: { distanceKm: null } });
   }
 
-  // ── 3k. Sort: Sponsored → Verified Badge → Profile Score → Rating → Newest ──
+  // ── 3k. Sort: Price (if requested) OR Sponsored → Verified → Profile Score → Rating → Newest ──
   pipeline.push({
     $addFields: {
       sortVerified: { $ifNull: ['$vendor.vendor.isVerifiedBadge', false] },
       sortProfileScore: { $ifNull: ['$vendor.vendor.profileScore', 0] },
     },
   });
-  pipeline.push({
-    $sort: {
-      isSponsored: -1,
-      sortVerified: -1,
-      sortProfileScore: -1,
-      rating: -1,
-      createdAt: -1,
-    } as Record<string, 1 | -1>,
-  });
+
+  const sortStage: Record<string, 1 | -1> = {};
+  const effectiveSortPrice =
+    sortByPrice || (sortBy === 'price' ? sortOrder : null);
+
+  if (effectiveSortPrice === 'asc' || effectiveSortPrice === 'desc') {
+    sortStage.isSponsored = -1;
+    sortStage.price = effectiveSortPrice === 'asc' ? 1 : -1;
+    sortStage.createdAt = -1;
+  } else {
+    sortStage.isSponsored = -1;
+    sortStage.sortVerified = -1;
+    sortStage.sortProfileScore = -1;
+    sortStage.rating = -1;
+    sortStage.createdAt = -1;
+  }
+
+  pipeline.push({ $sort: sortStage });
 
   // ── 3l. Project: map-pin optimized response ──
   pipeline.push({

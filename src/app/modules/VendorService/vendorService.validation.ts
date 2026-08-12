@@ -107,6 +107,9 @@ export const venueSearchQuerySchema = z.object({
   lat: z.string().optional(),
   lng: z.string().optional(),
   maxDistance: z.string().optional(),
+  sortByPrice: z.string().optional(),
+  sortBy: z.string().optional(),
+  sortOrder: z.string().optional(),
   page: z.string().optional(),
   limit: z.string().optional(),
 });
