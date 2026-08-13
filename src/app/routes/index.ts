@@ -32,6 +32,7 @@ import { DashboardRoutes } from '../modules/Dashboard/dashboard.routes';
 import { AnalyticsRoutes } from '../modules/Analytics/analytics.routes';
 import { ChatRoutes } from '../modules/Chat/chat.routes';
 import { DisputeRoutes } from '../modules/Dispute/dispute.routes';
+import { ReportRoutes } from '../modules/Report/report.routes';
 
 
 import refundPolicyRouter from '../modules/RefundPolicy/refundPolicy.routes';
@@ -108,7 +109,7 @@ const moduleRoutes = [
   { path: '/analytics', route: AnalyticsRoutes },
   { path: '/chat', route: ChatRoutes },
   { path: '/dispute', route: DisputeRoutes },
-
+  { path: '/reports', route: ReportRoutes },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
