@@ -77,7 +77,6 @@ export interface IAdminDashboardResult {
     quoteRequested: { count: number; percentage: number };
     savedListing: { count: number; percentage: number };
     bookingsWonDeals: { count: number; percentage: number };
-    appDownloads: { count: number; percentage: number };
   };
   recentActivityLog: Array<{
     id: string;

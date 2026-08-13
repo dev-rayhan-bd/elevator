@@ -436,6 +436,7 @@ const getAdminDashboard = async (): Promise<IAdminDashboardResult> => {
     buyerRequestsLastMonth,
     activeVerifiedSubscription,
     activeVerifiedSubscriptionLastMonth,
+    visitsCount,
     postedRequirementsCount,
     quoteRequestedCount,
     savedListingsCountResult,
@@ -486,6 +487,7 @@ const getAdminDashboard = async (): Promise<IAdminDashboardResult> => {
       'vendor.isVerifiedBadge': true,
       createdAt: { $lt: startOfThisMonth },
     }),
+    ServiceView.countDocuments(),
     EventRequest.countDocuments({ isDeleted: { $ne: true } }),
     EventQuote.countDocuments(),
     User.aggregate([
@@ -547,7 +549,8 @@ const getAdminDashboard = async (): Promise<IAdminDashboardResult> => {
 
   activities.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-  const savedListingsTotal = savedListingsCountResult[0]?.total || 15234;
+  const savedListingsTotal = savedListingsCountResult[0]?.total || 0;
+  const visitsTotal = visitsCount || 0;
 
   return {
     overviewCards: {
@@ -618,12 +621,26 @@ const getAdminDashboard = async (): Promise<IAdminDashboardResult> => {
       { category: 'Associate', amount: 234567 },
     ],
     conversionFunnel: {
-      visits: { count: 10000, percentage: 100 },
-      postedRequirements: { count: postedRequirementsCount || 3500, percentage: 35 },
-      quoteRequested: { count: quoteRequestedCount || 2100, percentage: 21 },
-      savedListing: { count: savedListingsTotal, percentage: 15.2 },
-      bookingsWonDeals: { count: bookingsWonDealsCount || 15234, percentage: 15.2 },
-      appDownloads: { count: 15234, percentage: 15.2 },
+      visits: {
+        count: visitsTotal,
+        percentage: 100,
+      },
+      postedRequirements: {
+        count: postedRequirementsCount,
+        percentage: visitsTotal > 0 ? Math.min(100, Math.round((postedRequirementsCount / visitsTotal) * 100)) : 0,
+      },
+      quoteRequested: {
+        count: quoteRequestedCount,
+        percentage: postedRequirementsCount > 0 ? Math.min(100, Math.round((quoteRequestedCount / postedRequirementsCount) * 100)) : 0,
+      },
+      savedListing: {
+        count: savedListingsTotal,
+        percentage: visitsTotal > 0 ? Math.min(100, Math.round((savedListingsTotal / visitsTotal) * 100)) : 0,
+      },
+      bookingsWonDeals: {
+        count: bookingsWonDealsCount,
+        percentage: quoteRequestedCount > 0 ? Math.min(100, Math.round((bookingsWonDealsCount / quoteRequestedCount) * 100)) : 0,
+      },
     },
     recentActivityLog: activities.slice(0, 8),
   };
