@@ -105,7 +105,7 @@ export const initializeSocket = (server: HttpServer) => {
         }
 
         // Delegate all DB work to the service layer
-        const { message: populatedMessage, conversationId, lastMessageAt } =
+        const { message: populatedMessage, conversationId, lastMessageAt, receiverUnreadCount } =
           await ChatServices.sendAndSaveMessage(
             userId,
             receiverId,
@@ -126,12 +126,13 @@ export const initializeSocket = (server: HttpServer) => {
           conversationId,
         });
 
-        // Update receiver's sidebar
+        // Update receiver's sidebar with real-time unreadCount badge
         io.to(receiverId).emit('CONVERSATION_UPDATED', {
           conversationId,
           lastMessage: populatedMessage?.text || (file ? '📎 Image' : ''),
           lastMessageSender: userId,
           lastMessageAt: lastMessageAt || new Date(),
+          unreadCount: receiverUnreadCount,
         });
 
         // ── 2. FCM Push Notification if receiver is offline ──
@@ -187,10 +188,20 @@ export const initializeSocket = (server: HttpServer) => {
     // ── MARK_AS_READ ──
     socket.on('MARK_AS_READ', async (data) => {
       try {
-        const { conversationId } = data;
+        const conversationId = typeof data === 'string' ? data : data?.conversationId;
         if (!conversationId) return;
 
         await ChatServices.markMessagesAsReadInDB(conversationId, userId);
+
+        socket.emit('MESSAGES_MARKED_READ', {
+          conversationId,
+          unreadCount: 0,
+        });
+
+        socket.emit('CONVERSATION_UPDATED', {
+          conversationId,
+          unreadCount: 0,
+        });
 
         // Notify the other participant that messages were read
         const conversation = await ChatServices.findOrCreateConversation(userId, '', conversationId);

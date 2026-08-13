@@ -23,31 +23,42 @@ const getConversationsFromDB = async (userId: string) => {
     })
     .sort({ updatedAt: -1 });
 
-  const sidebarData = conversations.map((conv) => {
-    const convDoc = conv as any;
-    const otherParticipant = (convDoc.participants as any[]).find(
-      (p: any) => p._id.toString() !== userId,
-    );
+  const userObjId = new Types.ObjectId(userId);
 
-    return {
-      _id: convDoc._id,
-      otherParticipant: otherParticipant
-        ? {
-            _id: otherParticipant._id,
-            firstName: otherParticipant.firstName,
-            lastName: otherParticipant.lastName,
-            image: otherParticipant.image,
-            isOnline: otherParticipant.isOnline,
-            role: otherParticipant.role,
-          }
-        : null,
-      lastMessage: convDoc.lastMessage,
-      lastMessageSender: convDoc.lastMessageSender,
-      lastMessageAt: convDoc.lastMessageAt || convDoc.updatedAt,
-      unreadCount: (convDoc.unreadCount as Map<string, number>).get(userId) || 0,
-      updatedAt: convDoc.updatedAt,
-    };
-  });
+  const sidebarData = await Promise.all(
+    conversations.map(async (conv) => {
+      const convDoc = conv as any;
+      const otherParticipant = (convDoc.participants as any[]).find(
+        (p: any) => p._id.toString() !== userId,
+      );
+
+      // Dynamically calculate unread count from actual unread messages for THIS user
+      const unread = await Message.countDocuments({
+        conversationId: conv._id,
+        receiver: userObjId,
+        isRead: false,
+      });
+
+      return {
+        _id: convDoc._id,
+        otherParticipant: otherParticipant
+          ? {
+              _id: otherParticipant._id,
+              firstName: otherParticipant.firstName,
+              lastName: otherParticipant.lastName,
+              image: otherParticipant.image,
+              isOnline: otherParticipant.isOnline,
+              role: otherParticipant.role,
+            }
+          : null,
+        lastMessage: convDoc.lastMessage,
+        lastMessageSender: convDoc.lastMessageSender,
+        lastMessageAt: convDoc.lastMessageAt || convDoc.updatedAt,
+        unreadCount: unread,
+        updatedAt: convDoc.updatedAt,
+      };
+    }),
+  );
 
   return sidebarData;
 };
@@ -143,19 +154,23 @@ const sendAndSaveMessage = async (
     existingConversationId,
   );
 
-  // Update conversation metadata
+  const convId = conversation._id.toString();
   const lastMessageAt = new Date();
-  conversation.lastMessage = displayText;
-  conversation.lastMessageSender = new Types.ObjectId(senderId);
-  conversation.lastMessageAt = lastMessageAt;
 
-  // ── Sender-aware unreadCount: ONLY increment receiver's count ──
-  const unreadMap = conversation.unreadCount as unknown as Map<string, number>;
-  const currentReceiverCount = unreadMap.get(receiverId) || 0;
-  unreadMap.set(receiverId, currentReceiverCount + 1);
-  conversation.markModified('unreadCount');
-
-  await conversation.save();
+  // Atomically update conversation metadata + increment receiver's unreadCount in DB
+  await Conversation.collection.updateOne(
+    { _id: conversation._id },
+    {
+      $set: {
+        lastMessage: displayText,
+        lastMessageSender: new Types.ObjectId(senderId),
+        lastMessageAt,
+      },
+      $inc: {
+        [`unreadCount.${receiverId}`]: 1,
+      },
+    },
+  );
 
   // Create message document
   const message = await Message.create({
@@ -172,11 +187,19 @@ const sendAndSaveMessage = async (
     .populate('sender', 'firstName lastName image')
     .populate('receiver', 'firstName lastName image');
 
+  // Calculate receiver's total unread messages in this conversation
+  const receiverUnreadCount = await Message.countDocuments({
+    conversationId: conversation._id,
+    receiver: new Types.ObjectId(receiverId),
+    isRead: false,
+  });
+
   return {
     message: populatedMessage!,
     conversationId: conversation._id,
     lastMessageAt,
     displayText,
+    receiverUnreadCount,
   };
 };
 
@@ -194,19 +217,27 @@ const createOrGetConversationOnly = async (userId: string, receiverId: string) =
 // ══════════════════════════════════════════════
 
 const markMessagesAsReadInDB = async (conversationId: string, userId: string) => {
-  await Message.updateMany(
-    { conversationId, receiver: userId, isRead: false },
+  const convObjectId = new Types.ObjectId(conversationId);
+  const userObjectId = new Types.ObjectId(userId);
+
+  // Update all unread messages received by this user in this conversation
+  await Message.collection.updateMany(
+    {
+      conversationId: convObjectId,
+      receiver: userObjectId,
+    },
     { $set: { isRead: true } },
   );
 
-  // Reset only this user's unread count
-  const conversation = await Conversation.findById(conversationId);
-  if (conversation) {
-    const unreadMap = conversation.unreadCount as unknown as Map<string, number>;
-    unreadMap.set(userId, 0);
-    conversation.markModified('unreadCount');
-    await conversation.save();
-  }
+  // Directly set this user's unread count to 0 in MongoDB collection
+  await Conversation.collection.updateOne(
+    { _id: convObjectId },
+    {
+      $set: {
+        [`unreadCount.${userId}`]: 0,
+      },
+    },
+  );
 
   return { message: 'Messages marked as read' };
 };
