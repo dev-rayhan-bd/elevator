@@ -32,6 +32,18 @@ const getVendorDashboard = catchAsync(async (req, res) => {
   });
 });
 
+const getAdminDashboard = catchAsync(async (req, res) => {
+  const result = await DashboardServices.getAdminDashboard();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Admin Dashboard data retrieved successfully',
+    data: result,
+  });
+});
+
 export const DashboardControllers = {
   getVendorDashboard,
+  getAdminDashboard,
 };

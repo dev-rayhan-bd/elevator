@@ -80,4 +80,10 @@ router.get(
   AdminControllers.getAllAdmins
 );
 
+router.get(
+  '/dashboard',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  AdminControllers.getAdminDashboard
+);
+
 export const AdminRoutes = router;

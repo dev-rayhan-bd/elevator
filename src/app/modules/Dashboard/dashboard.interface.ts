@@ -48,3 +48,44 @@ export interface IDashboardResult {
   packageDistribution: IPackageDistribution[];
   upcomingEvents: IUpcomingEvent[];
 }
+
+export interface IMetricCard<T = number | string> {
+  value: T;
+  change: string;
+}
+
+export interface IAdminDashboardResult {
+  overviewCards: {
+    vendorProfilesInReview: IMetricCard<number>;
+    vendorServiceListingInReview: IMetricCard<number>;
+    totalVendors: IMetricCard<number>;
+    activeListings: IMetricCard<number>;
+    hiredAssociates: IMetricCard<number>;
+    associateRevenue: IMetricCard<string>;
+    buyerRequests: IMetricCard<number>;
+    featuredAdsRevenue: IMetricCard<string>;
+    sponsoredListingAdsRevenue: IMetricCard<string>;
+    insAndIdeasAdRevenue: IMetricCard<string>;
+    activeVerifiedSubscription: IMetricCard<number>;
+    verifiedSubscriptionRevenue: IMetricCard<string>;
+  };
+  yearlyRevenueTrend: Array<{ month: string; amount: number }>;
+  revenueBreakdownByCategory: Array<{ category: string; amount: number }>;
+  conversionFunnel: {
+    visits: { count: number; percentage: number };
+    postedRequirements: { count: number; percentage: number };
+    quoteRequested: { count: number; percentage: number };
+    savedListing: { count: number; percentage: number };
+    bookingsWonDeals: { count: number; percentage: number };
+    appDownloads: { count: number; percentage: number };
+  };
+  recentActivityLog: Array<{
+    id: string;
+    title: string;
+    description: string;
+    timeAgo: string;
+    type: string;
+    createdAt: Date;
+  }>;
+}
+

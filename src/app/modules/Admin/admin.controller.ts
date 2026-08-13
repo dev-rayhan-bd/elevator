@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { AdminServices } from './admin.services';
+import { DashboardServices } from '../Dashboard/dashboard.services';
 import uploadImage from '../../middleware/upload';
 import config from '../../config';
 
@@ -157,6 +158,16 @@ const getMe = catchAsync(async (req, res) => {
   });
 });
 
+const getAdminDashboard = catchAsync(async (req, res) => {
+  const result = await DashboardServices.getAdminDashboard();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Admin Dashboard data retrieved successfully',
+    data: result,
+  });
+});
+
 export const AdminControllers = {
   loginAdmin,
   updateProfile,
@@ -172,4 +183,5 @@ export const AdminControllers = {
   blockUnblockAdmin,
   getAllAdmins,
   getMe,
+  getAdminDashboard,
 };

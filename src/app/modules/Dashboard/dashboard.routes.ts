@@ -13,4 +13,12 @@ router.get(
   DashboardControllers.getVendorDashboard,
 );
 
+// ── Admin Dashboard ──
+// GET /dashboard/admin
+router.get(
+  '/admin',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  DashboardControllers.getAdminDashboard,
+);
+
 export const DashboardRoutes = router;
