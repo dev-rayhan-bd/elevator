@@ -74,7 +74,10 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
     ...monthsDataWindow.flatMap((m) => [
       User.countDocuments({ role: 'vendor', createdAt: { $gte: m.start, $lte: m.end } }),
       User.countDocuments({ role: 'user', createdAt: { $gte: m.start, $lte: m.end } }),
+      VendorService.countDocuments({ isActive: true, createdAt: { $gte: m.start, $lte: m.end } }),
+      EventRequest.countDocuments({ isDeleted: { $ne: true }, createdAt: { $gte: m.start, $lte: m.end } }),
       Dispute.countDocuments({ createdAt: { $gte: m.start, $lte: m.end } }),
+      Dispute.countDocuments({ status: 'resolved', createdAt: { $gte: m.start, $lte: m.end } }),
     ]),
   ]);
 
@@ -126,22 +129,29 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
     ];
   }
 
-  // Construct monthly breakdown rows
+  // Construct monthly breakdown rows with ONLY real fields for vendor, user, disputes, custom
   const monthlyBreakdown: IMonthlyBreakdownRow[] = [];
   let prevVal = 0;
 
   for (let i = 0; i < monthsDataWindow.length; i++) {
     const m = monthsDataWindow[i];
-    const newVendors = (monthlyCounts[i * 3] as number) || 0;
-    const newUsers = (monthlyCounts[i * 3 + 1] as number) || 0;
-    const disputes = (monthlyCounts[i * 3 + 2] as number) || 0;
+    const newVendors = (monthlyCounts[i * 6] as number) || 0;
+    const newUsers = (monthlyCounts[i * 6 + 1] as number) || 0;
+    const activeListings = (monthlyCounts[i * 6 + 2] as number) || 0;
+    const buyerRequests = (monthlyCounts[i * 6 + 3] as number) || 0;
+    const disputes = (monthlyCounts[i * 6 + 4] as number) || 0;
+    const resolvedDisputes = (monthlyCounts[i * 6 + 5] as number) || 0;
 
     const revAmount = STATIC_MONTHLY_REVENUE[i % STATIC_MONTHLY_REVENUE.length];
     const bookingsCount = STATIC_MONTHLY_BOOKINGS[i % STATIC_MONTHLY_BOOKINGS.length];
 
-    let growthStr = '- 0.0%';
-    const currentVal = selectedType === 'user' ? newUsers : selectedType === 'disputes' ? disputes : newVendors;
+    let currentVal = newVendors;
+    if (selectedType === 'user') currentVal = newUsers;
+    else if (selectedType === 'disputes') currentVal = disputes;
+    else if (selectedType === 'bookings') currentVal = bookingsCount;
+    else if (selectedType === 'revenue') currentVal = revAmount;
 
+    let growthStr = '- 0.0%';
     if (i > 0 && prevVal > 0) {
       const diffPct = (((currentVal - prevVal) / prevVal) * 100).toFixed(1);
       const numPct = Number(diffPct);
@@ -149,16 +159,56 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
     }
     prevVal = currentVal;
 
-    monthlyBreakdown.push({
-      month: m.name,
-      year: m.year,
-      revenue: `$${revAmount.toLocaleString()}`,
-      bookings: bookingsCount,
-      newVendors,
-      newUsers,
-      disputes,
-      growth: growthStr,
-    });
+    let rowObj: IMonthlyBreakdownRow;
+
+    if (selectedType === 'vendor') {
+      rowObj = {
+        month: m.name,
+        year: m.year,
+        newVendors,
+        activeListings,
+        growth: growthStr,
+      };
+    } else if (selectedType === 'user') {
+      rowObj = {
+        month: m.name,
+        year: m.year,
+        newUsers,
+        buyerRequests,
+        growth: growthStr,
+      };
+    } else if (selectedType === 'disputes') {
+      rowObj = {
+        month: m.name,
+        year: m.year,
+        disputes,
+        resolvedDisputes,
+        growth: growthStr,
+      };
+    } else if (selectedType === 'custom') {
+      rowObj = {
+        month: m.name,
+        year: m.year,
+        newVendors,
+        newUsers,
+        activeListings,
+        buyerRequests,
+        disputes,
+        growth: growthStr,
+      };
+    } else {
+      // revenue | bookings
+      rowObj = {
+        month: m.name,
+        year: m.year,
+        revenue: `$${revAmount.toLocaleString()}`,
+        bookings: bookingsCount,
+        newVendors,
+        growth: growthStr,
+      };
+    }
+
+    monthlyBreakdown.push(rowObj);
   }
 
   // Trend chart data mapping
@@ -174,11 +224,11 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
       : 'Vendor Growth Trend (Last 6 Months)';
 
   const trendData = monthlyBreakdown.map((row) => {
-    let val = row.newVendors;
-    if (selectedType === 'revenue') val = parseInt(row.revenue.replace(/[^0-9]/g, ''), 10);
-    else if (selectedType === 'bookings') val = row.bookings;
-    else if (selectedType === 'user') val = row.newUsers;
-    else if (selectedType === 'disputes') val = row.disputes;
+    let val = row.newVendors ?? 0;
+    if (selectedType === 'revenue' && row.revenue) val = parseInt(row.revenue.replace(/[^0-9]/g, ''), 10);
+    else if (selectedType === 'bookings' && row.bookings) val = row.bookings;
+    else if (selectedType === 'user' && row.newUsers !== undefined) val = row.newUsers;
+    else if (selectedType === 'disputes' && row.disputes !== undefined) val = row.disputes;
 
     return {
       month: row.month,
@@ -221,7 +271,7 @@ const generateReportPDF = async (type: string = 'vendor'): Promise<Buffer> => {
     doc.fillColor('#64748b').fontSize(10).font('Helvetica').text(`Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`);
     doc.moveDown(1);
 
-    // KPI Cards Grid (Render dynamic 4 summaryCards)
+    // KPI Cards Grid (Render dynamic summaryCards)
     const cardBgColors = ['#fdf2f8', '#f0fdf4', '#faf5ff', '#fffbe6'];
     const cardBorderColors = ['#fbcfe8', '#bbf7d0', '#e9d5ff', '#fef08a'];
     const titleColors = ['#9d174d', '#166534', '#6b21a8', '#854d0e'];
@@ -237,18 +287,36 @@ const generateReportPDF = async (type: string = 'vendor'): Promise<Buffer> => {
     doc.y = 175;
     doc.moveDown(1.5);
 
-    // Monthly Breakdown Table Header
+    // Dynamic Monthly Breakdown Table Header
     doc.fillColor('#1e293b').fontSize(14).font('Helvetica-Bold').text('Monthly Breakdown (Last 6 Months)');
     doc.moveDown(0.5);
 
     const tableTop = doc.y;
     doc.rect(50, tableTop, 495, 22).fill('#f1f5f9');
     doc.fillColor('#475569').fontSize(9).font('Helvetica-Bold');
-    doc.text('MONTH', 60, tableTop + 6);
-    doc.text('REVENUE', 140, tableTop + 6);
-    doc.text('BOOKINGS', 240, tableTop + 6);
-    doc.text('NEW VENDORS', 330, tableTop + 6);
-    doc.text('GROWTH', 440, tableTop + 6);
+
+    if (reportData.selectedReportType === 'vendor') {
+      doc.text('MONTH', 60, tableTop + 6);
+      doc.text('NEW VENDORS', 160, tableTop + 6);
+      doc.text('ACTIVE LISTINGS', 300, tableTop + 6);
+      doc.text('GROWTH', 440, tableTop + 6);
+    } else if (reportData.selectedReportType === 'user') {
+      doc.text('MONTH', 60, tableTop + 6);
+      doc.text('NEW USERS', 160, tableTop + 6);
+      doc.text('BUYER REQUESTS', 300, tableTop + 6);
+      doc.text('GROWTH', 440, tableTop + 6);
+    } else if (reportData.selectedReportType === 'disputes') {
+      doc.text('MONTH', 60, tableTop + 6);
+      doc.text('TOTAL DISPUTES', 160, tableTop + 6);
+      doc.text('RESOLVED DISPUTES', 300, tableTop + 6);
+      doc.text('GROWTH', 440, tableTop + 6);
+    } else {
+      doc.text('MONTH', 60, tableTop + 6);
+      doc.text('REVENUE', 140, tableTop + 6);
+      doc.text('BOOKINGS', 240, tableTop + 6);
+      doc.text('NEW VENDORS', 330, tableTop + 6);
+      doc.text('GROWTH', 440, tableTop + 6);
+    }
 
     let currentY = tableTop + 25;
 
@@ -257,10 +325,25 @@ const generateReportPDF = async (type: string = 'vendor'): Promise<Buffer> => {
         doc.rect(50, currentY - 3, 495, 20).fill('#f8fafc');
       }
       doc.fillColor('#334155').fontSize(9).font('Helvetica');
-      doc.text(row.month, 60, currentY);
-      doc.text(row.revenue, 140, currentY);
-      doc.text(row.bookings.toString(), 240, currentY);
-      doc.text(row.newVendors.toString(), 330, currentY);
+
+      if (reportData.selectedReportType === 'vendor') {
+        doc.text(row.month, 60, currentY);
+        doc.text((row.newVendors ?? 0).toString(), 160, currentY);
+        doc.text((row.activeListings ?? 0).toString(), 300, currentY);
+      } else if (reportData.selectedReportType === 'user') {
+        doc.text(row.month, 60, currentY);
+        doc.text((row.newUsers ?? 0).toString(), 160, currentY);
+        doc.text((row.buyerRequests ?? 0).toString(), 300, currentY);
+      } else if (reportData.selectedReportType === 'disputes') {
+        doc.text(row.month, 60, currentY);
+        doc.text((row.disputes ?? 0).toString(), 160, currentY);
+        doc.text((row.resolvedDisputes ?? 0).toString(), 300, currentY);
+      } else {
+        doc.text(row.month, 60, currentY);
+        doc.text(row.revenue || '$0', 140, currentY);
+        doc.text((row.bookings ?? 0).toString(), 240, currentY);
+        doc.text((row.newVendors ?? 0).toString(), 330, currentY);
+      }
 
       const growthColor = row.growth.startsWith('+') ? '#16a34a' : row.growth.startsWith('-') ? '#dc2626' : '#64748b';
       doc.fillColor(growthColor).font('Helvetica-Bold').text(row.growth, 440, currentY);

@@ -6,12 +6,16 @@ export interface ISummaryCardItem {
 export interface IMonthlyBreakdownRow {
   month: string;
   year: number;
-  revenue: string;
-  bookings: number;
-  newVendors: number;
-  newUsers: number;
-  disputes: number;
+  revenue?: string;
+  bookings?: number;
+  newVendors?: number;
+  newUsers?: number;
+  activeListings?: number;
+  buyerRequests?: number;
+  disputes?: number;
+  resolvedDisputes?: number;
   growth: string;
+  [key: string]: any;
 }
 
 export interface IReportResponse {
