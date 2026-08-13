@@ -34,6 +34,11 @@ import { ChatRoutes } from '../modules/Chat/chat.routes';
 import { DisputeRoutes } from '../modules/Dispute/dispute.routes';
 
 
+import refundPolicyRouter from '../modules/RefundPolicy/refundPolicy.routes';
+import cookiePolicyRouter from '../modules/CookiePolicy/cookiePolicy.routes';
+import footerRouter from '../modules/Footer/footer.routes';
+
+
 const router = Router();
 
 const moduleRoutes = [
@@ -52,6 +57,18 @@ const moduleRoutes = [
   {
     path: '/privacy',
     route:privacyPolicyRouter
+  },
+  {
+    path: '/refund-policy',
+    route: refundPolicyRouter
+  },
+  {
+    path: '/cookie-policy',
+    route: cookiePolicyRouter
+  },
+  {
+    path: '/footer',
+    route: footerRouter
   },
   {
     path: '/terms',
