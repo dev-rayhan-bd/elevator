@@ -1,7 +1,6 @@
-export interface IReportTypeItem {
-  key: string;
+export interface ISummaryCardItem {
   title: string;
-  description: string;
+  value: string | number;
 }
 
 export interface IMonthlyBreakdownRow {
@@ -16,17 +15,9 @@ export interface IMonthlyBreakdownRow {
 }
 
 export interface IReportResponse {
-  reportTypes: IReportTypeItem[];
   selectedReportType: string;
   lastUpdated: string;
-  summaryCards: {
-    totalRevenue: string;
-    totalBookings: number;
-    avgOrderValue: string;
-    newVendors: number;
-    newUsers: number;
-    totalDisputes: number;
-  };
+  summaryCards: ISummaryCardItem[];
   trendChart: {
     title: string;
     data: Array<{ month: string; value: number }>;

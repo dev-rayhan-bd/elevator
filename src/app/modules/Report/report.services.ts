@@ -1,53 +1,23 @@
 import PDFDocument from 'pdfkit';
 import { User } from '../User/user.model';
+import { VendorService } from '../VendorService/vendorService.model';
+import { EventRequest } from '../EventRequest/eventRequest.model';
+import { EventQuote } from '../EventQuote/eventQuote.model';
 import { Dispute } from '../Dispute/dispute.model';
-import { IReportResponse, IReportTypeItem, IMonthlyBreakdownRow } from './report.interface';
+import { IReportResponse, ISummaryCardItem, IMonthlyBreakdownRow } from './report.interface';
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// Static revenue & bookings fallback values per month (design match)
 const STATIC_MONTHLY_REVENUE = [245000, 312000, 398000, 356000, 467000, 524000];
 const STATIC_MONTHLY_BOOKINGS = [342, 423, 534, 478, 612, 698];
 
-const REPORT_TYPES: IReportTypeItem[] = [
-  {
-    key: 'revenue',
-    title: 'Revenue Report',
-    description: 'Financial performance and revenue trends',
-  },
-  {
-    key: 'bookings',
-    title: 'Bookings Report',
-    description: 'Booking statistics and patterns',
-  },
-  {
-    key: 'vendor',
-    title: 'Vendor Report',
-    description: 'Vendor performance and growth',
-  },
-  {
-    key: 'user',
-    title: 'User Report',
-    description: 'User acquisition and engagement',
-  },
-  {
-    key: 'disputes',
-    title: 'Disputes Report',
-    description: 'Dispute resolution metrics',
-  },
-  {
-    key: 'custom',
-    title: 'Custom Report',
-    description: 'Build your own custom report',
-  },
-];
-
 const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse> => {
-  const selectedType = REPORT_TYPES.find((r) => r.key === type) ? type : 'vendor';
+  const validTypes = ['revenue', 'bookings', 'vendor', 'user', 'disputes', 'custom'];
+  const selectedType = validTypes.includes(type) ? type : 'vendor';
   const now = new Date();
 
   // Generate last 6 months windows
-  const monthsDataWindow: Array<{ name: string; year: number; start: Date; end: Date; index: number }> = [];
+  const monthsDataWindow: Array<{ name: string; year: number; start: Date; end: Date }> = [];
 
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -59,20 +29,47 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
       year: d.getFullYear(),
       start: monthStart,
       end: monthEnd,
-      index: 5 - i,
     });
   }
 
-  // Execute queries in parallel for maximum performance
+  // Execute ALL metrics in parallel via Promise.all
   const [
     totalVendorsCount,
     totalUsersCount,
     totalDisputesCount,
+    activeVendorsCount,
+    pendingVendorsCount,
+    verifiedVendorsCount,
+    activeListingsCount,
+    activeUsersCount,
+    totalRequestsCount,
+    pendingDisputesCount,
+    resolvedDisputesCount,
+    rejectedDisputesCount,
+    wonQuotesCount,
+    pendingQuotesCount,
+    savedListingsResult,
+
     ...monthlyCounts
   ] = await Promise.all([
     User.countDocuments({ role: 'vendor', isDeleted: { $ne: true } }),
     User.countDocuments({ role: 'user', isDeleted: { $ne: true } }),
     Dispute.countDocuments(),
+    User.countDocuments({ role: 'vendor', status: 'active' }),
+    User.countDocuments({ role: 'vendor', status: 'pending' }),
+    User.countDocuments({ role: 'vendor', 'vendor.isVerifiedBadge': true }),
+    VendorService.countDocuments({ isActive: true, isDraft: { $ne: true } }),
+    User.countDocuments({ role: 'user', status: 'active' }),
+    EventRequest.countDocuments({ isDeleted: { $ne: true } }),
+    Dispute.countDocuments({ status: 'pending' }),
+    Dispute.countDocuments({ status: 'resolved' }),
+    Dispute.countDocuments({ status: 'rejected' }),
+    EventQuote.countDocuments({ status: { $in: ['accepted', 'won'] } }),
+    EventQuote.countDocuments({ status: 'pending' }),
+    User.aggregate([
+      { $project: { favCount: { $size: { $ifNull: ['$favoriteServices', []] } } } },
+      { $group: { _id: null, total: { $sum: '$favCount' } } },
+    ]),
 
     ...monthsDataWindow.flatMap((m) => [
       User.countDocuments({ role: 'vendor', createdAt: { $gte: m.start, $lte: m.end } }),
@@ -80,6 +77,54 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
       Dispute.countDocuments({ createdAt: { $gte: m.start, $lte: m.end } }),
     ]),
   ]);
+
+  // Construct 4 relevant summary cards based on report type
+  let summaryCards: ISummaryCardItem[] = [];
+
+  if (selectedType === 'vendor') {
+    summaryCards = [
+      { title: 'Total Vendors', value: totalVendorsCount },
+      { title: 'Active Listings', value: activeListingsCount },
+      { title: 'Verified Vendors', value: verifiedVendorsCount },
+      { title: 'Pending Reviews', value: pendingVendorsCount },
+    ];
+  } else if (selectedType === 'user') {
+    const totalSaved = savedListingsResult[0]?.total || 0;
+    summaryCards = [
+      { title: 'Total Users', value: totalUsersCount },
+      { title: 'Active Users', value: activeUsersCount },
+      { title: 'Buyer Requests', value: totalRequestsCount },
+      { title: 'Saved Listings', value: totalSaved },
+    ];
+  } else if (selectedType === 'disputes') {
+    summaryCards = [
+      { title: 'Total Disputes', value: totalDisputesCount },
+      { title: 'Pending Disputes', value: pendingDisputesCount },
+      { title: 'Resolved Disputes', value: resolvedDisputesCount },
+      { title: 'Rejected Disputes', value: rejectedDisputesCount },
+    ];
+  } else if (selectedType === 'bookings') {
+    summaryCards = [
+      { title: 'Total Bookings', value: 3087 },
+      { title: 'Won Deals', value: wonQuotesCount },
+      { title: 'Pending Quotes', value: pendingQuotesCount },
+      { title: 'Buyer Requests', value: totalRequestsCount },
+    ];
+  } else if (selectedType === 'revenue') {
+    summaryCards = [
+      { title: 'Total Revenue', value: '$2,302,000' },
+      { title: 'Total Bookings', value: 3087 },
+      { title: 'Avg Order Value', value: '$746' },
+      { title: 'Monetized Ads', value: '$345,678' },
+    ];
+  } else {
+    summaryCards = [
+      { title: 'Total Vendors', value: totalVendorsCount },
+      { title: 'Total Users', value: totalUsersCount },
+      { title: 'Active Listings', value: activeListingsCount },
+      { title: 'Total Requests', value: totalRequestsCount },
+    ];
+  }
 
   // Construct monthly breakdown rows
   const monthlyBreakdown: IMonthlyBreakdownRow[] = [];
@@ -94,7 +139,6 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
     const revAmount = STATIC_MONTHLY_REVENUE[i % STATIC_MONTHLY_REVENUE.length];
     const bookingsCount = STATIC_MONTHLY_BOOKINGS[i % STATIC_MONTHLY_BOOKINGS.length];
 
-    // Compute growth rate relative to previous month
     let growthStr = '- 0.0%';
     const currentVal = selectedType === 'user' ? newUsers : selectedType === 'disputes' ? disputes : newVendors;
 
@@ -117,7 +161,7 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
     });
   }
 
-  // Trend chart data mapping depending on report type
+  // Trend chart data mapping
   const chartTitle =
     selectedType === 'revenue'
       ? 'Revenue Trend (Last 6 Months)'
@@ -143,17 +187,9 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
   });
 
   return {
-    reportTypes: REPORT_TYPES,
     selectedReportType: selectedType,
     lastUpdated: 'Just now',
-    summaryCards: {
-      totalRevenue: '$2,302,000',
-      totalBookings: 3087,
-      avgOrderValue: '$746',
-      newVendors: totalVendorsCount,
-      newUsers: totalUsersCount,
-      totalDisputes: totalDisputesCount,
-    },
+    summaryCards,
     trendChart: {
       title: chartTitle,
       data: trendData,
@@ -185,22 +221,18 @@ const generateReportPDF = async (type: string = 'vendor'): Promise<Buffer> => {
     doc.fillColor('#64748b').fontSize(10).font('Helvetica').text(`Generated on ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`);
     doc.moveDown(1);
 
-    // KPI Cards Grid
-    doc.rect(50, doc.y, 115, 55).fillAndStroke('#fdf2f8', '#fbcfe8');
-    doc.fillColor('#9d174d').fontSize(9).font('Helvetica-Bold').text('TOTAL REVENUE', 60, doc.y - 45);
-    doc.fillColor('#be185d').fontSize(14).font('Helvetica-Bold').text(reportData.summaryCards.totalRevenue, 60, doc.y - 30);
+    // KPI Cards Grid (Render dynamic 4 summaryCards)
+    const cardBgColors = ['#fdf2f8', '#f0fdf4', '#faf5ff', '#fffbe6'];
+    const cardBorderColors = ['#fbcfe8', '#bbf7d0', '#e9d5ff', '#fef08a'];
+    const titleColors = ['#9d174d', '#166534', '#6b21a8', '#854d0e'];
+    const valColors = ['#be185d', '#15803d', '#7e22ce', '#a16207'];
 
-    doc.rect(175, doc.y - 55, 115, 55).fillAndStroke('#f0fdf4', '#bbf7d0');
-    doc.fillColor('#166534').fontSize(9).font('Helvetica-Bold').text('TOTAL BOOKINGS', 185, doc.y - 45);
-    doc.fillColor('#15803d').fontSize(14).font('Helvetica-Bold').text(reportData.summaryCards.totalBookings.toString(), 185, doc.y - 30);
-
-    doc.rect(300, doc.y - 55, 115, 55).fillAndStroke('#faf5ff', '#e9d5ff');
-    doc.fillColor('#6b21a8').fontSize(9).font('Helvetica-Bold').text('AVG ORDER VALUE', 310, doc.y - 45);
-    doc.fillColor('#7e22ce').fontSize(14).font('Helvetica-Bold').text(reportData.summaryCards.avgOrderValue, 310, doc.y - 30);
-
-    doc.rect(425, doc.y - 55, 115, 55).fillAndStroke('#fffbe6', '#fef08a');
-    doc.fillColor('#854d0e').fontSize(9).font('Helvetica-Bold').text('NEW VENDORS', 435, doc.y - 45);
-    doc.fillColor('#a16207').fontSize(14).font('Helvetica-Bold').text(reportData.summaryCards.newVendors.toString(), 435, doc.y - 30);
+    reportData.summaryCards.forEach((card, idx) => {
+      const xPos = 50 + idx * 125;
+      doc.rect(xPos, doc.y, 115, 55).fillAndStroke(cardBgColors[idx % 4], cardBorderColors[idx % 4]);
+      doc.fillColor(titleColors[idx % 4]).fontSize(8).font('Helvetica-Bold').text(card.title.toUpperCase(), xPos + 10, doc.y - 45, { width: 95 });
+      doc.fillColor(valColors[idx % 4]).fontSize(13).font('Helvetica-Bold').text(card.value.toString(), xPos + 10, doc.y - 30, { width: 95 });
+    });
 
     doc.y = 175;
     doc.moveDown(1.5);
