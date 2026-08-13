@@ -40,6 +40,7 @@ export interface TBanner {
   price: number;
   status: TBannerStatus;
   isActive: boolean;
+  isDeleted?: boolean;
   impressions: number;
   clicks: number;
 }

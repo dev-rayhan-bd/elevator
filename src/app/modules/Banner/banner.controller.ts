@@ -180,6 +180,16 @@ const adminToggleBannerIsActive = catchAsync(async (req: Request, res: Response)
   });
 });
 
+const adminDeleteBanner = catchAsync(async (req: Request, res: Response) => {
+  const result = await BannerServices.adminDeleteBannerFromDB(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Banner deleted successfully',
+    data: result,
+  });
+});
+
 // ══════════════════════════════════════════════
 //  TRACKING
 // ══════════════════════════════════════════════
@@ -238,6 +248,7 @@ export const BannerControllers = {
   adminGetAllBanners,
   adminUpdateBannerStatus,
   adminToggleBannerIsActive,
+  adminDeleteBanner,
   // Tracking
   trackImpression,
   trackClick,

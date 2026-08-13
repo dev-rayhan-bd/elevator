@@ -9,7 +9,7 @@ import { TBanner, TBannerSlot } from './banner.interface';
 const expireOverdueBanners = async () => {
   const now = new Date();
   const result = await Banner.updateMany(
-    { endDate: { $lte: now }, status: 'approved', isActive: true },
+    { endDate: { $lte: now }, status: 'approved', isActive: true, isDeleted: { $ne: true } },
     { $set: { status: 'expired', isActive: false } },
   );
   return result;
@@ -48,7 +48,7 @@ const updateSlotInDB = async (id: string, payload: Partial<TBannerSlot>) => {
 
 const deleteSlotFromDB = async (id: string) => {
   // Soft-check: don't delete if banners exist for this slot
-  const bannerCount = await Banner.countDocuments({ slot: id });
+  const bannerCount = await Banner.countDocuments({ slot: id, isDeleted: { $ne: true } });
   if (bannerCount > 0) {
     // Instead of deleting, just deactivate
     const result = await BannerSlot.findByIdAndUpdate(
@@ -81,6 +81,7 @@ const getAllSlotsFromDB = async (query: Record<string, unknown>) => {
         slot: slot._id,
         status: 'approved',
         isActive: true,
+        isDeleted: { $ne: true },
         startDate: { $lte: now },
         endDate: { $gte: now },
       });
@@ -126,6 +127,7 @@ const bookBannerIntoDB = async (
     price: slot.price,
     status: 'pending',
     isActive: true,
+    isDeleted: false,
     impressions: 0,
     clicks: 0,
   };
@@ -141,11 +143,25 @@ const getMyBannersFromDB = async (
   // Auto-expire before fetching
   await expireOverdueBanners();
 
+  const filterCondition: Record<string, any> = { vendor: new Types.ObjectId(vendorId) };
+
+  if (query.isDeleted === 'true' || query.isDeleted === true) {
+    filterCondition.isDeleted = true;
+  } else if (query.isDeleted === 'all' || query.includeDeleted === 'true' || query.includeDeleted === true) {
+    // include both deleted and non-deleted
+  } else {
+    filterCondition.isDeleted = { $ne: true };
+  }
+
+  const queryObj = { ...query };
+  delete queryObj.isDeleted;
+  delete queryObj.includeDeleted;
+
   const bannerQuery = new QueryBuilder(
-    Banner.find({ vendor: vendorId })
+    Banner.find(filterCondition)
       .populate('slot', 'slotType title dimensions')
       .sort('-createdAt'),
-    query,
+    queryObj,
   )
     .filter()
     .paginate()
@@ -160,6 +176,7 @@ const deleteMyBannerFromDB = async (vendorId: string, bannerId: string) => {
   const banner = await Banner.findOne({
     _id: bannerId,
     vendor: vendorId,
+    isDeleted: { $ne: true },
   });
   if (!banner) {
     throw new AppError(httpStatus.NOT_FOUND, 'Banner not found or unauthorized');
@@ -170,7 +187,7 @@ const deleteMyBannerFromDB = async (vendorId: string, bannerId: string) => {
       'Cannot delete an approved banner. Contact admin.',
     );
   }
-  await Banner.findByIdAndDelete(bannerId);
+  await Banner.findByIdAndUpdate(bannerId, { isDeleted: true });
   return banner;
 };
 
@@ -187,6 +204,7 @@ const getActiveBannersFromDB = async (query: Record<string, unknown>) => {
     Banner.find({
       status: 'approved',
       isActive: true,
+      isDeleted: { $ne: true },
       startDate: { $lte: now },
       endDate: { $gte: now },
     })
@@ -224,6 +242,7 @@ const getAvailableSlotsFromDB = async () => {
         slot: slot._id,
         status: 'approved',
         isActive: true,
+        isDeleted: { $ne: true },
         startDate: { $lte: now },
         endDate: { $gte: now },
       });
@@ -246,11 +265,25 @@ const getAvailableSlotsFromDB = async () => {
 const adminGetAllBannersFromDB = async (query: Record<string, unknown>) => {
   await expireOverdueBanners();
 
+  const filterCondition: Record<string, any> = {};
+
+  if (query.isDeleted === 'true' || query.isDeleted === true) {
+    filterCondition.isDeleted = true;
+  } else if (query.isDeleted === 'all' || query.includeDeleted === 'true' || query.includeDeleted === true) {
+    // include both deleted and non-deleted
+  } else {
+    filterCondition.isDeleted = { $ne: true };
+  }
+
+  const queryObj = { ...query };
+  delete queryObj.isDeleted;
+  delete queryObj.includeDeleted;
+
   const bannerQuery = new QueryBuilder(
-    Banner.find()
+    Banner.find(filterCondition)
       .populate('vendor', 'firstName lastName fullName email image')
       .populate('slot', 'slotType title price dimensions'),
-    query,
+    queryObj,
   )
     .filter()
     .sort()
@@ -266,7 +299,7 @@ const adminUpdateBannerStatusInDB = async (
   bannerId: string,
   status: 'approved' | 'rejected',
 ) => {
-  const banner = await Banner.findById(bannerId).populate('slot');
+  const banner = await Banner.findOne({ _id: bannerId, isDeleted: { $ne: true } }).populate('slot');
   if (!banner) throw new AppError(httpStatus.NOT_FOUND, 'Banner not found');
   if (banner.status !== 'pending') {
     throw new AppError(
@@ -290,6 +323,7 @@ const adminUpdateBannerStatusInDB = async (
       slot: banner.slot,
       status: 'approved',
       isActive: true,
+      isDeleted: { $ne: true },
       startDate: { $lte: now },
       endDate: { $gte: now },
     });
@@ -311,12 +345,24 @@ const adminUpdateBannerStatusInDB = async (
 };
 
 const adminToggleBannerIsActiveInDB = async (bannerId: string) => {
-  const banner = await Banner.findById(bannerId);
+  const banner = await Banner.findOne({ _id: bannerId, isDeleted: { $ne: true } });
   if (!banner) throw new AppError(httpStatus.NOT_FOUND, 'Banner not found');
 
   const result = await Banner.findByIdAndUpdate(
     bannerId,
     { isActive: !banner.isActive },
+    { new: true },
+  );
+  return result;
+};
+
+const adminDeleteBannerFromDB = async (bannerId: string) => {
+  const banner = await Banner.findOne({ _id: bannerId, isDeleted: { $ne: true } });
+  if (!banner) throw new AppError(httpStatus.NOT_FOUND, 'Banner not found');
+
+  const result = await Banner.findByIdAndUpdate(
+    bannerId,
+    { isDeleted: true },
     { new: true },
   );
   return result;
@@ -416,6 +462,7 @@ export const BannerServices = {
   adminGetAllBannersFromDB,
   adminUpdateBannerStatusInDB,
   adminToggleBannerIsActiveInDB,
+  adminDeleteBannerFromDB,
   // Tracking
   trackImpressionInDB,
   trackClickInDB,

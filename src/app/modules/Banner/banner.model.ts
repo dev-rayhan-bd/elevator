@@ -40,6 +40,7 @@ const bannerSchema = new Schema<TBanner>(
       default: 'pending',
     },
     isActive: { type: Boolean, default: true },
+    isDeleted: { type: Boolean, default: false },
     impressions: { type: Number, default: 0, min: 0 },
     clicks: { type: Number, default: 0, min: 0 },
   },
@@ -50,6 +51,7 @@ bannerSchema.index({ vendor: 1 });
 bannerSchema.index({ slot: 1 });
 bannerSchema.index({ status: 1 });
 bannerSchema.index({ endDate: 1 });
+bannerSchema.index({ isDeleted: 1 });
 bannerSchema.index({ isActive: 1, status: 1, endDate: 1 });
 
 // ── Banner Tracking Schema (per-IP cooldown) ──

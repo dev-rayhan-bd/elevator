@@ -111,6 +111,13 @@ router.patch(
   BannerControllers.adminToggleBannerIsActive,
 );
 
+// Delete banner (Admin - Soft Delete)
+router.delete(
+  '/admin/:id',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  BannerControllers.adminDeleteBanner,
+);
+
 // ══════════════════════════════════════════════
 //  CRON (admin triggered)
 // ══════════════════════════════════════════════
