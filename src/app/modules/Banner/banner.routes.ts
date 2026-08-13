@@ -57,7 +57,7 @@ router.delete(
 
 router.get(
   '/slots',
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin,USER_ROLE.vendor),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.vendor),
   BannerControllers.getAllSlots,
 );
 
