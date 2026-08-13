@@ -11,12 +11,17 @@ import { Review } from '../Review/review.model';
 import { ServiceView } from '../VendorService/serviceView.model';
 import { LeadClick } from '../VendorService/leadClick.model';
 import { ServicePackage } from '../ServicePackage/package.model';
+import { User } from '../User/user.model';
+import { VendorService } from '../VendorService/vendorService.model';
+import { EventRequest } from '../EventRequest/eventRequest.model';
+import { Dispute } from '../Dispute/dispute.model';
 import {
   IDashboardResult,
   IDashboardKPI,
   IMonthlyBid,
   IPackageDistribution,
   IUpcomingEvent,
+  IAdminDashboardResult,
 } from './dashboard.interface';
 
 // ── Month names for trend chart ──
@@ -381,19 +386,6 @@ const getPackageDistribution = async (
   }));
 };
 
-import { User } from '../User/user.model';
-import { VendorService } from '../VendorService/vendorService.model';
-import { EventRequest } from '../EventRequest/eventRequest.model';
-import { Dispute } from '../Dispute/dispute.model';
-import {
-  IDashboardResult,
-  IDashboardKPI,
-  IMonthlyBid,
-  IPackageDistribution,
-  IUpcomingEvent,
-  IAdminDashboardResult,
-} from './dashboard.interface';
-
 function getTimeAgo(date: Date): string {
   const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
   if (seconds < 60) return `${Math.max(1, seconds)} seconds ago`;
@@ -495,55 +487,59 @@ const getAdminDashboard = async (): Promise<IAdminDashboardResult> => {
       { $group: { _id: null, total: { $sum: '$favCount' } } },
     ]),
     EventQuote.countDocuments({ status: { $in: ['accepted', 'won'] } }),
-    VendorService.find().sort({ createdAt: -1 }).limit(3).select('title createdAt'),
-    User.find({ role: 'vendor' }).sort({ createdAt: -1 }).limit(3).select('firstName lastName createdAt'),
-    EventRequest.find().sort({ createdAt: -1 }).limit(3).select('title createdAt'),
-    Dispute.find().sort({ createdAt: -1 }).limit(3).select('disputeReason status createdAt'),
+    VendorService.find().sort({ createdAt: -1 }).limit(3).select('title createdAt').lean(),
+    User.find({ role: 'vendor' }).sort({ createdAt: -1 }).limit(3).select('firstName lastName createdAt').lean(),
+    EventRequest.find().sort({ createdAt: -1 }).limit(3).select('title createdAt').lean(),
+    Dispute.find().sort({ createdAt: -1 }).limit(3).select('disputeReason status createdAt').lean(),
   ]);
 
   const activities: Array<{ id: string; title: string; description: string; timeAgo: string; type: string; createdAt: Date }> = [];
 
-  recentServices.forEach((s) => {
+  recentServices.forEach((s: any) => {
+    const cDate = s.createdAt ? new Date(s.createdAt) : new Date();
     activities.push({
       id: s._id.toString(),
       title: s.title || 'New Vendor Service',
       description: 'Created new listing',
-      timeAgo: getTimeAgo(s.createdAt),
+      timeAgo: getTimeAgo(cDate),
       type: 'listing',
-      createdAt: s.createdAt,
+      createdAt: cDate,
     });
   });
 
-  recentVendors.forEach((v) => {
+  recentVendors.forEach((v: any) => {
+    const cDate = v.createdAt ? new Date(v.createdAt) : new Date();
     activities.push({
       id: v._id.toString(),
       title: `${v.firstName || 'Vendor'} ${v.lastName || ''}`.trim(),
       description: 'Updated vendor profile',
-      timeAgo: getTimeAgo(v.createdAt),
+      timeAgo: getTimeAgo(cDate),
       type: 'vendor',
-      createdAt: v.createdAt,
+      createdAt: cDate,
     });
   });
 
-  recentRequests.forEach((r) => {
+  recentRequests.forEach((r: any) => {
+    const cDate = r.createdAt ? new Date(r.createdAt) : new Date();
     activities.push({
       id: r._id.toString(),
       title: r.title || 'Event Requirement',
       description: 'Posted new buyer request',
-      timeAgo: getTimeAgo(r.createdAt),
+      timeAgo: getTimeAgo(cDate),
       type: 'booking',
-      createdAt: r.createdAt,
+      createdAt: cDate,
     });
   });
 
-  recentDisputes.forEach((d) => {
+  recentDisputes.forEach((d: any) => {
+    const cDate = d.createdAt ? new Date(d.createdAt) : new Date();
     activities.push({
       id: d._id.toString(),
       title: d.disputeReason || 'Dispute Case',
-      description: `Dispute status: ${d.status}`,
-      timeAgo: getTimeAgo(d.createdAt),
+      description: `Dispute status: ${d.status || 'pending'}`,
+      timeAgo: getTimeAgo(cDate),
       type: 'dispute',
-      createdAt: d.createdAt,
+      createdAt: cDate,
     });
   });
 
