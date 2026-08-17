@@ -1,5 +1,45 @@
 import { z } from 'zod';
 
+const locationSchema = z
+  .object({
+    lat: z.number(),
+    long: z.number(),
+    address: z.string().optional(),
+  })
+  .optional();
+
+const customAmenitiesSchema = z
+  .union([z.array(z.string()), z.string()])
+  .optional()
+  .transform((val) => {
+    if (!val) return [];
+    if (Array.isArray(val)) {
+      return val
+        .map((item) => String(item).trim())
+        .filter((item) => item.length > 0);
+    }
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            return parsed
+              .map((item) => String(item).trim())
+              .filter((item) => item.length > 0);
+          }
+        } catch {
+          // ignore and fallback
+        }
+      }
+      return trimmed
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+    }
+    return [];
+  });
+
 export const createVendorServiceSchema = z.object({
   body: z.object({
     category: z.string().min(1, 'Category is required'),
@@ -12,6 +52,8 @@ export const createVendorServiceSchema = z.object({
     eventTypes: z.array(z.string()).optional(),
     serviceAreas: z.array(z.string()).optional(),
     amenities: z.array(z.string()).optional(),
+    customAmenities: customAmenitiesSchema,
+    location: locationSchema,
     termsAndCondition: z.string().min(1, 'Terms and condition is required'),
     isActive: z.boolean().optional(),
     entireCity: z.boolean().optional(),
@@ -30,6 +72,8 @@ export const updateVendorServiceSchema = z.object({
     eventTypes: z.array(z.string()).optional(),
     serviceAreas: z.array(z.string()).optional(),
     amenities: z.array(z.string()).optional(),
+    customAmenities: customAmenitiesSchema,
+    location: locationSchema,
     termsAndCondition: z.string().min(1).optional(),
     isActive: z.boolean().optional(),
     entireCity: z.boolean().optional(),
@@ -62,6 +106,8 @@ export const draftVendorServiceSchema = z.object({
     eventTypes: z.array(z.string()).optional(),
     serviceAreas: z.array(z.string()).optional(),
     amenities: z.array(z.string()).optional(),
+    customAmenities: customAmenitiesSchema,
+    location: locationSchema,
     termsAndCondition: z.string().optional(),
     isActive: z.boolean().optional(),
     entireCity: z.boolean().optional(),
@@ -80,6 +126,8 @@ export const publishDraftSchema = z.object({
     eventTypes: z.array(z.string()).optional(),
     serviceAreas: z.array(z.string()).optional(),
     amenities: z.array(z.string()).optional(),
+    customAmenities: customAmenitiesSchema,
+    location: locationSchema,
     termsAndCondition: z.string().min(1, 'Terms and condition is required'),
     isActive: z.boolean().optional(),
     entireCity: z.boolean().optional(),

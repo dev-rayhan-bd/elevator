@@ -12,14 +12,18 @@ import { ServiceView } from './serviceView.model';
 import { UserServices } from '../User/user.services';
 
 // ── Helper: split amenities into ObjectId refs + custom free-text ──
-const processAmenitiesInput = (amenities: string[]) => {
+const processAmenitiesInput = (amenities: any[]) => {
   const refs: Types.ObjectId[] = [];
   const custom: string[] = [];
+  if (!Array.isArray(amenities)) return { amenities: refs, customAmenities: custom };
+
   for (const item of amenities) {
-    if (Types.ObjectId.isValid(item)) {
-      refs.push(new Types.ObjectId(item));
-    } else {
-      custom.push(item);
+    if (!item) continue;
+    const strVal = String(item).trim();
+    if (Types.ObjectId.isValid(strVal) && /^[0-9a-fA-F]{24}$/.test(strVal)) {
+      refs.push(new Types.ObjectId(strVal));
+    } else if (strVal.length > 0) {
+      custom.push(strVal);
     }
   }
   return { amenities: refs, customAmenities: custom };
@@ -69,7 +73,20 @@ const getVendorServicesByVendorFromDB = async (
 
   const result = await serviceQuery.modelQuery;
   const meta = await serviceQuery.countTotal();
-  return { meta, result };
+
+  const vendorUser = await User.findById(vendorId).select('lat long vendor');
+  const vendorLat = vendorUser?.lat ?? vendorUser?.vendor?.lat;
+  const vendorLong = vendorUser?.long ?? vendorUser?.vendor?.long;
+
+  const formattedResult = result.map((item: any) => {
+    const doc = item.toObject ? item.toObject() : item;
+    if ((!doc.location || (!doc.location.lat && !doc.location.long)) && vendorLat && vendorLong) {
+      doc.location = { lat: vendorLat, long: vendorLong };
+    }
+    return doc;
+  });
+
+  return { meta, result: formattedResult };
 };
 
 const getPublicVendorServicesFromDB = async (
@@ -186,6 +203,31 @@ const getPublicVendorServicesFromDB = async (
   pipeline.push({
     $addFields: {
       subcategory: { $arrayElemAt: ['$subcategory', 0] },
+    },
+  });
+
+  pipeline.push({
+    $lookup: {
+      from: 'eventtypes',
+      localField: 'eventTypes',
+      foreignField: '_id',
+      as: 'eventTypes',
+    },
+  });
+  pipeline.push({
+    $lookup: {
+      from: 'serviceareas',
+      localField: 'serviceAreas',
+      foreignField: '_id',
+      as: 'serviceAreas',
+    },
+  });
+  pipeline.push({
+    $lookup: {
+      from: 'amenities',
+      localField: 'amenities',
+      foreignField: '_id',
+      as: 'amenities',
     },
   });
 
@@ -418,6 +460,15 @@ const getPublicVendorServicesFromDB = async (
       rating: 1,
       reviewCount: 1,
       distanceKm: 1,
+      location: {
+        $ifNull: [
+          '$location',
+          {
+            lat: { $ifNull: ['$vendor.vendor.lat', '$vendor.lat'] },
+            long: { $ifNull: ['$vendor.vendor.long', '$vendor.long'] },
+          },
+        ],
+      },
       category: { _id: 1, name: 1, image: 1 },
       subcategory: { _id: 1, name: 1, image: 1 },
       eventTypes: { _id: 1, name: 1, image: 1 },
@@ -496,8 +547,18 @@ const getSingleVendorServiceFromDB = async (
     isFav = favSet.has(result._id.toString());
   }
 
+  const obj = result.toObject();
+  if ((!obj.location || (!obj.location.lat && !obj.location.long)) && obj.vendor) {
+    const v = obj.vendor as any;
+    const vendorLat = v?.lat ?? v?.vendor?.lat;
+    const vendorLong = v?.long ?? v?.vendor?.long;
+    if (vendorLat && vendorLong) {
+      obj.location = { lat: vendorLat, long: vendorLong };
+    }
+  }
+
   return {
-    ...result.toObject(),
+    ...obj,
     isFav,
     reviews: reviewData.reviews,
     ratingSummary: reviewData.summary,
@@ -509,19 +570,27 @@ const createVendorServiceIntoDB = async (
   vendorId: string,
   payload: Record<string, unknown>,
 ) => { 
-  const { amenities: am, ...rest } = payload;
+  const { amenities: am, customAmenities: customAm, ...rest } = payload;
   const serviceData: any = {
     ...rest,
     vendor: new Types.ObjectId(vendorId),
     isDraft: false,
   };
 
-  // Split amenities into ObjectId refs and custom text
-  if (am && Array.isArray(am)) {
-    const processed = processAmenitiesInput(am as string[]);
-    serviceData.amenities = processed.amenities;
-    serviceData.customAmenities = processed.customAmenities;
+  const customList: string[] = [];
+  if (customAm) {
+    if (Array.isArray(customAm)) {
+      customList.push(...(customAm as any[]).map(String).map((s) => s.trim()).filter((s) => s.length > 0));
+    } else if (typeof customAm === 'string' && (customAm as string).trim()) {
+      customList.push((customAm as string).trim());
+    }
   }
+  if (am && Array.isArray(am)) {
+    const processed = processAmenitiesInput(am);
+    serviceData.amenities = processed.amenities;
+    customList.push(...processed.customAmenities);
+  }
+  serviceData.customAmenities = [...new Set(customList)];
 
   const result = await VendorService.create(serviceData);
 
@@ -551,12 +620,29 @@ const updateVendorServiceInDB = async (
   const oldPrice = service.price;
 
   // Split amenities into ObjectId refs and custom text
-  const { amenities: am, images, ...rest } = payload;
+  const { amenities: am, customAmenities: customAm, images, ...rest } = payload;
   const updateData: any = { ...rest };
-  if (am && Array.isArray(am)) {
-    const processed = processAmenitiesInput(am as string[]);
+  const customList: string[] = [];
+  let updateCustom = false;
+
+  if (customAm !== undefined) {
+    updateCustom = true;
+    if (Array.isArray(customAm)) {
+      customList.push(...(customAm as any[]).map(String).map((s) => s.trim()).filter((s) => s.length > 0));
+    } else if (typeof customAm === 'string' && (customAm as string).trim()) {
+      customList.push((customAm as string).trim());
+    }
+  }
+
+  if (am !== undefined && Array.isArray(am)) {
+    updateCustom = true;
+    const processed = processAmenitiesInput(am);
     updateData.amenities = processed.amenities;
-    updateData.customAmenities = processed.customAmenities;
+    customList.push(...processed.customAmenities);
+  }
+
+  if (updateCustom) {
+    updateData.customAmenities = [...new Set(customList)];
   }
 
   // If images are provided, append them to existing images instead of replacing
@@ -678,19 +764,23 @@ const saveDraftInDB = async (
   vendorId: string,
   payload: Record<string, unknown>,
 ) => {
-  const { amenities: am, ...rest } = payload;
+  const { amenities: am, customAmenities: customAm, ...rest } = payload;
   const draftData: any = {
     ...rest,
     vendor: new Types.ObjectId(vendorId),
     isDraft: true,
   };
 
-  // Split amenities into ObjectId refs and custom text
+  const customList: string[] = [];
+  if (customAm && Array.isArray(customAm)) {
+    customList.push(...(customAm as string[]));
+  }
   if (am && Array.isArray(am)) {
     const processed = processAmenitiesInput(am as string[]);
     draftData.amenities = processed.amenities;
-    draftData.customAmenities = processed.customAmenities;
+    customList.push(...processed.customAmenities);
   }
+  draftData.customAmenities = [...new Set(customList)];
 
   const result = await VendorService.create(draftData);
   return result;
@@ -724,12 +814,19 @@ const publishDraftFromDB = async (
   if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Draft not found or unauthorized');
 
   // Split amenities into ObjectId refs and custom text
-  const { amenities: am, ...rest } = payload;
+  const { amenities: am, customAmenities: customAm, ...rest } = payload;
   const updateData: any = { ...rest, isDraft: false };
-  if (am && Array.isArray(am)) {
-    const processed = processAmenitiesInput(am as string[]);
-    updateData.amenities = processed.amenities;
-    updateData.customAmenities = processed.customAmenities;
+  if (customAm !== undefined || am !== undefined) {
+    const customList: string[] = [];
+    if (customAm && Array.isArray(customAm)) {
+      customList.push(...(customAm as string[]));
+    }
+    if (am && Array.isArray(am)) {
+      const processed = processAmenitiesInput(am as string[]);
+      updateData.amenities = processed.amenities;
+      customList.push(...processed.customAmenities);
+    }
+    updateData.customAmenities = [...new Set(customList)];
   }
 
   const result = await VendorService.findByIdAndUpdate(

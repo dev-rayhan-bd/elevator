@@ -92,25 +92,38 @@ const createVendorService = catchAsync(async (req, res) => {
     ...((validated.body.amenities?.length ?? 0) > 0 && {
       amenities: validated.body.amenities,
     }),
+    ...((validated.body.customAmenities?.length ?? 0) > 0 && {
+      customAmenities: validated.body.customAmenities,
+    }),
     ...(imageUrls.length > 0 && { images: imageUrls }),
   };
 
-  // ── Venue category: auto-fetch vendor location (must required) ──
-  const categoryDoc = await ServiceCategory.findById(validated.body.category);
-  if (categoryDoc && categoryDoc.name.toLowerCase() === 'venue') {
-    const vendor = await User.findById(req.user.userId);
-    const vendorLat = vendor?.lat ?? vendor?.vendor?.lat;
-    const vendorLong = vendor?.long ?? vendor?.vendor?.long;
-    if (!vendorLat || !vendorLong) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        'Your location (latitude/longitude) is not set. Please update your vendor profile first.',
-      );
+  // ── Location handling: use payload location if provided; otherwise fallback to vendor profile location for Venue category ──
+  const payloadLocation = (validated.body as any).location || (rawData.location ? {
+    lat: Number(rawData.location.lat),
+    long: Number(rawData.location.long),
+    ...(rawData.location.address && { address: rawData.location.address }),
+  } : undefined);
+
+  if (payloadLocation && typeof payloadLocation.lat === 'number' && typeof payloadLocation.long === 'number' && !isNaN(payloadLocation.lat) && !isNaN(payloadLocation.long)) {
+    payload.location = payloadLocation;
+  } else {
+    const categoryDoc = await ServiceCategory.findById(validated.body.category);
+    if (categoryDoc && categoryDoc.name.toLowerCase() === 'venue') {
+      const vendor = await User.findById(req.user.userId);
+      const vendorLat = vendor?.lat ?? vendor?.vendor?.lat;
+      const vendorLong = vendor?.long ?? vendor?.vendor?.long;
+      if (!vendorLat || !vendorLong) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          'Your location (latitude/longitude) is not set. Please update your vendor profile first or pass location in payload.',
+        );
+      }
+      payload.location = {
+        lat: vendorLat,
+        long: vendorLong,
+      };
     }
-    payload.location = {
-      lat: vendorLat,
-      long: vendorLong,
-    };
   }
 
   const result = await VendorServiceServices.createVendorServiceIntoDB(
@@ -154,6 +167,17 @@ const updateVendorService = catchAsync(async (req, res) => {
     }),
     ...((validated.body.amenities?.length ?? 0) > 0 && {
       amenities: validated.body.amenities,
+    }),
+    ...((validated.body.customAmenities?.length ?? 0) > 0 && {
+      customAmenities: validated.body.customAmenities,
+    }),
+    ...((validated.body as any).location && { location: (validated.body as any).location }),
+    ...(rawData.location && !(validated.body as any).location && {
+      location: {
+        lat: Number(rawData.location.lat),
+        long: Number(rawData.location.long),
+        ...(rawData.location.address && { address: rawData.location.address }),
+      },
     }),
     ...(imageUrls.length > 0 && { images: imageUrls }),
   };
@@ -258,6 +282,17 @@ const saveDraft = catchAsync(async (req, res) => {
     ...((validated.body.amenities?.length ?? 0) > 0 && {
       amenities: validated.body.amenities,
     }),
+    ...((validated.body.customAmenities?.length ?? 0) > 0 && {
+      customAmenities: validated.body.customAmenities,
+    }),
+    ...((validated.body as any).location && { location: (validated.body as any).location }),
+    ...(rawData.location && !(validated.body as any).location && {
+      location: {
+        lat: Number(rawData.location.lat),
+        long: Number(rawData.location.long),
+        ...(rawData.location.address && { address: rawData.location.address }),
+      },
+    }),
     ...(imageUrls.length > 0 && { images: imageUrls }),
   };
 
@@ -312,6 +347,17 @@ const publishDraft = catchAsync(async (req, res) => {
     }),
     ...((validated.body.amenities?.length ?? 0) > 0 && {
       amenities: validated.body.amenities,
+    }),
+    ...((validated.body.customAmenities?.length ?? 0) > 0 && {
+      customAmenities: validated.body.customAmenities,
+    }),
+    ...((validated.body as any).location && { location: (validated.body as any).location }),
+    ...(rawData.location && !(validated.body as any).location && {
+      location: {
+        lat: Number(rawData.location.lat),
+        long: Number(rawData.location.long),
+        ...(rawData.location.address && { address: rawData.location.address }),
+      },
     }),
     ...(imageUrls.length > 0 && { images: imageUrls }),
   };
