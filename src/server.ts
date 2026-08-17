@@ -8,8 +8,7 @@ import seedAdmin from './app/DB';
 import 'dotenv/config';
 import { initializeSocket } from './app/utils/socket';
 import { startCronJobs } from './app/cron/syncCron';
-
-
+import { VendorServiceServices } from './app/modules/VendorService/vendorService.services';
 
 let server: Server;
 
@@ -17,10 +16,13 @@ async function main() {
   try {
     await mongoose.connect(config.database_url as string);
     
- await seedAdmin(); 
+    await seedAdmin(); 
 
     // Start scheduled cron jobs (Promotion & Banner expiry)
     startCronJobs();
+
+    // Trigger background cleanup for orphan data (quotes, reviews, views, etc. from deleted services)
+    void VendorServiceServices.cleanupOrphanDataFromDB();
 
     server = app.listen(config.port, () => {
       console.log(`app is listening on port ${config.port}`);

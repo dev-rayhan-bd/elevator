@@ -10,6 +10,9 @@ import { sendNotification } from '../../utils/sendNotification';
 import { LeadClick } from './leadClick.model';
 import { ServiceView } from './serviceView.model';
 import { UserServices } from '../User/user.services';
+import { VendorQuote } from '../VendorQuote/vendorQuote.model';
+import { Review } from '../Review/review.model';
+import { ServicePackage } from '../ServicePackage/package.model';
 
 // ── Helper: split amenities into ObjectId refs + custom free-text ──
 const processAmenitiesInput = (amenities: any[]) => {
@@ -725,14 +728,36 @@ const deleteServiceImagesFromDB = async (
 };
 
 const deleteVendorServiceFromDB = async (vendorId: string, serviceId: string) => {
+  const serviceObjId = new Types.ObjectId(serviceId);
+  const vendorObjId = new Types.ObjectId(vendorId);
+
   const service = await VendorService.findOne({
-    _id: new Types.ObjectId(serviceId),
-    vendor: new Types.ObjectId(vendorId),
+    _id: serviceObjId,
+    vendor: vendorObjId,
   });
   if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Service not found or unauthorized');
+
+  // 1. Delete the service document itself
   await VendorService.findByIdAndDelete(serviceId);
 
-  // Trigger visibility score recalculation (dynamic reversion)
+  // 2. Cascade delete/cleanup all orphan child data associated with this service
+  await Promise.all([
+    VendorQuote.deleteMany({ service: serviceObjId }),
+    Review.deleteMany({ service: serviceObjId }),
+    ServiceView.deleteMany({ service: serviceObjId }),
+    LeadClick.deleteMany({ service: serviceObjId }),
+    VendorPromotion.deleteMany({ service: serviceObjId }),
+    User.updateMany(
+      { favoriteServices: serviceObjId },
+      { $pull: { favoriteServices: serviceObjId } },
+    ),
+    ServicePackage.updateMany(
+      { features: serviceObjId },
+      { $pull: { features: serviceObjId } },
+    ),
+  ]);
+
+  // 3. Trigger visibility score recalculation (dynamic reversion)
   void UserServices.calculateAndUpdateVisibilityScore(vendorId);
 
   return service;
@@ -1753,6 +1778,45 @@ const getSimilarServicesFromDB = async (serviceId: string) => {
   return results;
 };
 
+const cleanupOrphanDataFromDB = async () => {
+  try {
+    const validServices = await VendorService.find().select('_id').lean();
+    const validServiceIds = validServices.map((s) => s._id);
+
+    const [deletedQuotes, deletedReviews, deletedViews, deletedClicks, deletedPromotions, updatedUsers] =
+      await Promise.all([
+        VendorQuote.deleteMany({ service: { $nin: validServiceIds } }),
+        Review.deleteMany({ service: { $nin: validServiceIds } }),
+        ServiceView.deleteMany({ service: { $nin: validServiceIds } }),
+        LeadClick.deleteMany({ service: { $nin: validServiceIds } }),
+        VendorPromotion.deleteMany({ service: { $exists: true, $ne: null, $nin: validServiceIds } }),
+        User.updateMany(
+          { favoriteServices: { $elemMatch: { $nin: validServiceIds } } },
+          { $pull: { favoriteServices: { $nin: validServiceIds } } },
+        ),
+      ]);
+
+    console.log(`🧹 Orphan data cleanup completed:
+      - Deleted Quotes: ${deletedQuotes.deletedCount}
+      - Deleted Reviews: ${deletedReviews.deletedCount}
+      - Deleted Views: ${deletedViews.deletedCount}
+      - Deleted Clicks: ${deletedClicks.deletedCount}
+      - Deleted Promotions: ${deletedPromotions.deletedCount}
+      - Cleaned User Favorites: ${updatedUsers.modifiedCount}`);
+
+    return {
+      deletedQuotes: deletedQuotes.deletedCount,
+      deletedReviews: deletedReviews.deletedCount,
+      deletedViews: deletedViews.deletedCount,
+      deletedClicks: deletedClicks.deletedCount,
+      deletedPromotions: deletedPromotions.deletedCount,
+      cleanedUserFavorites: updatedUsers.modifiedCount,
+    };
+  } catch (error) {
+    console.error('❌ Error during orphan data cleanup:', error);
+  }
+};
+
 export const VendorServiceServices = {
   getAllVendorServicesFromDB,
   getVendorServicesByVendorFromDB,
@@ -1779,4 +1843,5 @@ export const VendorServiceServices = {
   getLeadStatsFromDB,
   trackServiceViewInDB,
   getViewStatsFromDB,
+  cleanupOrphanDataFromDB,
 };
