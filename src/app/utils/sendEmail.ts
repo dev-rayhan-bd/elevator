@@ -7,9 +7,13 @@ interface IMailOptions {
   to: string;
   subject: string;
   html: string;
+  text?: string;
+  fromName?: string;
+  fromEmail?: string;
+  from?: string;
 }
 
-const sendEmail = async (options: IMailOptions): Promise<boolean> => {
+const sendEmail = async (params: IMailOptions): Promise<boolean> => {
   try {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
@@ -19,11 +23,27 @@ const sendEmail = async (options: IMailOptions): Promise<boolean> => {
       },
     });
 
+    const fromEmail = params.fromEmail || process.env.NODE_APP_EMAIL || config.SMTP_USER || '';
+    const fromName = params.fromName || process.env.SITE_NAME || 'WePlan';
+
+    const from =
+      params.from ||
+      (fromName && fromEmail ? `"${fromName.replace(/"/g, '')}" <${fromEmail}>` : fromEmail);
+
+    const plainText =
+      params.text ||
+      params.html
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
     const mailOptions = {
-      from: `"Wee Plan" <${config.SMTP_USER}>`,
-      to: options.to,
-      subject: options.subject,
-      html: options.html,
+      from,
+      replyTo: fromEmail,
+      to: params.to,
+      subject: params.subject,
+      text: plainText,
+      html: params.html,
     };
 
     await transporter.sendMail(mailOptions);

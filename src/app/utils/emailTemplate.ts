@@ -123,7 +123,7 @@ export const getEmailTemplate = ({
                         <p>Crafting Your Perfect Wedding Story.</p>
                         <p>&copy; ${new Date().getFullYear()} WePlan. All rights reserved.</p>
                         <div class="social-links">
-                            <a href="#">Facebook</a> | <a href="#">Instagram</a> | <a href="#">Twitter</a>
+                            <a href="https://www.facebook.com/Weplanofficial" target="_blank">Facebook</a> | <a href="https://www.instagram.com/weplan.official/" target="_blank">Instagram</a> | <a href="https://www.linkedin.com/company/weplans" target="_blank">LinkedIn</a>
                         </div>
                         <p style="margin-top: 15px; font-size: 11px;">You are receiving this email because you registered on our platform. If this wasn't you, please ignore this email.</p>
                     </td>
