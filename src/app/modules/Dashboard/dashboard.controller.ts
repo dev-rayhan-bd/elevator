@@ -43,7 +43,20 @@ const getAdminDashboard = catchAsync(async (req, res) => {
   });
 });
 
+const getAllUpcomingEvents = catchAsync(async (req, res) => {
+  const vendorId = req.user.userId;
+  const result = await DashboardServices.getAllUpcomingEventsFromDB(vendorId, req.query);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Upcoming events retrieved successfully',
+    data: result,
+  });
+});
+
 export const DashboardControllers = {
   getVendorDashboard,
   getAdminDashboard,
+  getAllUpcomingEvents,
 };

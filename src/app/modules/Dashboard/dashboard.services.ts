@@ -642,7 +642,71 @@ const getAdminDashboard = async (): Promise<IAdminDashboardResult> => {
   };
 };
 
+const getAllUpcomingEventsFromDB = async (vendorId: string, query: Record<string, unknown>) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const now = new Date();
+
+  const filter = {
+    vendor: new Types.ObjectId(vendorId),
+    isDeleted: { $ne: true },
+    status: 'won',
+  };
+
+  const [events, total] = await Promise.all([
+    VendorQuote.find(filter)
+      .sort({ eventDate: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('service', 'title')
+      .populate('user', 'firstName lastName')
+      .lean(),
+    VendorQuote.countDocuments(filter),
+  ]);
+
+  const mappedEvents = events.map((ev: any) => {
+    const evDate = new Date(ev.eventDate);
+    const diffMs = evDate.getTime() - now.getTime();
+    const daysUntil = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    const hours = evDate.getHours();
+    const minutes = evDate.getMinutes();
+    const eventTime = `${hours % 12 || 12}:${minutes.toString().padStart(2, '0')} ${hours >= 12 ? 'PM' : 'AM'}`;
+
+    const userName = [ev.user?.firstName, ev.user?.lastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    return {
+      _id: ev._id?.toString() ?? '',
+      eventTitle: userName || 'Upcoming Event',
+      eventDate: evDate,
+      eventTime,
+      guestCount: ev.guestCount ?? 0,
+      budget: ev.budget ?? 0,
+      serviceTitle: ev.service?.title ?? '',
+      userName,
+      location: '',
+      status: ev.status ?? 'pending',
+      daysUntil,
+    };
+  });
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    upcomingEvents: mappedEvents,
+  };
+};
+
 export const DashboardServices = {
   getVendorDashboard,
   getAdminDashboard,
+  getAllUpcomingEventsFromDB,
 };

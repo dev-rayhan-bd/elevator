@@ -13,6 +13,14 @@ router.get(
   DashboardControllers.getVendorDashboard,
 );
 
+// ── Vendor Upcoming Events ──
+// GET /dashboard/vendor/upcoming-events?page=1&limit=10
+router.get(
+  '/vendor/upcoming-events',
+  auth(USER_ROLE.vendor),
+  DashboardControllers.getAllUpcomingEvents,
+);
+
 // ── Admin Dashboard ──
 // GET /dashboard/admin
 router.get(
