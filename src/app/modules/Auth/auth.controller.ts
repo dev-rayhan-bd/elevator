@@ -11,6 +11,14 @@ const registerUser = catchAsync(async (req, res) => {
 
 const userLogin = catchAsync(async (req, res) => {
   const result = await AuthServices.loginUser(req.body);
+  if (!result.isOtpVerified) {
+    return sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: result.message || 'Account not verified. A new verification OTP has been sent.',
+      data: result,
+    });
+  }
   res.cookie('refreshToken', result.refreshToken, { httpOnly: true, secure: true });
   sendResponse(res, { statusCode: 200, success: true, message: 'Login Success', data: result });
 });

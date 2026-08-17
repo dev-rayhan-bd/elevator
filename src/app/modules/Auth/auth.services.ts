@@ -150,11 +150,40 @@ const verifyOTPForRegistration = async (identifier: string, otp: string) => {
 
 const loginUser = async (payload: { identifier: string; password: string; fcmToken?: string }) => {
   const user = await User.findOne({ $or: [{ email: payload.identifier }, { phone: payload.identifier }] }).select('+password');
-  if (!user || user.status === 'blocked' || !user.isOtpVerified) 
-    throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid credentials or account not verified');
+  if (!user || user.isDeleted) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  if (user.status === 'blocked') {
+    throw new AppError(httpStatus.FORBIDDEN, 'Your account has been blocked by admin');
+  }
 
   const isMatch = await user.isPasswordMatched(payload.password, user.password!);
-  if (!isMatch) throw new AppError(httpStatus.FORBIDDEN, 'Incorrect password');
+  if (!isMatch) throw new AppError(httpStatus.UNAUTHORIZED, 'Incorrect password');
+
+  // If OTP is not verified yet, send a fresh OTP and return response with isOtpVerified: false (no tokens)
+  if (!user.isOtpVerified) {
+    const plainOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    user.otp = plainOtp;
+    user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    await sendOtpToUser(user, plainOtp, 'Verify Your Account', payload.identifier);
+
+    return {
+      isOtpVerified: false,
+      message: 'Account not verified. A new verification OTP has been sent.',
+      user: {
+        _id: user._id,
+        email: user.email,
+        phone: user.phone,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        isOtpVerified: false,
+      },
+    };
+  }
 
   // Update FCM token for push notifications (latest device)
   if (payload.fcmToken) {
@@ -167,6 +196,7 @@ const loginUser = async (payload: { identifier: string; password: string; fcmTok
 
   const jwtPayload = { userId: user._id.toString(), role: user.role };
   return {
+    isOtpVerified: true,
     accessToken: createToken(jwtPayload, config.jwt_access_secret!, config.jwt_access_expires_in!),
     refreshToken: createToken(jwtPayload, config.jwt_refresh_secret!, config.jwt_refresh_expires_in!),
     user
@@ -288,7 +318,8 @@ const changePassword = async (userId: string, payload: any) => {
 const refreshToken = async (token: string) => {
   const decoded = verifyToken(token, config.jwt_refresh_secret!) as any;
   const user = await User.findById(decoded.userId);
-  if (!user || user.status === 'blocked') throw new AppError(httpStatus.FORBIDDEN, 'Unauthorized');
+  if (!user || user.isDeleted) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  if (user.status === 'blocked') throw new AppError(httpStatus.FORBIDDEN, 'Your account has been blocked by admin');
   return { accessToken: createToken({ userId: user._id.toString(), role: user.role }, config.jwt_access_secret!, '1d') };
 };
 
