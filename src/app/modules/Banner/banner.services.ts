@@ -285,6 +285,7 @@ const adminGetAllBannersFromDB = async (query: Record<string, unknown>) => {
       .populate('slot', 'slotType title price dimensions'),
     queryObj,
   )
+    .search(['title'])
     .filter()
     .sort()
     .paginate()
