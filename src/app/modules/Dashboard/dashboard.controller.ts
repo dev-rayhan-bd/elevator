@@ -33,7 +33,11 @@ const getVendorDashboard = catchAsync(async (req, res) => {
 });
 
 const getAdminDashboard = catchAsync(async (req, res) => {
-  const result = await DashboardServices.getAdminDashboard();
+  const currentYear = new Date().getFullYear();
+  const yearlyRevenueTrendYear = req.query.yearlyRevenueTrendYear ? Number(req.query.yearlyRevenueTrendYear) : currentYear;
+  const revenueBreakdownYear = req.query.revenueBreakdownYear ? Number(req.query.revenueBreakdownYear) : currentYear;
+  
+  const result = await DashboardServices.getAdminDashboard(yearlyRevenueTrendYear, revenueBreakdownYear);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -55,8 +59,33 @@ const getAllUpcomingEvents = catchAsync(async (req, res) => {
   });
 });
 
+const getVendorMarketingStats = catchAsync(async (req, res) => {
+  const vendorId = req.user.userId;
+  const result = await DashboardServices.getVendorMarketingStatsFromDB(vendorId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Marketing stats retrieved successfully',
+    data: result,
+  });
+});
+
+const getAdminVendorPerformanceStats = catchAsync(async (req, res) => {
+  const result = await DashboardServices.getAdminVendorPerformanceStatsFromDB();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Admin vendor performance stats retrieved successfully',
+    data: result,
+  });
+});
+
 export const DashboardControllers = {
   getVendorDashboard,
   getAdminDashboard,
   getAllUpcomingEvents,
+  getVendorMarketingStats,
+  getAdminVendorPerformanceStats,
 };

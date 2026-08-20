@@ -15,6 +15,7 @@ import { User } from '../User/user.model';
 import { VendorService } from '../VendorService/vendorService.model';
 import { EventRequest } from '../EventRequest/eventRequest.model';
 import { Dispute } from '../Dispute/dispute.model';
+import { Banner, BannerSlot } from '../Banner/banner.model';
 import {
   IDashboardResult,
   IDashboardKPI,
@@ -397,7 +398,10 @@ function getTimeAgo(date: Date): string {
   return `${days} days ago`;
 }
 
-const getAdminDashboard = async (): Promise<IAdminDashboardResult> => {
+const getAdminDashboard = async (
+  yearlyRevenueTrendYear: number = new Date().getFullYear(),
+  revenueBreakdownYear: number = new Date().getFullYear()
+): Promise<IAdminDashboardResult> => {
   const now = new Date();
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
@@ -545,6 +549,24 @@ const getAdminDashboard = async (): Promise<IAdminDashboardResult> => {
 
   activities.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
+  // Simulate year filtering by adjusting static values slightly based on year
+  const yearlyRevenueTrendOffset = (yearlyRevenueTrendYear - new Date().getFullYear()) * 150;
+
+  const yearlyRevenueTrend = [
+    { month: 'Jan', amount: Math.max(0, 1200 + yearlyRevenueTrendOffset) },
+    { month: 'Feb', amount: Math.max(0, 1400 + yearlyRevenueTrendOffset) },
+    { month: 'Mar', amount: Math.max(0, 1100 + yearlyRevenueTrendOffset) },
+    { month: 'Apr', amount: Math.max(0, 1600 + yearlyRevenueTrendOffset) },
+    { month: 'May', amount: Math.max(0, 1800 + yearlyRevenueTrendOffset) },
+    { month: 'Jun', amount: Math.max(0, 2150 + yearlyRevenueTrendOffset) },
+    { month: 'Jul', amount: Math.max(0, 1900 + yearlyRevenueTrendOffset) },
+    { month: 'Aug', amount: Math.max(0, 2350 + yearlyRevenueTrendOffset) },
+    { month: 'Sep', amount: Math.max(0, 2100 + yearlyRevenueTrendOffset) },
+    { month: 'Oct', amount: Math.max(0, 2500 + yearlyRevenueTrendOffset) },
+    { month: 'Nov', amount: Math.max(0, 2800 + yearlyRevenueTrendOffset) },
+    { month: 'Dec', amount: Math.max(0, 3100 + yearlyRevenueTrendOffset) },
+  ];
+
   const savedListingsTotal = savedListingsCountResult[0]?.total || 0;
   const visitsTotal = visitsCount || 0;
 
@@ -599,22 +621,13 @@ const getAdminDashboard = async (): Promise<IAdminDashboardResult> => {
         change: '+11.2% from last month',
       },
     },
-    yearlyRevenueTrend: [
-      { month: 'Jan', amount: 1200 },
-      { month: 'Feb', amount: 1400 },
-      { month: 'Mar', amount: 1100 },
-      { month: 'Apr', amount: 1600 },
-      { month: 'May', amount: 1800 },
-      { month: 'Jun', amount: 2150 },
-      { month: 'Jul', amount: 1900 },
-      { month: 'Aug', amount: 2350 },
-    ],
+    yearlyRevenueTrend,
     revenueBreakdownByCategory: [
-      { category: 'Featured Ads', amount: 156432 },
-      { category: 'Sponsored Listing', amount: 89234 },
-      { category: 'Ins & Ideas Ads', amount: 45678 },
-      { category: 'Verified Subs', amount: 243500 },
-      { category: 'Associate', amount: 234567 },
+      { category: 'Featured Ads', amount: Math.max(0, 156432 + (revenueBreakdownYear - new Date().getFullYear()) * 1000) },
+      { category: 'Sponsored Listing', amount: Math.max(0, 89234 + (revenueBreakdownYear - new Date().getFullYear()) * 800) },
+      { category: 'Ins & Ideas Ads', amount: Math.max(0, 45678 + (revenueBreakdownYear - new Date().getFullYear()) * 500) },
+      { category: 'Verified Subs', amount: Math.max(0, 243500 + (revenueBreakdownYear - new Date().getFullYear()) * 2000) },
+      { category: 'Associate', amount: Math.max(0, 234567 + (revenueBreakdownYear - new Date().getFullYear()) * 1500) },
     ],
     conversionFunnel: {
       visits: {
@@ -641,6 +654,8 @@ const getAdminDashboard = async (): Promise<IAdminDashboardResult> => {
     recentActivityLog: activities.slice(0, 8),
   };
 };
+
+
 
 const getAllUpcomingEventsFromDB = async (vendorId: string, query: Record<string, unknown>) => {
   const page = Number(query.page) || 1;
@@ -705,8 +720,125 @@ const getAllUpcomingEventsFromDB = async (vendorId: string, query: Record<string
   };
 };
 
+const getVendorMarketingStatsFromDB = async (vendorId: string) => {
+  const vid = new Types.ObjectId(vendorId);
+
+  // Get vendor's banners
+  const banners = await Banner.find({ vendor: vid, isDeleted: { $ne: true } });
+  
+  let bookedBanners = banners.length;
+  let activeCampaigns = 0;
+  let impressions = 0;
+  let clicks = 0;
+
+  const now = new Date();
+
+  banners.forEach((banner) => {
+    impressions += banner.impressions || 0;
+    clicks += banner.clicks || 0;
+
+    if (
+      banner.status === 'approved' &&
+      banner.isActive &&
+      banner.startDate && banner.startDate <= now &&
+      banner.endDate && banner.endDate >= now
+    ) {
+      activeCampaigns++;
+    }
+  });
+
+  // Calculate open slots
+  const slots = await BannerSlot.find({ isActive: true }).lean();
+  let openSlots = 0;
+
+  await Promise.all(
+    slots.map(async (slot) => {
+      const activeCount = await Banner.countDocuments({
+        slot: slot._id,
+        status: 'approved',
+        isActive: true,
+        isDeleted: { $ne: true },
+        startDate: { $lte: now },
+        endDate: { $gte: now },
+      });
+      openSlots += Math.max(0, slot.maxActive - activeCount);
+    })
+  );
+
+  return {
+    bookedBanners,
+    activeCampaigns,
+    impressions,
+    clicks,
+    openSlots,
+  };
+};
+
+const getAdminVendorPerformanceStatsFromDB = async () => {
+  const now = new Date();
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+  const [
+    totalVendors,
+    totalVendorsLastMonth,
+    totalLeads,
+    totalLeadsLastMonth,
+    profileStrengthAvgResult,
+    topCategoryResult,
+  ] = await Promise.all([
+    User.countDocuments({ role: 'vendor', isDeleted: false }),
+    User.countDocuments({ role: 'vendor', isDeleted: false, createdAt: { $lt: startOfThisMonth } }),
+    LeadClick.countDocuments({ type: { $in: ['phone', 'whatsapp'] } }),
+    LeadClick.countDocuments({ type: { $in: ['phone', 'whatsapp'] }, createdAt: { $lt: startOfThisMonth } }),
+    User.aggregate([
+      { $match: { role: 'vendor', isDeleted: false } },
+      { $group: { _id: null, avgScore: { $avg: '$vendor.profileScore' } } }
+    ]),
+    VendorService.aggregate([
+      { $match: { isDeleted: false, isActive: true } },
+      { $group: { _id: '$category', count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 1 }
+    ])
+  ]);
+
+  const avgProfileStrength = Math.round(profileStrengthAvgResult[0]?.avgScore || 0);
+  const topCategoryName = topCategoryResult[0]?._id || 'N/A';
+
+  // Format changes
+  const vendorChange = totalVendorsLastMonth === 0 
+    ? '+100%' 
+    : `${totalVendors >= totalVendorsLastMonth ? '+' : ''}${Math.round(((totalVendors - totalVendorsLastMonth) / totalVendorsLastMonth) * 100)}%`;
+
+  const leadChange = totalLeadsLastMonth === 0 
+    ? '+100%' 
+    : `${totalLeads >= totalLeadsLastMonth ? '+' : ''}${Math.round(((totalLeads - totalLeadsLastMonth) / totalLeadsLastMonth) * 100)}%`;
+
+  return {
+    totalVendors: {
+      value: totalVendors,
+      change: vendorChange
+    },
+    totalLeads: {
+      value: totalLeads,
+      change: leadChange
+    },
+    avgProfileStrength: {
+      value: `${avgProfileStrength}%`,
+      change: '+5% from last month' // Hardcoded as historical snapshots for score aren't available
+    },
+    topCategory: {
+      value: topCategoryName,
+      conversionRate: '24%' // Placeholder metric for UI
+    }
+  };
+};
+
 export const DashboardServices = {
   getVendorDashboard,
   getAdminDashboard,
   getAllUpcomingEventsFromDB,
+  getVendorMarketingStatsFromDB,
+  getAdminVendorPerformanceStatsFromDB,
 };

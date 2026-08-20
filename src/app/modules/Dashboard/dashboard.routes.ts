@@ -21,12 +21,28 @@ router.get(
   DashboardControllers.getAllUpcomingEvents,
 );
 
+// ── Vendor Marketing Stats ──
+// GET /dashboard/vendor/marketing-stats
+router.get(
+  '/vendor/marketing-stats',
+  auth(USER_ROLE.vendor),
+  DashboardControllers.getVendorMarketingStats,
+);
+
 // ── Admin Dashboard ──
 // GET /dashboard/admin
 router.get(
   '/admin',
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   DashboardControllers.getAdminDashboard,
+);
+
+// ── Admin Vendor Performance Stats ──
+// GET /dashboard/admin/vendor-performance-stats
+router.get(
+  '/admin/vendor-performance-stats',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  DashboardControllers.getAdminVendorPerformanceStats,
 );
 
 export const DashboardRoutes = router;
