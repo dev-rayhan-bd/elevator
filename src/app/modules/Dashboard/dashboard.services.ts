@@ -938,7 +938,11 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
   ]);
   const total = countResult[0]?.total || 0;
 
+  // Add the 4 top cards statistics here
+  const stats = await getAdminVendorPerformanceStatsFromDB();
+
   return {
+    stats,
     meta: {
       page,
       limit,
