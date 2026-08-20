@@ -45,4 +45,12 @@ router.get(
   DashboardControllers.getAdminVendorPerformanceStats,
 );
 
+// ── Admin Vendor Performance List ──
+// GET /dashboard/admin/vendor-performance-list
+router.get(
+  '/admin/vendor-performance-list',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  DashboardControllers.getAdminVendorPerformanceList,
+);
+
 export const DashboardRoutes = router;

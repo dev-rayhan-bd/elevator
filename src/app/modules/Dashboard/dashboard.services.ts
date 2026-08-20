@@ -835,10 +835,126 @@ const getAdminVendorPerformanceStatsFromDB = async () => {
   };
 };
 
+const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown>) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+  const searchTerm = query.searchTerm as string;
+
+  const matchStage: any = { role: 'vendor', isDeleted: { $ne: true } };
+  if (searchTerm) {
+    matchStage.$or = [
+      { firstName: { $regex: searchTerm, $options: 'i' } },
+      { lastName: { $regex: searchTerm, $options: 'i' } },
+      { email: { $regex: searchTerm, $options: 'i' } },
+    ];
+  }
+
+  const aggregationPipeline = [
+    { $match: matchStage },
+    {
+      $lookup: {
+        from: 'leadclicks',
+        localField: '_id',
+        foreignField: 'vendor',
+        as: 'clicks'
+      }
+    },
+    {
+      $lookup: {
+        from: 'eventquotes',
+        localField: '_id',
+        foreignField: 'vendor',
+        as: 'quotes'
+      }
+    },
+    {
+      $addFields: {
+        totalLeads: { $size: '$clicks' },
+        wonLeads: {
+          $size: {
+            $filter: {
+              input: '$quotes',
+              as: 'q',
+              cond: { $in: ['$$q.status', ['accepted', 'won']] }
+            }
+          }
+        },
+        profileStrength: { $ifNull: ['$vendor.profileScore', 0] }
+      }
+    },
+    {
+      $addFields: {
+        performanceScore: {
+          $add: ['$totalLeads', '$wonLeads', '$profileStrength']
+        }
+      }
+    }
+  ];
+
+  const topPerformers = await User.aggregate([
+    { $match: { role: 'vendor', isDeleted: { $ne: true } } },
+    ...aggregationPipeline.slice(1),
+    { $sort: { performanceScore: -1 } },
+    { $limit: 3 },
+    {
+      $project: {
+        firstName: 1,
+        lastName: 1,
+        profileImage: 1,
+        totalLeads: 1,
+        wonLeads: 1,
+        profileStrength: 1,
+        performanceScore: 1
+      }
+    }
+  ]);
+
+  const vendors = await User.aggregate([
+    ...aggregationPipeline,
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+    {
+      $project: {
+        firstName: 1,
+        lastName: 1,
+        email: 1,
+        phoneNumber: 1,
+        profileImage: 1,
+        createdAt: 1,
+        isVerifiedBadge: '$vendor.isVerifiedBadge',
+        totalLeads: 1,
+        wonLeads: 1,
+        profileStrength: 1,
+        performanceScore: 1
+      }
+    }
+  ]);
+
+  const countResult = await User.aggregate([
+    { $match: matchStage },
+    { $count: 'total' }
+  ]);
+  const total = countResult[0]?.total || 0;
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
+    },
+    vendors,
+    topPerformers
+  };
+};
+
 export const DashboardServices = {
   getVendorDashboard,
   getAdminDashboard,
   getAllUpcomingEventsFromDB,
   getVendorMarketingStatsFromDB,
   getAdminVendorPerformanceStatsFromDB,
+  getAdminVendorPerformanceListFromDB,
 };

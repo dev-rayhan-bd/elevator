@@ -82,10 +82,22 @@ const getAdminVendorPerformanceStats = catchAsync(async (req, res) => {
   });
 });
 
+const getAdminVendorPerformanceList = catchAsync(async (req, res) => {
+  const result = await DashboardServices.getAdminVendorPerformanceListFromDB(req.query);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Admin vendor performance list retrieved successfully',
+    data: result,
+  });
+});
+
 export const DashboardControllers = {
   getVendorDashboard,
   getAdminDashboard,
   getAllUpcomingEvents,
   getVendorMarketingStats,
   getAdminVendorPerformanceStats,
+  getAdminVendorPerformanceList,
 };
