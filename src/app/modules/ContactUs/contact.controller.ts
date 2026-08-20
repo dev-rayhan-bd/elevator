@@ -1,65 +1,71 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Request, Response } from 'express';
-import nodemailer, { SendMailOptions, SentMessageInfo } from 'nodemailer';  
 import httpStatus from 'http-status';
+import catchAsync from '../../utils/catchAsync';
+import sendResponse from '../../utils/sendResponse';
+import { ContactServices } from './contact.services';
 
-import AppError from '../../errors/AppError';
-import config from '../../config';
-import { sendNotificationToAdmins } from '../../utils/sendNotification';
+const sendMessage = catchAsync(async (req: Request, res: Response) => {
+  const result = await ContactServices.saveMessageIntoDB(req.body);
 
-const sendMessage = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { subject, email, message } = req.body;
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Your message has been sent successfully.',
+    data: result,
+  });
+});
 
-    if (!subject || !email || !message) {
-      res.status(httpStatus.BAD_REQUEST).json({
-        success: false,
-        message: 'All fields are required.',
-      });
-      return;
-    }
+const getAllMessages = catchAsync(async (req: Request, res: Response) => {
+  const result = await ContactServices.getAllMessagesFromDB(req.query);
 
-    // create transporter
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: config.SMTP_USER, // your app's email (sender)
-        pass: config.SMTP_PASS,
-      },
-    });
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Contact messages retrieved successfully.',
+    data: result,
+  });
+});
 
-    const mailOptions: SendMailOptions = {
-      from: `<${config.SMTP_USER}>`,
-      to: process.env.CONTACT_RECEIVER_EMAIL || config.SMTP_USER,
-      subject:` ${subject}`,
-      text: `
-You received a new message from your app contact form:
+const getSingleMessage = catchAsync(async (req: Request, res: Response) => {
+  const result = await ContactServices.getSingleMessageFromDB(req.params.id);
 
-Email: ${email}
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Message retrieved successfully.',
+    data: result,
+  });
+});
 
-Message:
-${message}
-      `,
-      // replyTo: email, 
-    };
+const replyToMessage = catchAsync(async (req: Request, res: Response) => {
+  const adminEmail = req.user.email; 
+  const { replyText } = req.body;
+  
+  const result = await ContactServices.replyToMessageInDB(req.params.id, adminEmail, replyText);
 
-    const info: SentMessageInfo = await transporter.sendMail(mailOptions);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Reply sent successfully.',
+    data: result,
+  });
+});
 
-    console.log('Message sent: %s', info.messageId);
+const deleteMessage = catchAsync(async (req: Request, res: Response) => {
+  await ContactServices.deleteMessageFromDB(req.params.id);
 
-    res.status(httpStatus.OK).json({
-      success: true,
-      message: 'Message sent successfully.',
-    });
-    await sendNotificationToAdmins(
-  'New Contact Inquiry 📧',
-  `You have a new message from ${email}.`,
-  'general'
-);
-  } catch (error: any) {
-    console.error('Error sending email:', error);
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Error sending email.');
-  }
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Message deleted successfully.',
+    data: null,
+  });
+});
+
+export const contactControllers = {
+  sendMessage,
+  getAllMessages,
+  getSingleMessage,
+  replyToMessage,
+  deleteMessage,
 };
-
-export const contactControllers = { sendMessage };

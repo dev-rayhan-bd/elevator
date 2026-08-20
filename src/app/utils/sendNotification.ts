@@ -3,6 +3,7 @@ import { getMessaging, Message } from 'firebase-admin/messaging';
 import { NotificationModel } from '../modules/Notification/notification.model';
 import path from 'path';
 import { User } from '../modules/User/user.model';
+import { Admin } from '../modules/Admin/admin.model';
 import { TUser } from '../modules/User/user.interface';
 import { Types } from 'mongoose';
 
@@ -28,9 +29,13 @@ export const sendNotification = async (
   data: Record<string, string> = {}
 ) => {
   try {
-    const user = await User.findById(userId).lean<LeanUser | null>();
+    let user: LeanUser | null = await User.findById(userId).lean<LeanUser | null>();
     if (!user) {
-      console.warn(`⚠️ User not found for notification: ${userId}`);
+      user = await Admin.findById(userId).lean<any>();
+    }
+
+    if (!user) {
+      console.warn(`⚠️ User/Admin not found for notification: ${userId}`);
       return;
     }
 
@@ -134,7 +139,7 @@ export const sendNotificationToAdmins = async (
   data: Record<string, string> = {}
 ) => {
   try {
-    const admins = await User.find({
+    const admins = await Admin.find({
       role: { $in: ['admin', 'superAdmin'] },
       status: 'active',
       isDeleted: false,
