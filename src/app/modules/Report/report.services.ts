@@ -11,22 +11,21 @@ const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Se
 const STATIC_MONTHLY_REVENUE = [245000, 312000, 398000, 356000, 467000, 524000];
 const STATIC_MONTHLY_BOOKINGS = [342, 423, 534, 478, 612, 698];
 
-const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse> => {
+const getReportsData = async (type: string = 'vendor', year: number = new Date().getFullYear()): Promise<IReportResponse> => {
   const validTypes = ['revenue', 'bookings', 'vendor', 'user', 'disputes', 'custom'];
   const selectedType = validTypes.includes(type) ? type : 'vendor';
   const now = new Date();
 
-  // Generate last 6 months windows
+  // Generate 12 months windows for the specified year
   const monthsDataWindow: Array<{ name: string; year: number; start: Date; end: Date }> = [];
 
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
-    const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+  for (let i = 0; i < 12; i++) {
+    const monthStart = new Date(year, i, 1);
+    const monthEnd = new Date(year, i + 1, 0, 23, 59, 59, 999);
 
     monthsDataWindow.push({
-      name: MONTH_NAMES[d.getMonth()],
-      year: d.getFullYear(),
+      name: MONTH_NAMES[i],
+      year: year,
       start: monthStart,
       end: monthEnd,
     });
@@ -214,14 +213,14 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
   // Trend chart data mapping
   const chartTitle =
     selectedType === 'revenue'
-      ? 'Revenue Trend (Last 6 Months)'
+      ? `Revenue Trend (${year})`
       : selectedType === 'bookings'
-      ? 'Bookings Trend (Last 6 Months)'
+      ? `Bookings Trend (${year})`
       : selectedType === 'user'
-      ? 'User Growth Trend (Last 6 Months)'
+      ? `User Growth Trend (${year})`
       : selectedType === 'disputes'
-      ? 'Dispute Reports Trend (Last 6 Months)'
-      : 'Vendor Growth Trend (Last 6 Months)';
+      ? `Dispute Reports Trend (${year})`
+      : `Vendor Growth Trend (${year})`;
 
   const trendData = monthlyBreakdown.map((row) => {
     let val = row.newVendors ?? 0;
@@ -248,8 +247,8 @@ const getReportsData = async (type: string = 'vendor'): Promise<IReportResponse>
   };
 };
 
-const generateReportPDF = async (type: string = 'vendor'): Promise<Buffer> => {
-  const reportData = await getReportsData(type);
+const generateReportPDF = async (type: string = 'vendor', year: number = new Date().getFullYear()): Promise<Buffer> => {
+  const reportData = await getReportsData(type, year);
 
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
@@ -277,18 +276,24 @@ const generateReportPDF = async (type: string = 'vendor'): Promise<Buffer> => {
     const titleColors = ['#9d174d', '#166534', '#6b21a8', '#854d0e'];
     const valColors = ['#be185d', '#15803d', '#7e22ce', '#a16207'];
 
+    const cardsY = doc.y;
+
     reportData.summaryCards.forEach((card, idx) => {
       const xPos = 50 + idx * 125;
-      doc.rect(xPos, doc.y, 115, 55).fillAndStroke(cardBgColors[idx % 4], cardBorderColors[idx % 4]);
-      doc.fillColor(titleColors[idx % 4]).fontSize(8).font('Helvetica-Bold').text(card.title.toUpperCase(), xPos + 10, doc.y - 45, { width: 95 });
-      doc.fillColor(valColors[idx % 4]).fontSize(13).font('Helvetica-Bold').text(card.value.toString(), xPos + 10, doc.y - 30, { width: 95 });
+      // Draw background rect
+      doc.rect(xPos, cardsY, 115, 55).fillAndStroke(cardBgColors[idx % 4], cardBorderColors[idx % 4]);
+      // Draw title inside rect
+      doc.fillColor(titleColors[idx % 4]).fontSize(8).font('Helvetica-Bold')
+         .text(card.title.toUpperCase(), xPos + 10, cardsY + 10, { width: 95 });
+      // Draw value inside rect
+      doc.fillColor(valColors[idx % 4]).fontSize(13).font('Helvetica-Bold')
+         .text(card.value.toString(), xPos + 10, cardsY + 25, { width: 95 });
     });
 
-    doc.y = 175;
-    doc.moveDown(1.5);
+    doc.y = cardsY + 80;
 
     // Dynamic Monthly Breakdown Table Header
-    doc.fillColor('#1e293b').fontSize(14).font('Helvetica-Bold').text('Monthly Breakdown (Last 6 Months)');
+    doc.fillColor('#1e293b').fontSize(14).font('Helvetica-Bold').text(`Monthly Breakdown (${year})`);
     doc.moveDown(0.5);
 
     const tableTop = doc.y;
