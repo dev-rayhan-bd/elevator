@@ -4,7 +4,7 @@
 //  Each metric works even if vendor has 0 VendorQuotes
 // ══════════════════════════════════════════════════════════════════════
 
-import { Types } from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 import { VendorQuote } from '../VendorQuote/vendorQuote.model';
 import { EventQuote } from '../EventQuote/eventQuote.model';
 import { Review } from '../Review/review.model';
@@ -774,6 +774,40 @@ const getVendorMarketingStatsFromDB = async (vendorId: string) => {
   };
 };
 
+const getVendorSponsoredStatsFromDB = async (vendorId: string) => {
+  const now = new Date();
+  
+  const activePromo = await mongoose.model('VendorPromotion').findOne({
+    vendor: new Types.ObjectId(vendorId),
+    promotionCategory: 'sponsored',
+    status: 'active',
+    isActive: true,
+    endDate: { $gte: now }
+  });
+
+  if (!activePromo) {
+    return {
+      isActive: false,
+      activeDays: 0,
+      additionalViews: 0,
+      extraLeads: 0,
+    };
+  }
+
+  const start = new Date(activePromo.startDate);
+  const diffTime = Math.abs(now.getTime() - start.getTime());
+  const activeDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  return {
+    isActive: true,
+    activeDays,
+    additionalViews: activePromo.impressions || 0,
+    extraLeads: activePromo.clicks || 0,
+    plan: activePromo.plan,
+    endDate: activePromo.endDate,
+  };
+};
+
 const getAdminVendorPerformanceStatsFromDB = async () => {
   const now = new Date();
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -959,6 +993,7 @@ export const DashboardServices = {
   getAdminDashboard,
   getAllUpcomingEventsFromDB,
   getVendorMarketingStatsFromDB,
+  getVendorSponsoredStatsFromDB,
   getAdminVendorPerformanceStatsFromDB,
   getAdminVendorPerformanceListFromDB,
 };

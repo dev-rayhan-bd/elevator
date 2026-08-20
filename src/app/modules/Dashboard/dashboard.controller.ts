@@ -60,13 +60,23 @@ const getAllUpcomingEvents = catchAsync(async (req, res) => {
 });
 
 const getVendorMarketingStats = catchAsync(async (req, res) => {
-  const vendorId = req.user.userId;
-  const result = await DashboardServices.getVendorMarketingStatsFromDB(vendorId);
+  const result = await DashboardServices.getVendorMarketingStatsFromDB(req.user.userId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Marketing stats retrieved successfully',
+    message: 'Vendor marketing stats retrieved successfully',
+    data: result,
+  });
+});
+
+const getVendorSponsoredStats = catchAsync(async (req, res) => {
+  const result = await DashboardServices.getVendorSponsoredStatsFromDB(req.user.userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Vendor sponsored stats retrieved successfully',
     data: result,
   });
 });
@@ -98,6 +108,7 @@ export const DashboardControllers = {
   getAdminDashboard,
   getAllUpcomingEvents,
   getVendorMarketingStats,
+  getVendorSponsoredStats,
   getAdminVendorPerformanceStats,
   getAdminVendorPerformanceList,
 };

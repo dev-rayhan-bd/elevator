@@ -29,6 +29,14 @@ router.get(
   DashboardControllers.getVendorMarketingStats,
 );
 
+// ── Vendor Sponsored Stats ──
+// GET /dashboard/vendor/sponsored-stats
+router.get(
+  '/vendor/sponsored-stats',
+  auth(USER_ROLE.vendor),
+  DashboardControllers.getVendorSponsoredStats,
+);
+
 // ── Admin Dashboard ──
 // GET /dashboard/admin
 router.get(
