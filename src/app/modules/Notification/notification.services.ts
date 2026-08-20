@@ -12,6 +12,7 @@ const getMyNotificationsFromDB = async (userId: string, query: Record<string, un
     NotificationModel.find({ user: userId }), 
     query
   )
+    .filter()
     .sort() 
     .paginate()
     .fields();
