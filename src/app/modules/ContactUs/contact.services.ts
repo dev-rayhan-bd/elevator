@@ -32,7 +32,10 @@ const saveMessageIntoDB = async (payload: Pick<TContactUs, 'email' | 'subject' |
     'New Contact Inquiry 📧',
     `You have a new message from ${payload.email} regarding "${payload.subject}".`,
     'general',
-    { contactId: result._id.toString() }
+    { 
+      contactId: result._id.toString(),
+      actionLink: `/dashboard/admin/contact-messages` 
+    }
   );
 
   return result;

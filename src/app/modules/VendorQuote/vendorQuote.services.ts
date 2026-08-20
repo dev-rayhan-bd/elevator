@@ -51,7 +51,7 @@ const sendQuoteInDB = async (userId: string, payload: Partial<TVendorQuote>) => 
     '📋 New Quote Request!',
     'Send a professional quote now.',
     'new_quote_request',
-    { quoteId: quote._id.toString(), action: 'new_quote_request' },
+    { quoteId: quote._id.toString(), action: 'new_quote_request', actionLink: '/dashboard/vendor/quotes' },
   );
 
   return quote;
@@ -128,7 +128,7 @@ const acceptQuoteInDB = async (userId: string, quoteId: string) => {
     'Deal Confirmed! 🎉',
     'The customer accepted your quote. Booking is confirmed!',
     'quote_won',
-    { quoteId: quote._id.toString(), action: 'quote_won' },
+    { quoteId: quote._id.toString(), action: 'quote_won', actionLink: '/dashboard/vendor/quotes' },
   );
 
   return quote;
@@ -151,7 +151,7 @@ const declineQuoteInDB = async (userId: string, quoteId: string) => {
     'Quote Declined',
     'The customer declined the quote.',
     'quote_declined',
-    { quoteId: quote._id.toString(), action: 'quote_declined' },
+    { quoteId: quote._id.toString(), action: 'quote_declined', actionLink: '/dashboard/vendor/quotes' },
   );
 
   return quote;
@@ -235,7 +235,7 @@ const counterQuoteInDB = async (vendorId: string, quoteId: string, amount: numbe
     'Counter Offer Received',
     `The vendor sent a counter offer of $${amount}.`,
     'counter_offer',
-    { quoteId: quote._id.toString(), action: 'counter_offer' },
+    { quoteId: quote._id.toString(), action: 'counter_offer', actionLink: '/dashboard/user/quotes' },
   );
 
   return quote;
@@ -266,7 +266,7 @@ const userCounterQuoteInDB = async (userId: string, quoteId: string, amount: num
     'Counter Offer Received',
     `The customer sent a counter offer of $${amount}.`,
     'counter_offer',
-    { quoteId: quote._id.toString(), action: 'counter_offer' },
+    { quoteId: quote._id.toString(), action: 'counter_offer', actionLink: '/dashboard/vendor/quotes' },
   );
 
   return quote;
@@ -296,7 +296,7 @@ const winQuoteInDB = async (vendorId: string, quoteId: string) => {
     'Deal Confirmed! 🎉',
     'The vendor accepted your offer. Booking is confirmed!',
     'quote_won',
-    { quoteId: quote._id.toString(), action: 'quote_won' },
+    { quoteId: quote._id.toString(), action: 'quote_won', actionLink: '/dashboard/user/quotes' },
   );
 
   return quote;
@@ -319,7 +319,7 @@ const loseQuoteInDB = async (vendorId: string, quoteId: string) => {
     'Quote Declined',
     'The vendor closed this quote.',
     'quote_declined',
-    { quoteId: quote._id.toString(), action: 'quote_declined' },
+    { quoteId: quote._id.toString(), action: 'quote_declined', actionLink: '/dashboard/user/quotes' },
   );
 
   return quote;

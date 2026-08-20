@@ -70,7 +70,7 @@ const sendQuoteIntoDB = async (vendorId: string, payload: {
     '🎉 New Quotation Received!',
     'A top vendor has just responded to your event requirement.',
     'new_quote',
-    { quoteId: result._id.toString(), action: 'new_quote' }
+    { quoteId: result._id.toString(), action: 'new_quote', actionLink: '/dashboard/user/quotes' }
   );
 
   // ── 5-Quotes Milestone ──
@@ -84,7 +84,7 @@ const sendQuoteIntoDB = async (vendorId: string, payload: {
       '🔥 You\'ve received 5+ quotations!',
       'Compare prices now!',
       'quote_milestone',
-      { eventRequestId: payload.eventRequest, action: 'quote_milestone' }
+      { eventRequestId: payload.eventRequest, action: 'quote_milestone', actionLink: '/dashboard/user/quotes' }
     );
   }
 
@@ -255,7 +255,7 @@ const sendCounterOfferFromDB = async (
       'Counter Offer Received',
       `A vendor has countered with PKR ${payload.amount.toLocaleString()}.`,
       'counter_offer',
-      { quoteId: quote._id.toString(), action: 'counter_offer' }
+      { quoteId: quote._id.toString(), action: 'counter_offer', actionLink: '/dashboard/user/quotes' }
     );
   } else {
     // Notify vendor
@@ -264,7 +264,7 @@ const sendCounterOfferFromDB = async (
       'Counter Offer Received',
       `The client has countered your quote with PKR ${payload.amount.toLocaleString()}.`,
       'counter_offer',
-      { quoteId: quote._id.toString(), action: 'counter_offer' }
+      { quoteId: quote._id.toString(), action: 'counter_offer', actionLink: '/dashboard/vendor/quotes' }
     );
   }
 
@@ -328,7 +328,7 @@ const updateQuoteStatusFromDB = async (
       'Event Request Closed',
       'Your event request has been closed because you accepted a quote.',
       'request_closed',
-      { eventRequestId: eventRequest._id.toString(), action: 'request_closed' }
+      { eventRequestId: eventRequest._id.toString(), action: 'request_closed', actionLink: '/dashboard/user/events' }
     );
 
     // Notify the winning vendor
@@ -337,7 +337,7 @@ const updateQuoteStatusFromDB = async (
       'Congratulations! You Won the Bid! 🎉',
       `Great news! The client has accepted your quote of PKR ${quote.quoteAmount.toLocaleString()}. You won the bid!`,
       'quote_won',
-      { quoteId: quote._id.toString(), action: 'quote_won' }
+      { quoteId: quote._id.toString(), action: 'quote_won', actionLink: '/dashboard/vendor/quotes' }
     );
 
     // Notify all losing vendors
@@ -347,7 +347,7 @@ const updateQuoteStatusFromDB = async (
         'Bid Lost',
         `Unfortunately, the client has selected another vendor. Your quote of PKR ${lostQuote.quoteAmount.toLocaleString()} was not selected for this event request.`,
         'quote_lost',
-        { quoteId: lostQuote._id.toString(), action: 'quote_lost' }
+        { quoteId: lostQuote._id.toString(), action: 'quote_lost', actionLink: '/dashboard/vendor/quotes' }
       );
     }
   } else {
@@ -361,7 +361,7 @@ const updateQuoteStatusFromDB = async (
       'Quote Declined',
       `The client has declined your quote of PKR ${quote.quoteAmount.toLocaleString()}.`,
       'quote_declined',
-      { quoteId: quote._id.toString(), action: 'quote_declined' }
+      { quoteId: quote._id.toString(), action: 'quote_declined', actionLink: '/dashboard/vendor/quotes' }
     );
   }
 

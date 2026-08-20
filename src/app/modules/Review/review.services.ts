@@ -56,7 +56,7 @@ const createReviewInDB = async (payload: TReview) => {
     'New Review Received',
     `${reviewerName} left you a ${payload.rating}-star review.`,
     'new_review',
-    { reviewerName, rating: String(payload.rating), action: 'new_review' },
+    { reviewerName, rating: String(payload.rating), action: 'new_review', actionLink: '/dashboard/vendor/reviews' },
   );
 
   return result;

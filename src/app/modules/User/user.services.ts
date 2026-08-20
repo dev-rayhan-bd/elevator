@@ -99,14 +99,14 @@ const applyToBecomeVendor = async (userId: string, vendorData: any) => {
     'New Vendor Application',
     `${user.firstName} ${user.lastName} (${user.email}) has applied to become a vendor.`,
     'vendor_application',
-    { userId, action: 'vendor_application' }
+    { userId, action: 'vendor_application', actionLink: '/dashboard/admin/vendor-management' }
   );
   sendNotification(
     userId,
     'Application Received',
     'Your vendor application has been submitted. You will be notified once reviewed.',
     'vendor_application',
-    { action: 'vendor_application' }
+    { action: 'vendor_application', actionLink: '/dashboard/vendor/profile' }
   );
 
   return result;
@@ -153,7 +153,7 @@ const updateVendorAvailabilityInDB = async (
     'Availability Updated',
     `Your date ${date} has been marked as ${currentStatus}.`,
     'availability_update',
-    { date, status: currentStatus, action: 'availability_update' }
+    { date, status: currentStatus, action: 'availability_update', actionLink: '/dashboard/vendor/profile' }
   );
 
   return result;
@@ -170,7 +170,7 @@ const _triggerProfileScoreChanged = async (userId: string, oldScore: number, new
     'Profile Score Updated',
     `Your vendor profile score has ${direction} from ${oldScore} to ${newScore}.`,
     'profile_score_changed',
-    { oldScore: String(oldScore), newScore: String(newScore), action: 'profile_score_changed' }
+    { oldScore: String(oldScore), newScore: String(newScore), action: 'profile_score_changed', actionLink: '/dashboard/vendor/profile' }
   );
 };
 
@@ -180,7 +180,7 @@ const triggerNewReviewNotification = async (vendorId: string, reviewerName: stri
     'New Review Received',
     `${reviewerName} left you a ${rating}-star review.`,
     'new_review',
-    { reviewerName, rating: String(rating), action: 'new_review' }
+    { reviewerName, rating: String(rating), action: 'new_review', actionLink: '/dashboard/vendor/reviews' }
   );
 };
 
@@ -191,7 +191,7 @@ const triggerVendorApprovalNotification = async (vendorId: string, approved: boo
       'Vendor Application Approved! 🎉',
       'Congratulations! Your vendor application has been approved. Your profile is now active.',
       'vendor_approved',
-      { action: 'vendor_approved' }
+      { action: 'vendor_approved', actionLink: '/dashboard/vendor/profile' }
     );
   } else {
     sendNotification(
@@ -199,7 +199,7 @@ const triggerVendorApprovalNotification = async (vendorId: string, approved: boo
       'Vendor Application Update',
       `Your vendor application was not approved.${reason ? ` Reason: ${reason}` : ' Please contact support for details.'}`,
       'vendor_rejected',
-      { action: 'vendor_rejected', reason: reason || '' }
+      { action: 'vendor_rejected', reason: reason || '', actionLink: '/dashboard/vendor/profile' }
     );
   }
 };
@@ -210,7 +210,7 @@ const triggerVendorVerificationNotification = async (vendorId: string) => {
     'Profile Verified ✓',
     'Your business documents have been verified. A verification badge has been added to your profile.',
     'vendor_verification',
-    { action: 'vendor_verification' }
+    { action: 'vendor_verification', actionLink: '/dashboard/vendor/profile' }
   );
 };
 
@@ -220,7 +220,7 @@ const triggerBookingNotification = async (vendorId: string, date: string, custom
     'New Booking',
     `${customerName} has booked your services for ${date}.`,
     'booking_update',
-    { date, customerName, action: 'booking_update' }
+    { date, customerName, action: 'booking_update', actionLink: '/dashboard/vendor/leads' }
   );
 };
 
@@ -271,7 +271,7 @@ const sendProfileNudgeNotifications = async () => {
           '🛡️ Boost Your Visibility by 25%!',
           'Complete your Business Verification now.',
           'profile_score_nudge',
-          { action: 'verification_nudge' },
+          { action: 'verification_nudge', actionLink: '/dashboard/vendor/profile' },
         ),
       );
       await Promise.all(promises);
@@ -295,7 +295,7 @@ const sendProfileNudgeNotifications = async () => {
           '🛠️ Add More Services!',
           'Gain +20% visibility score.',
           'profile_score_nudge',
-          { action: 'service_variety_nudge' },
+          { action: 'service_variety_nudge', actionLink: '/dashboard/vendor/services' },
         );
       }
     }
@@ -309,7 +309,7 @@ const sendProfileNudgeNotifications = async () => {
           '📦 Missing Packages?',
           'Clients prefer vendors with clear pricing.',
           'profile_score_nudge',
-          { action: 'packages_nudge' },
+          { action: 'packages_nudge', actionLink: '/dashboard/vendor/services' },
         );
       }
     }
@@ -341,7 +341,7 @@ const _notifyVisibilityTask = async (
       `🎯 Visibility Score +${task.points}%!`,
       `${task.icon} ${task.label} completed! (+${task.points}% Score)`,
       'profile_score_changed',
-      { task: taskKey, points: String(task.points), action: 'visibility_task_completed' },
+      { task: taskKey, points: String(task.points), action: 'visibility_task_completed', actionLink: '/dashboard/vendor/profile' },
     );
   } else {
     sendNotification(
@@ -349,7 +349,7 @@ const _notifyVisibilityTask = async (
       `📉 Visibility Score -${task.points}%`,
       `${task.icon} ${task.label} no longer active. (${task.points}% Score deducted)`,
       'profile_score_changed',
-      { task: taskKey, points: String(task.points), action: 'visibility_task_reverted' },
+      { task: taskKey, points: String(task.points), action: 'visibility_task_reverted', actionLink: '/dashboard/vendor/profile' },
     );
   }
 };

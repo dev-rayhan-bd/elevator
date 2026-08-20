@@ -698,7 +698,7 @@ const notifyWishlistPriceDrop = async (
         '📉 Exclusive Offer!',
         'A vendor on your wishlist just launched a special discount.',
         'price_drop',
-        { serviceId, oldPrice: String(oldPrice), newPrice: String(newPrice), action: 'price_drop' },
+        { serviceId, oldPrice: String(oldPrice), newPrice: String(newPrice), action: 'price_drop', actionLink: '/dashboard/user/inspirations' },
       ),
     );
     await Promise.all(promises);
@@ -1290,7 +1290,7 @@ const trackContactClickInDB = async (
     '📞 Lead Alert!',
     'A potential client just viewed your contact information.',
     'lead_alert',
-    { type, userId: userId || 'anonymous', action: 'lead_alert' },
+    { type, userId: userId || 'anonymous', action: 'lead_alert', actionLink: '/dashboard/vendor/profile' },
   );
 };
 
@@ -1367,7 +1367,7 @@ const trackServiceViewInDB = async (
       `👁️ New ${label} View!`,
       `Someone just viewed your ${label.toLowerCase()}.`,
       'view_alert',
-      { type, userId: userId || 'anonymous', action: 'view_alert' },
+      { type, userId: userId || 'anonymous', action: 'view_alert', actionLink: '/dashboard/vendor/profile' },
     );
   }
 
