@@ -90,7 +90,7 @@ const sendBroadcastNotification = async (payload: BroadcastPayload) => {
 
     await Promise.all(
       userIds.map((id) =>
-        sendNotification(id, title, message, 'general', data),
+        sendNotification(id, title, message, 'promotional', data),
       ),
     );
 
