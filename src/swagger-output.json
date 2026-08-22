@@ -7,11 +7,11 @@
   },
   "servers": [
     {
-      "url": "http://localhost:5013/api/v1",
+      "url": "http://localhost:5013",
       "description": "Local server"
     },
     {
-      "url": "http://3.226.133.13/api/v1",
+      "url": "http://3.226.133.13",
       "description": "Development server"
     }
   ],
