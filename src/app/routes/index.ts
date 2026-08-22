@@ -42,76 +42,41 @@ import footerRouter from '../modules/Footer/footer.routes';
 
 const router = Router();
 
-const moduleRoutes = [
-  {
-    path: '/auth',
-    route:AuthRoutes
-  },
-  {
-    path: '/user',
-    route:UserRoutes
-  },
-  {
-    path: '/about',
-    route:aboutRouter
-  },
-  {
-    path: '/privacy',
-    route:privacyPolicyRouter
-  },
-  {
-    path: '/refund-policy',
-    route: refundPolicyRouter
-  },
-  {
-    path: '/cookie-policy',
-    route: cookiePolicyRouter
-  },
-  {
-    path: '/footer',
-    route: footerRouter
-  },
-  {
-    path: '/terms',
-    route:termsRouter
-  },
-  {
-    path: '/faq',
-    route:FaqRoutes
-  },
-  {
-    path: '/contact',
-    route:ContactRoutes
-  },
-
-  { path: '/notification', route: NotificationRoutes },  
-  { path: '/reviews', route: ReviewRoutes },
-  { path: '/admin', route: AdminRoutes },
-  { path: '/category', route: CategoryRoutes },
-  { path: '/subcategory', route: SubcategoryRoutes },
-  { path: '/amenity', route: AmenityRoutes },
-  { path: '/service-area', route: ServiceAreaRoutes },
-  { path: '/vendor-service', route: VendorServiceRoutes },
-  { path: '/event-type', route: EventTypeRoutes },
-  { path: '/service-package', route: ServicePackageRoutes },
-  { path: '/event-request', route: EventRequestRoutes },
-  { path: '/event-quote', route: EventQuoteRoutes },
-  { path: '/vendor-quote', route: VendorQuoteRoutes },
-  { path: '/inspiration', route: InspirationRoutes },
-  { path: '/blog', route: BlogRoutes },
-  { path: '/blog-category', route: BlogCategoryRoutes },
-  { path: '/banner', route: BannerRoutes },
-  { path: '/promotion', route: PromotionRoutes },
-  { path: '/verification', route: VerificationRoutes },
-  { path: '/newsletter', route: NewsletterRoutes },
-  { path: '/advisor', route: AdvisorRoutes },
-  { path: '/dashboard', route: DashboardRoutes },
-  { path: '/analytics', route: AnalyticsRoutes },
-  { path: '/chat', route: ChatRoutes },
-  { path: '/dispute', route: DisputeRoutes },
-  { path: '/reports', route: ReportRoutes },
-];
-
-moduleRoutes.forEach((route) => router.use(route.path, route.route));
+router.use('/auth', AuthRoutes);
+router.use('/user', UserRoutes);
+router.use('/about', aboutRouter);
+router.use('/privacy', privacyPolicyRouter);
+router.use('/refund-policy', refundPolicyRouter);
+router.use('/cookie-policy', cookiePolicyRouter);
+router.use('/footer', footerRouter);
+router.use('/terms', termsRouter);
+router.use('/faq', FaqRoutes);
+router.use('/contact', ContactRoutes);
+router.use('/notification', NotificationRoutes);
+router.use('/reviews', ReviewRoutes);
+router.use('/admin', AdminRoutes);
+router.use('/category', CategoryRoutes);
+router.use('/subcategory', SubcategoryRoutes);
+router.use('/amenity', AmenityRoutes);
+router.use('/service-area', ServiceAreaRoutes);
+router.use('/vendor-service', VendorServiceRoutes);
+router.use('/event-type', EventTypeRoutes);
+router.use('/service-package', ServicePackageRoutes);
+router.use('/event-request', EventRequestRoutes);
+router.use('/event-quote', EventQuoteRoutes);
+router.use('/vendor-quote', VendorQuoteRoutes);
+router.use('/inspiration', InspirationRoutes);
+router.use('/blog', BlogRoutes);
+router.use('/blog-category', BlogCategoryRoutes);
+router.use('/banner', BannerRoutes);
+router.use('/promotion', PromotionRoutes);
+router.use('/verification', VerificationRoutes);
+router.use('/newsletter', NewsletterRoutes);
+router.use('/advisor', AdvisorRoutes);
+router.use('/dashboard', DashboardRoutes);
+router.use('/analytics', AnalyticsRoutes);
+router.use('/chat', ChatRoutes);
+router.use('/dispute', DisputeRoutes);
+router.use('/reports', ReportRoutes);
 
 export default router;

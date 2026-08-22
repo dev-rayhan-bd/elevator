@@ -11,13 +11,17 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import mongoSanitizeMiddleware from './app/middleware/mongosanitize';
+import { setupSwagger } from './swagger';
 
 const app: Application = express();
+// Trigger restart again
 
 
 
 // --- HIGH SECURITY MIDDLEWARES ---
-app.use(helmet()); // HTTP headers security
+app.use(helmet({
+  contentSecurityPolicy: false, // Disabled to allow Swagger UI inline scripts
+})); // HTTP headers security
 app.use(mongoSanitizeMiddleware);// NoSQL injection protection (e.g: email: {"$gt": ""})
 
 // --- RATE LIMITING ---
@@ -80,6 +84,9 @@ app.use('/api/v1', router);
 app.get('/', (req: Request, res: Response) => {
   res.send('WeePlan - Server is Breathing...');
 });
+
+// setup Swagger
+setupSwagger(app);
 
 app.use(globalErrorHandler);
 app.use(notFound);

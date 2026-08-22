@@ -8,6 +8,36 @@ import { contactControllers } from './contact.controller';
 
 const router = express.Router();
 
+/**
+ * @swagger
+ * /contact/send-message:
+ *   post:
+ *     summary: Send a contact message
+ *     tags: [Contact]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - email
+ *               - subject
+ *               - message
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               subject:
+ *                 type: string
+ *               message:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Message sent successfully
+ */
 // Public route to send a message
 router.post('/send-message', contactControllers.sendMessage);
 
