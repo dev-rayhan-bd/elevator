@@ -4,7 +4,23 @@ import fs from 'fs';
 import path from 'path';
 
 export const setupSwagger = (app: Application) => {
-  const swaggerFile = path.resolve(__dirname, 'swagger-output.json');
+  let swaggerFile = path.resolve(__dirname, 'swagger-output.json');
+
+  // Fallbacks if swagger-output.json is not in __dirname (e.g. when running from dist/)
+  if (!fs.existsSync(swaggerFile)) {
+    const srcPath = path.resolve(process.cwd(), 'src', 'swagger-output.json');
+    const rootPath = path.resolve(process.cwd(), 'swagger-output.json');
+    const relativeSrcPath = path.resolve(__dirname, '../src/swagger-output.json');
+
+    if (fs.existsSync(srcPath)) {
+      swaggerFile = srcPath;
+    } else if (fs.existsSync(relativeSrcPath)) {
+      swaggerFile = relativeSrcPath;
+    } else if (fs.existsSync(rootPath)) {
+      swaggerFile = rootPath;
+    }
+  }
+
   let swaggerSpec;
   try {
     const swaggerData = fs.readFileSync(swaggerFile, 'utf8');
