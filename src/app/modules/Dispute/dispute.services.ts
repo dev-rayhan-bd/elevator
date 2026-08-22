@@ -5,6 +5,8 @@ import { TDispute } from './dispute.interface';
 import QueryBuilder from '../../builder/QueryBuilder';
 import PDFDocument from 'pdfkit';
 
+import { sendNotificationToAdmins } from '../../utils/sendNotification';
+
 // ── User/Vendor: Create a new dispute ──
 const createDisputeInDB = async (
   userId: string,
@@ -19,6 +21,14 @@ const createDisputeInDB = async (
   };
 
   const result = await Dispute.create(data);
+
+  sendNotificationToAdmins(
+    'New Dispute Opened ⚠️',
+    `A dispute has been submitted regarding "${result.title || 'Booking Issue'}".`,
+    'new_dispute',
+    { disputeId: result._id.toString() }
+  );
+
   return result;
 };
 

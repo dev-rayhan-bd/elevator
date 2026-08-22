@@ -99,14 +99,14 @@ const applyToBecomeVendor = async (userId: string, vendorData: any) => {
     'New Vendor Application',
     `${user.firstName} ${user.lastName} (${user.email}) has applied to become a vendor.`,
     'vendor_application',
-    { userId, action: 'vendor_application', actionLink: '/dashboard/admin/vendor-management' }
+    { userId: user._id.toString() }
   );
   sendNotification(
     userId,
     'Application Received',
     'Your vendor application has been submitted. You will be notified once reviewed.',
     'vendor_application',
-    { action: 'vendor_application', actionLink: '/dashboard/vendor/profile' }
+    { userId }
   );
 
   return result;

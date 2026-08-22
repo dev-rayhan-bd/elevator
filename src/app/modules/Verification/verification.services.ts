@@ -7,6 +7,8 @@ import { User } from '../User/user.model';
 import { UserServices } from '../User/user.services';
 import { TVerification } from './verification.interface';
 
+import { sendNotification, sendNotificationToAdmins } from '../../utils/sendNotification';
+
 // ══════════════════════════════════════════════
 //  VENDOR: SUBMIT VERIFICATION REQUEST
 // ══════════════════════════════════════════════
@@ -48,6 +50,14 @@ const submitVerificationIntoDB = async (
       existing.verifiedAt = undefined;
       existing.rejectedReason = undefined;
       await existing.save();
+
+      sendNotificationToAdmins(
+        'Vendor Verification Resubmitted 🛡️',
+        `${vendor.firstName} ${vendor.lastName} has resubmitted verification documents.`,
+        'vendor_verification',
+        { verificationId: existing._id.toString(), vendorId }
+      );
+
       return existing;
     }
   }
@@ -58,6 +68,13 @@ const submitVerificationIntoDB = async (
     documents: payload.documents,
     notes: payload.notes,
   });
+
+  sendNotificationToAdmins(
+    'New Vendor Verification Request 🛡️',
+    `${vendor.firstName} ${vendor.lastName} has submitted verification documents.`,
+    'vendor_verification',
+    { verificationId: result._id.toString(), vendorId }
+  );
 
   return result;
 };

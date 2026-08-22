@@ -128,15 +128,15 @@ const verifyOTPForRegistration = async (identifier: string, otp: string) => {
     sendNotificationToAdmins(
       'New Vendor Registration',
       `${user.firstName} ${user.lastName} (${user.email}) has registered as a vendor.`,
-      'vendor_application',
-      { userId: user._id.toString(), action: 'vendor_application' }
+      'new_vendor_registered',
+      { vendorId: user._id.toString() }
     );
     sendNotification(
       user._id.toString(),
       'Registration Successful',
       'Your vendor application has been submitted and is pending admin approval.',
       'vendor_application',
-      { action: 'vendor_application' }
+      { userId: user._id.toString() }
     );
   }
 
