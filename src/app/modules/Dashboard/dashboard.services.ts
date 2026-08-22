@@ -811,7 +811,6 @@ const getVendorSponsoredStatsFromDB = async (vendorId: string) => {
 const getAdminVendorPerformanceStatsFromDB = async () => {
   const now = new Date();
   const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
   const [
     totalVendors,
@@ -819,6 +818,7 @@ const getAdminVendorPerformanceStatsFromDB = async () => {
     totalLeads,
     totalLeadsLastMonth,
     profileStrengthAvgResult,
+    profileStrengthAvgLastMonthResult,
     topCategoryResult,
   ] = await Promise.all([
     User.countDocuments({ role: 'vendor', isDeleted: false }),
@@ -829,24 +829,64 @@ const getAdminVendorPerformanceStatsFromDB = async () => {
       { $match: { role: 'vendor', isDeleted: false } },
       { $group: { _id: null, avgScore: { $avg: '$vendor.profileScore' } } }
     ]),
+    User.aggregate([
+      { $match: { role: 'vendor', isDeleted: false, createdAt: { $lt: startOfThisMonth } } },
+      { $group: { _id: null, avgScore: { $avg: '$vendor.profileScore' } } }
+    ]),
     VendorService.aggregate([
       { $match: { isDeleted: false, isActive: true } },
       { $group: { _id: '$category', count: { $sum: 1 } } },
       { $sort: { count: -1 } },
-      { $limit: 1 }
+      { $limit: 1 },
+      {
+        $lookup: {
+          from: 'categories',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'categoryDoc'
+        }
+      },
+      { $unwind: { path: '$categoryDoc', preserveNullAndEmptyArrays: true } }
     ])
   ]);
 
   const avgProfileStrength = Math.round(profileStrengthAvgResult[0]?.avgScore || 0);
-  const topCategoryName = topCategoryResult[0]?._id || 'N/A';
+  const avgProfileStrengthLastMonth = Math.round(profileStrengthAvgLastMonthResult[0]?.avgScore || 0);
+  const profileDiff = avgProfileStrength - avgProfileStrengthLastMonth;
+  const profileChange = `${profileDiff >= 0 ? '+' : ''}${profileDiff}% from last month`;
+
+  let topCategoryName = 'N/A';
+  let conversionRateStr = '0%';
+
+  if (topCategoryResult.length > 0) {
+    const rawCat = topCategoryResult[0];
+    topCategoryName = rawCat.categoryDoc?.name || (typeof rawCat._id === 'string' ? rawCat._id : 'N/A');
+
+    if (rawCat._id) {
+      const topCatServices = await VendorService.find({ category: rawCat._id, isDeleted: false }).select('_id').lean();
+      const serviceIds = topCatServices.map(s => s._id);
+
+      if (serviceIds.length > 0) {
+        const [totalCatQuotes, wonCatQuotes] = await Promise.all([
+          EventQuote.countDocuments({ service: { $in: serviceIds } }),
+          EventQuote.countDocuments({ service: { $in: serviceIds }, status: { $in: ['accepted', 'won'] } })
+        ]);
+
+        if (totalCatQuotes > 0) {
+          const rate = Math.round((wonCatQuotes / totalCatQuotes) * 100);
+          conversionRateStr = `${rate}%`;
+        }
+      }
+    }
+  }
 
   // Format changes
   const vendorChange = totalVendorsLastMonth === 0 
-    ? '+100%' 
+    ? (totalVendors > 0 ? '+100%' : '0%')
     : `${totalVendors >= totalVendorsLastMonth ? '+' : ''}${Math.round(((totalVendors - totalVendorsLastMonth) / totalVendorsLastMonth) * 100)}%`;
 
   const leadChange = totalLeadsLastMonth === 0 
-    ? '+100%' 
+    ? (totalLeads > 0 ? '+100%' : '0%')
     : `${totalLeads >= totalLeadsLastMonth ? '+' : ''}${Math.round(((totalLeads - totalLeadsLastMonth) / totalLeadsLastMonth) * 100)}%`;
 
   return {
@@ -860,11 +900,11 @@ const getAdminVendorPerformanceStatsFromDB = async () => {
     },
     avgProfileStrength: {
       value: `${avgProfileStrength}%`,
-      change: '+5% from last month' // Hardcoded as historical snapshots for score aren't available
+      change: profileChange
     },
     topCategory: {
       value: topCategoryName,
-      conversionRate: '24%' // Placeholder metric for UI
+      conversionRate: conversionRateStr
     }
   };
 };
