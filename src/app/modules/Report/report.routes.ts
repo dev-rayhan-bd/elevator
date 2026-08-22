@@ -7,12 +7,20 @@ const router = express.Router();
 
 router.get(
   '/',
+  /*
+    #swagger.tags = ['Report']
+    #swagger.summary = 'Get system reports (Admin)'
+  */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   ReportControllers.getReports,
 );
 
 router.get(
   '/export-pdf',
+  /*
+    #swagger.tags = ['Report']
+    #swagger.summary = 'Export system reports PDF (Admin)'
+  */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   ReportControllers.exportReportPDF,
 );

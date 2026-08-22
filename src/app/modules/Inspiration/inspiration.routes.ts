@@ -8,23 +8,40 @@ const router = express.Router();
 const uploadImage = upload.single('image') as unknown as RequestHandler;
 
 // ── Public Routes ──
-router.get('/public', InspirationControllers.getAllInspirations);
+router.get('/public',
+  /*
+    #swagger.tags = ['Inspiration']
+    #swagger.summary = 'Get all public inspiration posts'
+  */
+  InspirationControllers.getAllInspirations
+);
 
 // ── Admin Routes ──
 router.get(
   '/admin',
+  /*
+    #swagger.tags = ['Inspiration']
+    #swagger.summary = 'Get all inspirations (Admin)'
+  */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   InspirationControllers.getAdminInspirations,
 );
 
 router.get(
   '/admin/:id',
-//   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  /*
+    #swagger.tags = ['Inspiration']
+    #swagger.summary = 'Get single inspiration post'
+  */
   InspirationControllers.getSingleInspiration,
 );
 
 router.post(
   '/',
+  /*
+    #swagger.tags = ['Inspiration']
+    #swagger.summary = 'Create inspiration post (Admin)'
+  */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   uploadImage,
   InspirationControllers.createInspiration,
@@ -32,6 +49,10 @@ router.post(
 
 router.patch(
   '/:id',
+  /*
+    #swagger.tags = ['Inspiration']
+    #swagger.summary = 'Update inspiration post (Admin)'
+  */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   uploadImage,
   InspirationControllers.updateInspiration,
@@ -39,6 +60,10 @@ router.patch(
 
 router.delete(
   '/:id',
+  /*
+    #swagger.tags = ['Inspiration']
+    #swagger.summary = 'Delete inspiration post (Admin)'
+  */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   InspirationControllers.deleteInspiration,
 );

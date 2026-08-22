@@ -31,7 +31,65 @@
     },
     "/api/v1/auth/register": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Register User or Vendor",
+        "description": "Register a new user or vendor account.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "User registration details",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "firstName": {
+                  "type": "string",
+                  "example": "John"
+                },
+                "lastName": {
+                  "type": "string",
+                  "example": "Doe"
+                },
+                "email": {
+                  "type": "string",
+                  "example": "user@example.com"
+                },
+                "phone": {
+                  "type": "string",
+                  "example": "01700000000"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "password123"
+                },
+                "acceptedTerms": {
+                  "type": "boolean",
+                  "example": true
+                },
+                "role": {
+                  "type": "string",
+                  "example": "user"
+                },
+                "fcmToken": {
+                  "type": "string",
+                  "example": "optional_token"
+                }
+              },
+              "required": [
+                "firstName",
+                "lastName",
+                "email",
+                "phone",
+                "password",
+                "acceptedTerms",
+                "role"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -50,15 +108,35 @@
               }
             }
           }
-        },
-        "tags": [
-          "Auth"
-        ]
+        }
       }
     },
     "/api/v1/auth/resendOtp": {
       "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Resend OTP",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "string",
+                  "example": "user@example.com"
+                }
+              },
+              "required": [
+                "identifier"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -77,67 +155,192 @@
               }
             }
           }
-        },
-        "tags": [
-          "Auth"
-        ]
+        }
       }
     },
     "/api/v1/auth/login": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "User Login",
+        "description": "Login using email or phone identifier along with password.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "User login credentials",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "string",
+                  "example": "user@example.com"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "password123"
+                },
+                "fcmToken": {
+                  "type": "string",
+                  "example": "optional_token"
+                }
+              },
+              "required": [
+                "identifier",
+                "password"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Auth"
-        ]
+        }
       }
     },
     "/api/v1/auth/admin/login": {
       "post": {
-        "description": "",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Admin Login",
+        "description": "Login for admin and superAdmin.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Admin login credentials",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "string",
+                  "example": "admin@example.com"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "password123"
+                },
+                "fcmToken": {
+                  "type": "string",
+                  "example": "optional_token"
+                }
+              },
+              "required": [
+                "identifier",
+                "password"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Auth"
-        ]
+        }
       }
     },
     "/api/v1/auth/changePassword": {
       "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Change Password",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "oldPassword": {
+                  "type": "string",
+                  "example": "old_password_123"
+                },
+                "newPassword": {
+                  "type": "string",
+                  "example": "new_password_123"
+                }
+              },
+              "required": [
+                "oldPassword",
+                "newPassword"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Auth"
-        ]
+        }
       }
     },
     "/api/v1/auth/refresh-token": {
       "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Refresh Token",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "refreshToken": {
+                  "type": "string",
+                  "example": "your_refresh_token_here"
+                }
+              },
+              "required": [
+                "refreshToken"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Auth"
-        ]
+        }
       }
     },
     "/api/v1/auth/forgotPass": {
       "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Forgot Password",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "phone": {
+                  "type": "string",
+                  "example": "01700000000"
+                }
+              },
+              "required": [
+                "phone"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -156,28 +359,83 @@
               }
             }
           }
-        },
-        "tags": [
-          "Auth"
-        ]
+        }
       }
     },
     "/api/v1/auth/resetPass": {
       "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Reset Password",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "phone": {
+                  "type": "string",
+                  "example": "01700000000"
+                },
+                "otp": {
+                  "type": "string",
+                  "example": "123456"
+                },
+                "newPassword": {
+                  "type": "string",
+                  "example": "new_password_123"
+                }
+              },
+              "required": [
+                "phone",
+                "otp",
+                "newPassword"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Auth"
-        ]
+        }
       }
     },
     "/api/v1/auth/regOtpVerify": {
       "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Verify Registration OTP",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "string",
+                  "example": "user@example.com"
+                },
+                "otp": {
+                  "type": "string",
+                  "example": "123456"
+                }
+              },
+              "required": [
+                "identifier",
+                "otp"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -199,54 +457,86 @@
               }
             }
           }
-        },
-        "tags": [
-          "Auth"
-        ]
+        }
       }
     },
     "/api/v1/auth/logout": {
       "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Logout User",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Auth"
-        ]
+        }
       }
     },
     "/api/v1/user/": {
       "get": {
-        "description": "",
+        "tags": [
+          "User"
+        ],
+        "summary": "Get all users",
+        "description": "Fetch a list of all registered users (Admin / SuperAdmin).",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "User"
-        ]
+        }
       }
     },
     "/api/v1/user/me": {
       "get": {
-        "description": "",
+        "tags": [
+          "User"
+        ],
+        "summary": "Get current user profile",
+        "description": "Fetch the logged-in user profile.",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "User"
-        ]
+        }
       }
     },
     "/api/v1/user/update-me": {
       "patch": {
-        "description": "",
+        "tags": [
+          "User"
+        ],
+        "summary": "Update user profile",
+        "description": "Update profile information for the authenticated user.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Profile update fields",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "firstName": {
+                  "type": "string",
+                  "example": "John"
+                },
+                "lastName": {
+                  "type": "string",
+                  "example": "Doe"
+                },
+                "phone": {
+                  "type": "string",
+                  "example": "01700000000"
+                },
+                "bio": {
+                  "type": "string",
+                  "example": "Event organizer bio"
+                }
+              }
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -265,15 +555,40 @@
               }
             }
           }
-        },
-        "tags": [
-          "User"
-        ]
+        }
       }
     },
     "/api/v1/user/setup-profile": {
       "patch": {
-        "description": "",
+        "tags": [
+          "User"
+        ],
+        "summary": "Setup user profile",
+        "description": "Initial profile setup after registration.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Profile setup payload",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "address": {
+                  "type": "string",
+                  "example": "123 Main St"
+                },
+                "city": {
+                  "type": "string",
+                  "example": "New York"
+                },
+                "state": {
+                  "type": "string",
+                  "example": "NY"
+                }
+              }
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -292,41 +607,64 @@
               }
             }
           }
-        },
-        "tags": [
-          "User"
-        ]
+        }
       }
     },
     "/api/v1/user/update-portfolio": {
       "patch": {
-        "description": "",
+        "tags": [
+          "User"
+        ],
+        "summary": "Update vendor portfolio",
+        "description": "Upload multiple portfolio images for the vendor.",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "User"
-        ]
+        }
       }
     },
     "/api/v1/user/become-vendor": {
       "post": {
-        "description": "",
+        "tags": [
+          "User"
+        ],
+        "summary": "Request to become vendor",
+        "description": "Submit request to upgrade user role to vendor.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "description": "Vendor application details",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "businessName": {
+                  "type": "string",
+                  "example": "Apex Event Decor"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Professional event decoration company"
+                }
+              }
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "User"
-        ]
+        }
       }
     },
     "/api/v1/user/manage-availability": {
       "patch": {
-        "description": "",
+        "tags": [
+          "User"
+        ],
+        "summary": "Manage vendor availability",
+        "description": "Update calendar availability dates for vendor services.",
         "responses": {
           "default": {
             "description": ""
@@ -345,41 +683,44 @@
               }
             }
           }
-        },
-        "tags": [
-          "User"
-        ]
+        }
       }
     },
     "/api/v1/user/update-availability": {
       "patch": {
-        "description": "",
+        "tags": [
+          "User"
+        ],
+        "summary": "Update vendor availability status",
+        "description": "Toggle online / offline availability status for vendor.",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "User"
-        ]
+        }
       }
     },
     "/api/v1/user/me/visibility-tasks": {
       "get": {
-        "description": "",
+        "tags": [
+          "User"
+        ],
+        "summary": "Get vendor visibility score tasks",
+        "description": "Retrieve profile completion and visibility optimization tasks.",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "User"
-        ]
+        }
       }
     },
     "/api/v1/user/public/vendor/{vendorId}": {
       "get": {
-        "description": "",
+        "tags": [
+          "User"
+        ],
+        "summary": "Get public vendor profile",
+        "description": "View public profile and portfolio of a specific vendor.",
         "parameters": [
           {
             "name": "vendorId",
@@ -394,15 +735,35 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "User"
-        ]
+        }
       }
     },
     "/api/v1/about/create-or-update": {
       "post": {
+        "tags": [
+          "About"
+        ],
+        "summary": "Create or update About Us page content",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "type": "string",
+                  "example": "About WeePlan event management platform..."
+                }
+              },
+              "required": [
+                "content"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -421,28 +782,49 @@
               }
             }
           }
-        },
-        "tags": [
-          "About"
-        ]
+        }
       }
     },
     "/api/v1/about/retrive": {
       "get": {
+        "tags": [
+          "About"
+        ],
+        "summary": "Get About Us page content",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "About"
-        ]
+        }
       }
     },
     "/api/v1/privacy/create-or-update": {
       "post": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Create or update Privacy Policy content",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "content": {
+                  "type": "string",
+                  "example": "Privacy policy terms and data processing policy..."
+                }
+              },
+              "required": [
+                "content"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -461,23 +843,21 @@
               }
             }
           }
-        },
-        "tags": [
-          "Privacy"
-        ]
+        }
       }
     },
     "/api/v1/privacy/retrive": {
       "get": {
+        "tags": [
+          "Privacy"
+        ],
+        "summary": "Get Privacy Policy content",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Privacy"
-        ]
+        }
       }
     },
     "/api/v1/refund-policy/create-or-update": {
@@ -712,7 +1092,35 @@
     },
     "/api/v1/faq/create-faq": {
       "post": {
+        "tags": [
+          "Faq"
+        ],
+        "summary": "Create FAQ entry (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "question": {
+                  "type": "string",
+                  "example": "How do I book a vendor service?"
+                },
+                "answer": {
+                  "type": "string",
+                  "example": "You can search for vendors, select a service package, and click Request Quote."
+                }
+              },
+              "required": [
+                "question",
+                "answer"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -734,27 +1142,29 @@
               }
             }
           }
-        },
-        "tags": [
-          "Faq"
-        ]
+        }
       }
     },
     "/api/v1/faq/allFaq": {
       "get": {
+        "tags": [
+          "Faq"
+        ],
+        "summary": "Get all FAQs",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Faq"
-        ]
+        }
       }
     },
     "/api/v1/faq/single-faq/{id}": {
       "get": {
+        "tags": [
+          "Faq"
+        ],
+        "summary": "Get single FAQ entry",
         "description": "",
         "parameters": [
           {
@@ -770,14 +1180,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Faq"
-        ]
+        }
       }
     },
     "/api/v1/faq/delete-faq/{id}": {
       "delete": {
+        "tags": [
+          "Faq"
+        ],
+        "summary": "Delete FAQ entry",
         "description": "",
         "parameters": [
           {
@@ -793,14 +1204,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Faq"
-        ]
+        }
       }
     },
     "/api/v1/faq/update-faq/{id}": {
       "patch": {
+        "tags": [
+          "Faq"
+        ],
+        "summary": "Update FAQ entry",
         "description": "",
         "parameters": [
           {
@@ -809,6 +1221,23 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "question": {
+                  "type": "string",
+                  "example": "Updated Question?"
+                },
+                "answer": {
+                  "type": "string",
+                  "example": "Updated Answer."
+                }
+              }
             }
           }
         ],
@@ -830,40 +1259,77 @@
               }
             }
           }
-        },
-        "tags": [
-          "Faq"
-        ]
+        }
       }
     },
     "/api/v1/contact/send-message": {
       "post": {
-        "description": "",
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Send contact message",
+        "description": "Public contact us message submission.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Jane Smith"
+                },
+                "email": {
+                  "type": "string",
+                  "example": "jane@example.com"
+                },
+                "subject": {
+                  "type": "string",
+                  "example": "Inquiry about vendor registration"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Hello, I have a question regarding listing my venue service."
+                }
+              },
+              "required": [
+                "name",
+                "email",
+                "subject",
+                "message"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Contact"
-        ]
+        }
       }
     },
     "/api/v1/contact/admin/messages": {
       "get": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Get all contact messages (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Contact"
-        ]
+        }
       }
     },
     "/api/v1/contact/admin/messages/{id}": {
       "get": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Get single contact message (Admin)",
         "description": "",
         "parameters": [
           {
@@ -879,12 +1345,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Contact"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Delete contact message (Admin)",
         "description": "",
         "parameters": [
           {
@@ -900,14 +1367,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Contact"
-        ]
+        }
       }
     },
     "/api/v1/contact/admin/messages/{id}/reply": {
       "patch": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Reply to contact message (Admin)",
         "description": "",
         "parameters": [
           {
@@ -916,6 +1384,23 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "replyMessage": {
+                  "type": "string",
+                  "example": "Thank you for reaching out. Here are the instructions..."
+                }
+              },
+              "required": [
+                "replyMessage"
+              ]
             }
           }
         ],
@@ -937,40 +1422,43 @@
               }
             }
           }
-        },
-        "tags": [
-          "Contact"
-        ]
+        }
       }
     },
     "/api/v1/notification/": {
       "get": {
+        "tags": [
+          "Notification"
+        ],
+        "summary": "Get my notifications",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Notification"
-        ]
+        }
       }
     },
     "/api/v1/notification/mark-all-read": {
       "patch": {
+        "tags": [
+          "Notification"
+        ],
+        "summary": "Mark all notifications as read",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Notification"
-        ]
+        }
       }
     },
     "/api/v1/notification/mark-read/{id}": {
       "patch": {
+        "tags": [
+          "Notification"
+        ],
+        "summary": "Mark single notification as read",
         "description": "",
         "parameters": [
           {
@@ -986,15 +1474,44 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Notification"
-        ]
+        }
       }
     },
     "/api/v1/notification/admin/broadcast": {
       "post": {
+        "tags": [
+          "Notification"
+        ],
+        "summary": "Broadcast notification to all users (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "example": "System Maintenance Notice"
+                },
+                "message": {
+                  "type": "string",
+                  "example": "We will be performing scheduled maintenance tonight at 2 AM EST."
+                },
+                "targetRole": {
+                  "type": "string",
+                  "example": "all"
+                }
+              },
+              "required": [
+                "title",
+                "message"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -1013,40 +1530,72 @@
               }
             }
           }
-        },
-        "tags": [
-          "Notification"
-        ]
+        }
       }
     },
     "/api/v1/reviews/my-reviews": {
       "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Get reviews for vendor services",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Reviews"
-        ]
+        }
       }
     },
     "/api/v1/reviews/": {
       "post": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Create review for vendor service",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "serviceId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "rating": {
+                  "type": "number",
+                  "example": 5
+                },
+                "comment": {
+                  "type": "string",
+                  "example": "Exceptional service and beautiful stage decoration!"
+                }
+              },
+              "required": [
+                "serviceId",
+                "rating",
+                "comment"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Reviews"
-        ]
+        }
       }
     },
     "/api/v1/reviews/{serviceId}": {
       "get": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Get reviews for a specific service",
         "description": "",
         "parameters": [
           {
@@ -1062,14 +1611,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Reviews"
-        ]
+        }
       }
     },
     "/api/v1/reviews/{reviewId}": {
       "delete": {
+        "tags": [
+          "Reviews"
+        ],
+        "summary": "Delete own review",
         "description": "",
         "parameters": [
           {
@@ -1085,53 +1635,129 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Reviews"
-        ]
+        }
       }
     },
     "/api/v1/admin/login": {
       "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Admin Login",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "string",
+                  "example": "admin@example.com"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "password123"
+                }
+              },
+              "required": [
+                "identifier",
+                "password"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/forgot-password": {
       "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Forgot Password (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "phone": {
+                  "type": "string",
+                  "example": "01700000000"
+                }
+              },
+              "required": [
+                "phone"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/reset-password": {
       "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reset Password (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "phone": {
+                  "type": "string",
+                  "example": "01700000000"
+                },
+                "otp": {
+                  "type": "string",
+                  "example": "123456"
+                },
+                "newPassword": {
+                  "type": "string",
+                  "example": "new_password_123"
+                }
+              },
+              "required": [
+                "phone",
+                "otp",
+                "newPassword"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/update-profile": {
       "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Update Admin Profile",
         "description": "",
         "responses": {
           "default": {
@@ -1151,53 +1777,81 @@
               }
             }
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/change-password": {
       "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Change Password (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "oldPassword": {
+                  "type": "string",
+                  "example": "old_password"
+                },
+                "newPassword": {
+                  "type": "string",
+                  "example": "new_password"
+                }
+              },
+              "required": [
+                "oldPassword",
+                "newPassword"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/me": {
       "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get current Admin details",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/pending-vendors": {
       "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get pending vendor applications",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/approve-vendor/{id}": {
       "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Approve vendor application",
         "description": "",
         "parameters": [
           {
@@ -1213,28 +1867,88 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/create-admin": {
       "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Create new Admin (SuperAdmin only)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "firstName": {
+                  "type": "string",
+                  "example": "Admin"
+                },
+                "lastName": {
+                  "type": "string",
+                  "example": "User"
+                },
+                "email": {
+                  "type": "string",
+                  "example": "newadmin@example.com"
+                },
+                "phone": {
+                  "type": "string",
+                  "example": "01800000000"
+                },
+                "password": {
+                  "type": "string",
+                  "example": "password123"
+                }
+              },
+              "required": [
+                "firstName",
+                "lastName",
+                "email",
+                "phone",
+                "password"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/resendOtp": {
       "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Resend Admin OTP",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "identifier": {
+                  "type": "string",
+                  "example": "admin@example.com"
+                }
+              },
+              "required": [
+                "identifier"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -1253,14 +1967,15 @@
               }
             }
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/block-unblock/{id}": {
       "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Block or unblock user",
         "description": "",
         "parameters": [
           {
@@ -1276,14 +1991,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/{id}": {
       "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete admin account",
         "description": "",
         "parameters": [
           {
@@ -1299,14 +2015,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/block-unblock-admin/{id}": {
       "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Block or unblock admin account",
         "description": "",
         "parameters": [
           {
@@ -1322,52 +2039,79 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/": {
       "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get list of all admins",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/admin/dashboard": {
       "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get admin dashboard statistics",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Admin"
-        ]
+        }
       }
     },
     "/api/v1/category/": {
       "get": {
+        "tags": [
+          "Category"
+        ],
+        "summary": "Get all service categories",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Category"
-        ]
+        }
       },
       "post": {
+        "tags": [
+          "Category"
+        ],
+        "summary": "Create new service category",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Venue Decoration"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Floral and lighting setup"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -1386,40 +2130,43 @@
               }
             }
           }
-        },
-        "tags": [
-          "Category"
-        ]
+        }
       }
     },
     "/api/v1/category/all": {
       "get": {
+        "tags": [
+          "Category"
+        ],
+        "summary": "Get all categories list",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Category"
-        ]
+        }
       }
     },
     "/api/v1/category/with-subcategories": {
       "get": {
+        "tags": [
+          "Category"
+        ],
+        "summary": "Get categories with nested subcategories",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Category"
-        ]
+        }
       }
     },
     "/api/v1/category/{id}": {
       "get": {
+        "tags": [
+          "Category"
+        ],
+        "summary": "Get single category details",
         "description": "",
         "parameters": [
           {
@@ -1435,12 +2182,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Category"
-        ]
+        }
       },
       "patch": {
+        "tags": [
+          "Category"
+        ],
+        "summary": "Update service category",
         "description": "",
         "parameters": [
           {
@@ -1449,6 +2197,23 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Updated Decoration Category"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Updated description"
+                }
+              }
             }
           }
         ],
@@ -1470,12 +2235,13 @@
               }
             }
           }
-        },
-        "tags": [
-          "Category"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Category"
+        ],
+        "summary": "Delete service category",
         "description": "",
         "parameters": [
           {
@@ -1491,26 +2257,56 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Category"
-        ]
+        }
       }
     },
     "/api/v1/subcategory/": {
       "get": {
+        "tags": [
+          "Subcategory"
+        ],
+        "summary": "Get all subcategories",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Subcategory"
-        ]
+        }
       },
       "post": {
+        "tags": [
+          "Subcategory"
+        ],
+        "summary": "Create new subcategory",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Floral Design"
+                },
+                "categoryId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Custom flower arrangements"
+                }
+              },
+              "required": [
+                "name",
+                "categoryId"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -1529,40 +2325,43 @@
               }
             }
           }
-        },
-        "tags": [
-          "Subcategory"
-        ]
+        }
       }
     },
     "/api/v1/subcategory/all/query": {
       "get": {
+        "tags": [
+          "Subcategory"
+        ],
+        "summary": "Get all subcategories with query filters",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Subcategory"
-        ]
+        }
       }
     },
     "/api/v1/subcategory/all": {
       "get": {
+        "tags": [
+          "Subcategory"
+        ],
+        "summary": "Get subcategories list",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Subcategory"
-        ]
+        }
       }
     },
     "/api/v1/subcategory/by-category/{categoryId}": {
       "get": {
+        "tags": [
+          "Subcategory"
+        ],
+        "summary": "Get subcategories by parent category ID",
         "description": "",
         "parameters": [
           {
@@ -1578,14 +2377,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Subcategory"
-        ]
+        }
       }
     },
     "/api/v1/subcategory/{id}": {
       "get": {
+        "tags": [
+          "Subcategory"
+        ],
+        "summary": "Get single subcategory details",
         "description": "",
         "parameters": [
           {
@@ -1601,12 +2401,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Subcategory"
-        ]
+        }
       },
       "patch": {
+        "tags": [
+          "Subcategory"
+        ],
+        "summary": "Update subcategory",
         "description": "",
         "parameters": [
           {
@@ -1615,6 +2416,23 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Updated Subcategory Name"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Updated subcategory description"
+                }
+              }
             }
           }
         ],
@@ -1636,12 +2454,13 @@
               }
             }
           }
-        },
-        "tags": [
-          "Subcategory"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Subcategory"
+        ],
+        "summary": "Delete subcategory",
         "description": "",
         "parameters": [
           {
@@ -1657,38 +2476,70 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Subcategory"
-        ]
+        }
       }
     },
     "/api/v1/amenity/": {
       "get": {
+        "tags": [
+          "Amenity"
+        ],
+        "summary": "Get all amenities",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Amenity"
-        ]
+        }
       },
       "post": {
+        "tags": [
+          "Amenity"
+        ],
+        "summary": "Create new amenity",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Parking Space"
+                },
+                "categoryId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "subcategoryId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ac"
+                }
+              },
+              "required": [
+                "name",
+                "categoryId",
+                "subcategoryId"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Amenity"
-        ]
+        }
       }
     },
     "/api/v1/amenity/{category}/{subcategory}": {
       "get": {
+        "tags": [
+          "Amenity"
+        ],
+        "summary": "Get amenities by category and subcategory",
         "description": "",
         "parameters": [
           {
@@ -1712,14 +2563,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Amenity"
-        ]
+        }
       }
     },
     "/api/v1/amenity/{id}": {
       "get": {
+        "tags": [
+          "Amenity"
+        ],
+        "summary": "Get single amenity details",
         "description": "",
         "parameters": [
           {
@@ -1735,12 +2587,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Amenity"
-        ]
+        }
       },
       "patch": {
+        "tags": [
+          "Amenity"
+        ],
+        "summary": "Update amenity",
         "description": "",
         "parameters": [
           {
@@ -1750,18 +2603,32 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "VIP Parking Space"
+                }
+              }
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Amenity"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Amenity"
+        ],
+        "summary": "Delete amenity",
         "description": "",
         "parameters": [
           {
@@ -1777,64 +2644,103 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Amenity"
-        ]
+        }
       }
     },
     "/api/v1/service-area/": {
       "get": {
+        "tags": [
+          "Service-area"
+        ],
+        "summary": "Get all service areas",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Service-area"
-        ]
+        }
       },
       "post": {
+        "tags": [
+          "Service-area"
+        ],
+        "summary": "Create service area",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Manhattan, NY"
+                },
+                "city": {
+                  "type": "string",
+                  "example": "New York"
+                },
+                "state": {
+                  "type": "string",
+                  "example": "NY"
+                },
+                "zipCode": {
+                  "type": "string",
+                  "example": "10001"
+                }
+              },
+              "required": [
+                "name",
+                "city",
+                "state",
+                "zipCode"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Service-area"
-        ]
+        }
       }
     },
     "/api/v1/service-area/all/query": {
       "get": {
+        "tags": [
+          "Service-area"
+        ],
+        "summary": "Get all service areas with query filters",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Service-area"
-        ]
+        }
       }
     },
     "/api/v1/service-area/all": {
       "get": {
+        "tags": [
+          "Service-area"
+        ],
+        "summary": "Get service areas list",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Service-area"
-        ]
+        }
       }
     },
     "/api/v1/service-area/{id}": {
       "get": {
+        "tags": [
+          "Service-area"
+        ],
+        "summary": "Get single service area details",
         "description": "",
         "parameters": [
           {
@@ -1850,12 +2756,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Service-area"
-        ]
+        }
       },
       "patch": {
+        "tags": [
+          "Service-area"
+        ],
+        "summary": "Update service area",
         "description": "",
         "parameters": [
           {
@@ -1865,18 +2772,32 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Updated Area Name"
+                }
+              }
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Service-area"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Service-area"
+        ],
+        "summary": "Delete service area",
         "description": "",
         "parameters": [
           {
@@ -1892,66 +2813,71 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Service-area"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/public": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get public vendor services list",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/public/all": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get all published services",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/public/recent-vendors": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get recently registered vendors",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/public/featured-vendors": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get featured vendor services",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/public/{id}/similar": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get similar vendor services",
         "description": "",
         "parameters": [
           {
@@ -1967,27 +2893,29 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/public/venues/karachi": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get venues in Karachi",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/public/{id}": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get single vendor service details",
         "description": "",
         "parameters": [
           {
@@ -2003,14 +2931,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/public/vendor/{vendorId}": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get active services by vendor ID",
         "description": "",
         "parameters": [
           {
@@ -2026,53 +2955,100 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/my-services": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get vendor published services",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/my-services/list": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get vendor services list",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/": {
       "post": {
-        "description": "",
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Create vendor service",
+        "description": "Create a new service offering for the vendor.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "example": "Royal Wedding Decoration"
+                },
+                "categoryId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "subcategoryId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ac"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Luxury wedding stage setup with floral arch"
+                },
+                "startingPrice": {
+                  "type": "number",
+                  "example": 1500
+                },
+                "serviceAreaId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ad"
+                }
+              },
+              "required": [
+                "title",
+                "categoryId",
+                "subcategoryId",
+                "description",
+                "startingPrice"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/{id}": {
       "patch": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Update vendor service",
         "description": "",
         "parameters": [
           {
@@ -2082,18 +3058,36 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "example": "Updated Service Title"
+                },
+                "startingPrice": {
+                  "type": "number",
+                  "example": 1800
+                }
+              }
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Delete vendor service",
         "description": "",
         "parameters": [
           {
@@ -2109,40 +3103,43 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/my-drafts": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get vendor draft services",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/draft": {
       "post": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Save service draft",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/draft/{id}/publish": {
       "patch": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Publish service draft",
         "description": "",
         "parameters": [
           {
@@ -2158,14 +3155,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/draft/{id}": {
       "delete": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Delete draft service",
         "description": "",
         "parameters": [
           {
@@ -2181,14 +3179,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/{id}/remove-images": {
       "patch": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Delete images from vendor service",
         "description": "",
         "parameters": [
           {
@@ -2198,20 +3197,43 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "imageUrls": {
+                  "type": "array",
+                  "example": [
+                    "https://res.cloudinary.com/image1.jpg"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "imageUrls"
+              ]
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/fav/{serviceId}": {
       "post": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Toggle favourite vendor service",
         "description": "",
         "parameters": [
           {
@@ -2227,92 +3249,147 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/my-favs": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get my favourite services",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/track-contact": {
       "post": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Track vendor contact click (call/whatsapp)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "vendorId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "serviceId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ac"
+                },
+                "contactType": {
+                  "type": "string",
+                  "example": "whatsapp"
+                }
+              },
+              "required": [
+                "vendorId",
+                "serviceId",
+                "contactType"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/lead-stats": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get lead contact statistics for vendor",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/track-view": {
       "post": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Track vendor service view",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "serviceId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ac"
+                }
+              },
+              "required": [
+                "serviceId"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/view-stats": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get view analytics for vendor",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/admin/all": {
       "get": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Get all vendor services (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/vendor-service/admin/{id}/status": {
       "patch": {
+        "tags": [
+          "Vendor-service"
+        ],
+        "summary": "Toggle vendor service active/inactive status (Admin)",
         "description": "",
         "parameters": [
           {
@@ -2322,32 +3399,74 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "active"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-service"
-        ]
+        }
       }
     },
     "/api/v1/event-type/": {
       "get": {
+        "tags": [
+          "Event-type"
+        ],
+        "summary": "Get all event types",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-type"
-        ]
+        }
       },
       "post": {
+        "tags": [
+          "Event-type"
+        ],
+        "summary": "Create new event type",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Wedding Ceremony"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Complete wedding planning and setup"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -2366,27 +3485,29 @@
               }
             }
           }
-        },
-        "tags": [
-          "Event-type"
-        ]
+        }
       }
     },
     "/api/v1/event-type/all": {
       "get": {
+        "tags": [
+          "Event-type"
+        ],
+        "summary": "Get event types list",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-type"
-        ]
+        }
       }
     },
     "/api/v1/event-type/{id}": {
       "get": {
+        "tags": [
+          "Event-type"
+        ],
+        "summary": "Get single event type",
         "description": "",
         "parameters": [
           {
@@ -2402,12 +3523,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-type"
-        ]
+        }
       },
       "patch": {
+        "tags": [
+          "Event-type"
+        ],
+        "summary": "Update event type",
         "description": "",
         "parameters": [
           {
@@ -2416,6 +3538,19 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Updated Wedding Ceremony"
+                }
+              }
             }
           }
         ],
@@ -2437,12 +3572,13 @@
               }
             }
           }
-        },
-        "tags": [
-          "Event-type"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Event-type"
+        ],
+        "summary": "Delete event type",
         "description": "",
         "parameters": [
           {
@@ -2458,10 +3594,7 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-type"
-        ]
+        }
       }
     },
     "/api/v1/service-package/public/{vendorId}": {
@@ -2559,7 +3692,53 @@
     },
     "/api/v1/event-request/": {
       "post": {
-        "description": "",
+        "tags": [
+          "Event-request"
+        ],
+        "summary": "Create new event request",
+        "description": "Submit an event requirement post for vendors to submit quotes.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "eventTypeId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "eventDate": {
+                  "type": "string",
+                  "example": "2026-12-25"
+                },
+                "location": {
+                  "type": "string",
+                  "example": "New York, NY"
+                },
+                "budget": {
+                  "type": "number",
+                  "example": 5000
+                },
+                "guestCount": {
+                  "type": "number",
+                  "example": 150
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Wedding reception planning and decoration"
+                }
+              },
+              "required": [
+                "eventTypeId",
+                "eventDate",
+                "location",
+                "budget"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -2578,27 +3757,29 @@
               }
             }
           }
-        },
-        "tags": [
-          "Event-request"
-        ]
+        }
       }
     },
     "/api/v1/event-request/my-requests": {
       "get": {
+        "tags": [
+          "Event-request"
+        ],
+        "summary": "Get my event requests",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-request"
-        ]
+        }
       }
     },
     "/api/v1/event-request/my-requests/{id}": {
       "get": {
+        "tags": [
+          "Event-request"
+        ],
+        "summary": "Get single event request details",
         "description": "",
         "parameters": [
           {
@@ -2614,14 +3795,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-request"
-        ]
+        }
       }
     },
     "/api/v1/event-request/my-requests/{id}/status": {
       "patch": {
+        "tags": [
+          "Event-request"
+        ],
+        "summary": "Update event request status",
         "description": "",
         "parameters": [
           {
@@ -2631,20 +3813,38 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "closed"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-request"
-        ]
+        }
       }
     },
     "/api/v1/event-request/my-requests/{id}/cancel": {
       "patch": {
+        "tags": [
+          "Event-request"
+        ],
+        "summary": "Cancel event request",
         "description": "",
         "parameters": [
           {
@@ -2660,27 +3860,29 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-request"
-        ]
+        }
       }
     },
     "/api/v1/event-request/all": {
       "get": {
+        "tags": [
+          "Event-request"
+        ],
+        "summary": "Get active event requests (Vendor marketplace)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-request"
-        ]
+        }
       }
     },
     "/api/v1/event-request/vendor/{id}": {
       "get": {
+        "tags": [
+          "Event-request"
+        ],
+        "summary": "Get event request details for vendor",
         "description": "",
         "parameters": [
           {
@@ -2696,40 +3898,82 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-request"
-        ]
+        }
       }
     },
     "/api/v1/event-quote/": {
       "post": {
+        "tags": [
+          "Event-quote"
+        ],
+        "summary": "Send vendor quote for event request",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "eventRequestId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "offeredPrice": {
+                  "type": "number",
+                  "example": 4500
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Complete decoration and stage setup included"
+                },
+                "deliverables": {
+                  "type": "array",
+                  "example": [
+                    "Stage Decor",
+                    "Floral Arch",
+                    "Lighting"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "eventRequestId",
+                "offeredPrice"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-quote"
-        ]
+        }
       }
     },
     "/api/v1/event-quote/my-bids": {
       "get": {
+        "tags": [
+          "Event-quote"
+        ],
+        "summary": "Get vendor submitted bids",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-quote"
-        ]
+        }
       }
     },
     "/api/v1/event-quote/my-bids/{id}": {
       "get": {
+        "tags": [
+          "Event-quote"
+        ],
+        "summary": "Get single bid details",
         "description": "",
         "parameters": [
           {
@@ -2745,14 +3989,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-quote"
-        ]
+        }
       }
     },
     "/api/v1/event-quote/my-bids/{id}/outcome": {
       "patch": {
+        "tags": [
+          "Event-quote"
+        ],
+        "summary": "Mark quote outcome (Won/Lost)",
         "description": "",
         "parameters": [
           {
@@ -2762,33 +4007,52 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "outcome": {
+                  "type": "string",
+                  "example": "won"
+                }
+              },
+              "required": [
+                "outcome"
+              ]
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-quote"
-        ]
+        }
       }
     },
     "/api/v1/event-quote/received": {
       "get": {
+        "tags": [
+          "Event-quote"
+        ],
+        "summary": "Get quotes received for my event requests",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-quote"
-        ]
+        }
       }
     },
     "/api/v1/event-quote/received/{id}": {
       "get": {
+        "tags": [
+          "Event-quote"
+        ],
+        "summary": "Get received quote details",
         "description": "",
         "parameters": [
           {
@@ -2804,14 +4068,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-quote"
-        ]
+        }
       }
     },
     "/api/v1/event-quote/{id}/status": {
       "patch": {
+        "tags": [
+          "Event-quote"
+        ],
+        "summary": "Accept or decline received quote",
         "description": "",
         "parameters": [
           {
@@ -2821,20 +4086,38 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "accepted"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-quote"
-        ]
+        }
       }
     },
     "/api/v1/event-quote/{id}/decline": {
       "patch": {
+        "tags": [
+          "Event-quote"
+        ],
+        "summary": "Decline vendor quote",
         "description": "",
         "parameters": [
           {
@@ -2850,53 +4133,123 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-quote"
-        ]
+        }
       }
     },
     "/api/v1/event-quote/counter": {
       "post": {
+        "tags": [
+          "Event-quote"
+        ],
+        "summary": "Send counter offer on quote",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "quoteId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "counterPrice": {
+                  "type": "number",
+                  "example": 4200
+                },
+                "note": {
+                  "type": "string",
+                  "example": "Can we agree on $4200 including transportation?"
+                }
+              },
+              "required": [
+                "quoteId",
+                "counterPrice"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Event-quote"
-        ]
+        }
       }
     },
     "/api/v1/vendor-quote/": {
       "post": {
+        "tags": [
+          "Vendor-quote"
+        ],
+        "summary": "Request quote directly from vendor",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "vendorId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "serviceId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ac"
+                },
+                "eventDate": {
+                  "type": "string",
+                  "example": "2026-11-15"
+                },
+                "budget": {
+                  "type": "number",
+                  "example": 3500
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Requesting quote for corporate anniversary event"
+                }
+              },
+              "required": [
+                "vendorId",
+                "serviceId",
+                "eventDate",
+                "budget"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-quote"
-        ]
+        }
       }
     },
     "/api/v1/vendor-quote/my-quotes": {
       "get": {
+        "tags": [
+          "Vendor-quote"
+        ],
+        "summary": "Get my sent quotes (User)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-quote"
-        ]
+        }
       }
     },
     "/api/v1/vendor-quote/{quoteId}/accept": {
       "patch": {
+        "tags": [
+          "Vendor-quote"
+        ],
+        "summary": "Accept vendor quote (User)",
         "description": "",
         "parameters": [
           {
@@ -2912,14 +4265,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-quote"
-        ]
+        }
       }
     },
     "/api/v1/vendor-quote/{quoteId}/decline": {
       "patch": {
+        "tags": [
+          "Vendor-quote"
+        ],
+        "summary": "Decline vendor quote (User)",
         "description": "",
         "parameters": [
           {
@@ -2935,14 +4289,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-quote"
-        ]
+        }
       }
     },
     "/api/v1/vendor-quote/{quoteId}/counter": {
       "patch": {
+        "tags": [
+          "Vendor-quote"
+        ],
+        "summary": "Send counter offer (User)",
         "description": "",
         "parameters": [
           {
@@ -2951,6 +4306,27 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "counterAmount": {
+                  "type": "number",
+                  "example": 3200
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Can you match $3200?"
+                }
+              },
+              "required": [
+                "counterAmount"
+              ]
             }
           }
         ],
@@ -2978,27 +4354,29 @@
               }
             }
           }
-        },
-        "tags": [
-          "Vendor-quote"
-        ]
+        }
       }
     },
     "/api/v1/vendor-quote/vendor-quotes": {
       "get": {
+        "tags": [
+          "Vendor-quote"
+        ],
+        "summary": "Get quotes received by vendor",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-quote"
-        ]
+        }
       }
     },
     "/api/v1/vendor-quote/{quoteId}/vendor-counter": {
       "patch": {
+        "tags": [
+          "Vendor-quote"
+        ],
+        "summary": "Send counter offer (Vendor)",
         "description": "",
         "parameters": [
           {
@@ -3007,6 +4385,27 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "counterAmount": {
+                  "type": "number",
+                  "example": 3400
+                },
+                "message": {
+                  "type": "string",
+                  "example": "Lowest price I can offer is $3400"
+                }
+              },
+              "required": [
+                "counterAmount"
+              ]
             }
           }
         ],
@@ -3034,14 +4433,15 @@
               }
             }
           }
-        },
-        "tags": [
-          "Vendor-quote"
-        ]
+        }
       }
     },
     "/api/v1/vendor-quote/{quoteId}/win": {
       "patch": {
+        "tags": [
+          "Vendor-quote"
+        ],
+        "summary": "Mark quote as won (Vendor)",
         "description": "",
         "parameters": [
           {
@@ -3057,14 +4457,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-quote"
-        ]
+        }
       }
     },
     "/api/v1/vendor-quote/{quoteId}/lose": {
       "patch": {
+        "tags": [
+          "Vendor-quote"
+        ],
+        "summary": "Mark quote as lost (Vendor)",
         "description": "",
         "parameters": [
           {
@@ -3080,14 +4481,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-quote"
-        ]
+        }
       }
     },
     "/api/v1/vendor-quote/{quoteId}": {
       "get": {
+        "tags": [
+          "Vendor-quote"
+        ],
+        "summary": "Get single quote details",
         "description": "",
         "parameters": [
           {
@@ -3103,40 +4505,43 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Vendor-quote"
-        ]
+        }
       }
     },
     "/api/v1/inspiration/public": {
       "get": {
+        "tags": [
+          "Inspiration"
+        ],
+        "summary": "Get all public inspiration posts",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Inspiration"
-        ]
+        }
       }
     },
     "/api/v1/inspiration/admin": {
       "get": {
+        "tags": [
+          "Inspiration"
+        ],
+        "summary": "Get all inspirations (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Inspiration"
-        ]
+        }
       }
     },
     "/api/v1/inspiration/admin/{id}": {
       "get": {
+        "tags": [
+          "Inspiration"
+        ],
+        "summary": "Get single inspiration post",
         "description": "",
         "parameters": [
           {
@@ -3152,14 +4557,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Inspiration"
-        ]
+        }
       }
     },
     "/api/v1/inspiration/": {
       "post": {
+        "tags": [
+          "Inspiration"
+        ],
+        "summary": "Create inspiration post (Admin)",
         "description": "",
         "responses": {
           "default": {
@@ -3179,14 +4585,15 @@
               }
             }
           }
-        },
-        "tags": [
-          "Inspiration"
-        ]
+        }
       }
     },
     "/api/v1/inspiration/{id}": {
       "patch": {
+        "tags": [
+          "Inspiration"
+        ],
+        "summary": "Update inspiration post (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3216,12 +4623,13 @@
               }
             }
           }
-        },
-        "tags": [
-          "Inspiration"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Inspiration"
+        ],
+        "summary": "Delete inspiration post (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3237,26 +4645,68 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Inspiration"
-        ]
+        }
       }
     },
     "/api/v1/blog/": {
       "get": {
+        "tags": [
+          "Blog"
+        ],
+        "summary": "Get all blog posts",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Blog"
-        ]
+        }
       },
       "post": {
+        "tags": [
+          "Blog"
+        ],
+        "summary": "Create new blog post (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "example": "Top 10 Event Decoration Trends for 2026"
+                },
+                "content": {
+                  "type": "string",
+                  "example": "Detailed blog content markdown or html..."
+                },
+                "categoryId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "tags": {
+                  "type": "array",
+                  "example": [
+                    "event",
+                    "decor",
+                    "wedding"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "title",
+                "content",
+                "categoryId"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -3275,14 +4725,15 @@
               }
             }
           }
-        },
-        "tags": [
-          "Blog"
-        ]
+        }
       }
     },
     "/api/v1/blog/slug/{slug}": {
       "get": {
+        "tags": [
+          "Blog"
+        ],
+        "summary": "Get single blog post by slug",
         "description": "",
         "parameters": [
           {
@@ -3298,14 +4749,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Blog"
-        ]
+        }
       }
     },
     "/api/v1/blog/{id}": {
       "get": {
+        "tags": [
+          "Blog"
+        ],
+        "summary": "Get single blog post by ID",
         "description": "",
         "parameters": [
           {
@@ -3321,12 +4773,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Blog"
-        ]
+        }
       },
       "patch": {
+        "tags": [
+          "Blog"
+        ],
+        "summary": "Update blog post (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3335,6 +4788,23 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "example": "Updated Blog Title"
+                },
+                "content": {
+                  "type": "string",
+                  "example": "Updated content..."
+                }
+              }
             }
           }
         ],
@@ -3356,12 +4826,13 @@
               }
             }
           }
-        },
-        "tags": [
-          "Blog"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Blog"
+        ],
+        "summary": "Delete blog post (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3377,51 +4848,74 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Blog"
-        ]
+        }
       }
     },
     "/api/v1/blog-category/": {
       "get": {
+        "tags": [
+          "Blog-category"
+        ],
+        "summary": "Get all blog categories",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Blog-category"
-        ]
+        }
       },
       "post": {
+        "tags": [
+          "Blog-category"
+        ],
+        "summary": "Create blog category",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Event Planning"
+                }
+              },
+              "required": [
+                "name"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Blog-category"
-        ]
+        }
       }
     },
     "/api/v1/blog-category/admin": {
       "get": {
+        "tags": [
+          "Blog-category"
+        ],
+        "summary": "Get blog categories (Admin view)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Blog-category"
-        ]
+        }
       }
     },
     "/api/v1/blog-category/{id}": {
       "patch": {
+        "tags": [
+          "Blog-category"
+        ],
+        "summary": "Update blog category",
         "description": "",
         "parameters": [
           {
@@ -3431,18 +4925,32 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Updated Category Name"
+                }
+              }
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Blog-category"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Blog-category"
+        ],
+        "summary": "Delete blog category",
         "description": "",
         "parameters": [
           {
@@ -3458,40 +4966,43 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Blog-category"
-        ]
+        }
       }
     },
     "/api/v1/banner/active": {
       "get": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Get active promotional banners",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/available-slots": {
       "get": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Get available banner slots and pricing",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/{id}/impression": {
       "patch": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Track banner impression",
         "description": "",
         "parameters": [
           {
@@ -3514,14 +5025,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/{id}/click": {
       "patch": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Track banner click",
         "description": "",
         "parameters": [
           {
@@ -3544,15 +5056,49 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/book": {
       "post": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Book a banner slot (Vendor)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "slotId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "startDate": {
+                  "type": "string",
+                  "example": "2026-09-01"
+                },
+                "endDate": {
+                  "type": "string",
+                  "example": "2026-09-30"
+                },
+                "redirectUrl": {
+                  "type": "string",
+                  "example": "https://example.com"
+                }
+              },
+              "required": [
+                "slotId",
+                "startDate",
+                "endDate"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -3571,27 +5117,29 @@
               }
             }
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/my-banners": {
       "get": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Get vendor booked banners",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/my-banners/{id}": {
       "delete": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Delete vendor banner",
         "description": "",
         "parameters": [
           {
@@ -3607,38 +5155,70 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/slots": {
       "get": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Get all banner slots",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       },
       "post": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Create new banner slot (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Homepage Hero Top"
+                },
+                "price": {
+                  "type": "number",
+                  "example": 50
+                },
+                "durationDays": {
+                  "type": "number",
+                  "example": 30
+                }
+              },
+              "required": [
+                "name",
+                "price",
+                "durationDays"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/slots/{id}": {
       "get": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Get single banner slot details",
         "description": "",
         "parameters": [
           {
@@ -3654,12 +5234,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       },
       "patch": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Update banner slot (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3675,12 +5256,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Delete banner slot (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3696,27 +5278,29 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/admin": {
       "get": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Get all banners (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/admin/{id}/status": {
       "patch": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Approve or reject banner booking (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3725,6 +5309,23 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "approved"
+                }
+              },
+              "required": [
+                "status"
+              ]
             }
           }
         ],
@@ -3746,14 +5347,15 @@
               }
             }
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/admin/{id}/toggle-active": {
       "patch": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Toggle banner active status (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3769,14 +5371,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/admin/{id}": {
       "delete": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Soft delete banner (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3792,103 +5395,168 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/banner/expire-cron": {
       "post": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Run banner expiry cron job manually",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Banner"
-        ]
+        }
       }
     },
     "/api/v1/promotion/active": {
       "get": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Get active promoted listings",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/plans": {
       "get": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Get all promotion plans and pricing",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       },
       "post": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Create new promotion plan (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Featured Vendor Monthly"
+                },
+                "type": {
+                  "type": "string",
+                  "example": "featured"
+                },
+                "price": {
+                  "type": "number",
+                  "example": 99
+                },
+                "durationDays": {
+                  "type": "number",
+                  "example": 30
+                }
+              },
+              "required": [
+                "name",
+                "type",
+                "price",
+                "durationDays"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/purchase": {
       "post": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Purchase promotion plan (Vendor)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "planId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "serviceId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ac"
+                }
+              },
+              "required": [
+                "planId"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/purchase-verified": {
       "post": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Purchase verified badge promotion (Vendor)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/my-promotions": {
       "get": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Get vendor purchased promotions",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/my-promotions/{id}": {
       "delete": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Cancel vendor promotion",
         "description": "",
         "parameters": [
           {
@@ -3904,27 +5572,29 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/plans/admin": {
       "get": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Get promotion plans (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/plans/admin/{id}": {
       "get": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Get single promotion plan (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3940,14 +5610,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/plans/{id}": {
       "patch": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Update promotion plan (Admin)",
         "description": "",
         "parameters": [
           {
@@ -3963,12 +5634,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Delete promotion plan",
         "description": "",
         "parameters": [
           {
@@ -3984,14 +5656,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/plans/{id}/toggle-active": {
       "patch": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Toggle promotion plan active status",
         "description": "",
         "parameters": [
           {
@@ -4007,27 +5680,29 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/admin": {
       "get": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Get vendor purchased promotions list (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/admin/{id}/payment-status": {
       "patch": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Update promotion payment status (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4037,20 +5712,38 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "paymentStatus": {
+                  "type": "string",
+                  "example": "paid"
+                }
+              },
+              "required": [
+                "paymentStatus"
+              ]
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/admin/{id}/toggle-active": {
       "patch": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Toggle vendor promotion status (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4066,66 +5759,100 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/promotion/expire-cron": {
       "post": {
+        "tags": [
+          "Promotion"
+        ],
+        "summary": "Run promotion expiry cron manually",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Promotion"
-        ]
+        }
       }
     },
     "/api/v1/verification/": {
       "post": {
-        "description": "",
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Submit verification request",
+        "description": "Submit vendor business verification details and documents.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "businessType": {
+                  "type": "string",
+                  "example": "llc"
+                },
+                "taxId": {
+                  "type": "string",
+                  "example": "123456789"
+                },
+                "idDocumentType": {
+                  "type": "string",
+                  "example": "nid"
+                }
+              },
+              "required": [
+                "businessType",
+                "taxId",
+                "idDocumentType"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Verification"
-        ]
+        }
       }
     },
     "/api/v1/verification/my-verification": {
       "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Get my verification status",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Verification"
-        ]
+        }
       }
     },
     "/api/v1/verification/admin": {
       "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Get all verification requests (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Verification"
-        ]
+        }
       }
     },
     "/api/v1/verification/admin/{id}": {
       "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Get single verification request (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4141,14 +5868,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Verification"
-        ]
+        }
       }
     },
     "/api/v1/verification/admin/{id}/status": {
       "patch": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Update verification status (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4158,34 +5886,99 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "approved"
+                },
+                "adminNote": {
+                  "type": "string",
+                  "example": "Documents verified successfully"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Verification"
-        ]
+        }
       }
     },
     "/api/v1/newsletter/subscribe": {
       "post": {
+        "tags": [
+          "Newsletter"
+        ],
+        "summary": "Subscribe to email newsletter",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "subscriber@example.com"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "John"
+                }
+              },
+              "required": [
+                "email"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Newsletter"
-        ]
+        }
       }
     },
     "/api/v1/newsletter/unsubscribe": {
       "post": {
+        "tags": [
+          "Newsletter"
+        ],
+        "summary": "Unsubscribe from newsletter",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "subscriber@example.com"
+                }
+              },
+              "required": [
+                "email"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -4204,51 +5997,78 @@
               }
             }
           }
-        },
-        "tags": [
-          "Newsletter"
-        ]
+        }
       }
     },
     "/api/v1/newsletter/admin/stats": {
       "get": {
+        "tags": [
+          "Newsletter"
+        ],
+        "summary": "Get newsletter subscriber analytics (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Newsletter"
-        ]
+        }
       }
     },
     "/api/v1/newsletter/admin": {
       "get": {
+        "tags": [
+          "Newsletter"
+        ],
+        "summary": "Get all newsletter subscribers (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Newsletter"
-        ]
+        }
       },
       "post": {
+        "tags": [
+          "Newsletter"
+        ],
+        "summary": "Add subscriber manually (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "email": {
+                  "type": "string",
+                  "example": "newsubscriber@example.com"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "Jane Doe"
+                }
+              },
+              "required": [
+                "email"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Newsletter"
-        ]
+        }
       }
     },
     "/api/v1/newsletter/admin/{id}": {
       "get": {
+        "tags": [
+          "Newsletter"
+        ],
+        "summary": "Get single subscriber (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4264,12 +6084,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Newsletter"
-        ]
+        }
       },
       "patch": {
+        "tags": [
+          "Newsletter"
+        ],
+        "summary": "Update subscriber details (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4285,12 +6106,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Newsletter"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Newsletter"
+        ],
+        "summary": "Delete subscriber (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4306,15 +6128,47 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Newsletter"
-        ]
+        }
       }
     },
     "/api/v1/newsletter/admin/bulk-import": {
       "post": {
+        "tags": [
+          "Newsletter"
+        ],
+        "summary": "Bulk import subscribers (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "subscribers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                        "example": "sub2@example.com"
+                      },
+                      "name": {
+                        "type": "string",
+                        "example": "User 2"
+                      }
+                    }
+                  }
+                }
+              },
+              "required": [
+                "subscribers"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -4333,14 +6187,15 @@
               }
             }
           }
-        },
-        "tags": [
-          "Newsletter"
-        ]
+        }
       }
     },
     "/api/v1/newsletter/admin/{id}/status": {
       "patch": {
+        "tags": [
+          "Newsletter"
+        ],
+        "summary": "Update subscriber status (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4349,6 +6204,23 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "unsubscribed"
+                }
+              },
+              "required": [
+                "status"
+              ]
             }
           }
         ],
@@ -4370,40 +6242,43 @@
               }
             }
           }
-        },
-        "tags": [
-          "Newsletter"
-        ]
+        }
       }
     },
     "/api/v1/advisor/services/active": {
       "get": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Get active event advisor services",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/services/admin": {
       "get": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Get all advisor services (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/services/admin/{id}": {
       "get": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Get single advisor service (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4419,27 +6294,58 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/services": {
       "post": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Create advisor service (Admin)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "example": "1-on-1 Wedding Planning Consultation"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Expert advice on vendor selection and budgeting"
+                },
+                "price": {
+                  "type": "number",
+                  "example": 150
+                }
+              },
+              "required": [
+                "title",
+                "description",
+                "price"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/services/{id}": {
       "patch": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Update advisor service (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4455,12 +6361,13 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       },
       "delete": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Delete advisor service (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4476,27 +6383,29 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/reviews/admin": {
       "get": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Get all advisor reviews (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/reviews/admin/{reviewId}": {
       "delete": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Delete advisor review (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4512,40 +6421,76 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/bookings": {
       "post": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Book an advisor service (User)",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "advisorServiceId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "bookingDate": {
+                  "type": "string",
+                  "example": "2026-10-01"
+                },
+                "timeSlot": {
+                  "type": "string",
+                  "example": "14:00-15:00"
+                },
+                "note": {
+                  "type": "string",
+                  "example": "Interested in budget allocation strategies"
+                }
+              },
+              "required": [
+                "advisorServiceId",
+                "bookingDate",
+                "timeSlot"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/bookings/my": {
       "get": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Get my advisor bookings (User)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/bookings/my/{id}": {
       "get": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Get single advisor booking details",
         "description": "",
         "parameters": [
           {
@@ -4561,14 +6506,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/bookings/my/{id}/cancel": {
       "patch": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Cancel advisor booking",
         "description": "",
         "parameters": [
           {
@@ -4584,27 +6530,29 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/bookings/admin": {
       "get": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Get all advisor bookings (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/bookings/admin/{id}/assign": {
       "patch": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Assign associate to advisor booking (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4637,14 +6585,15 @@
               }
             }
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/bookings/admin/{id}/status": {
       "patch": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Update advisor booking status (Admin)",
         "description": "",
         "parameters": [
           {
@@ -4660,53 +6609,86 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/dashboard/stats": {
       "get": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Get advisor module dashboard stats",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/export": {
       "get": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Export all advisor data",
         "description": "",
         "responses": {
           "200": {
             "description": "OK"
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/reviews": {
       "post": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Create advisor service review",
         "description": "",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "advisorServiceId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "rating": {
+                  "type": "number",
+                  "example": 5
+                },
+                "comment": {
+                  "type": "string",
+                  "example": "Incredible advice, helped save 20% on venue costs!"
+                }
+              },
+              "required": [
+                "advisorServiceId",
+                "rating",
+                "comment"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/reviews/{advisorServiceId}": {
       "get": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Get reviews for advisor service",
         "description": "",
         "parameters": [
           {
@@ -4722,14 +6704,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/advisor/reviews/{reviewId}": {
       "delete": {
+        "tags": [
+          "Advisor"
+        ],
+        "summary": "Delete advisor review",
         "description": "",
         "parameters": [
           {
@@ -4745,10 +6728,7 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Advisor"
-        ]
+        }
       }
     },
     "/api/v1/dashboard/vendor": {
@@ -4870,19 +6850,24 @@
     },
     "/api/v1/chat/conversations": {
       "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Get all user chat conversations",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Chat"
-        ]
+        }
       }
     },
     "/api/v1/chat/messages/{conversationId}": {
       "get": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Get messages in a conversation",
         "description": "",
         "parameters": [
           {
@@ -4898,14 +6883,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Chat"
-        ]
+        }
       }
     },
     "/api/v1/chat/messages/read/{conversationId}": {
       "patch": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Mark conversation messages as read",
         "description": "",
         "parameters": [
           {
@@ -4921,28 +6907,63 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Chat"
-        ]
+        }
       }
     },
     "/api/v1/chat/upload": {
       "post": {
+        "tags": [
+          "Chat"
+        ],
+        "summary": "Upload chat attachment images",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Chat"
-        ]
+        }
       }
     },
     "/api/v1/dispute/": {
       "post": {
-        "description": "",
+        "tags": [
+          "Dispute"
+        ],
+        "summary": "Create new dispute ticket",
+        "description": "Submit a dispute ticket against a quote/service with optional evidence attachments.",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "respondentId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ab"
+                },
+                "quoteId": {
+                  "type": "string",
+                  "example": "60d5ecb8b5c9c123456789ac"
+                },
+                "reason": {
+                  "type": "string",
+                  "example": "Service quality did not match agreed quote deliverables"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Detailed explanation of the dispute issue..."
+                }
+              },
+              "required": [
+                "respondentId",
+                "reason",
+                "description"
+              ]
+            }
+          }
+        ],
         "responses": {
           "default": {
             "description": ""
@@ -4961,38 +6982,41 @@
               }
             }
           }
-        },
-        "tags": [
-          "Dispute"
-        ]
+        }
       },
       "get": {
+        "tags": [
+          "Dispute"
+        ],
+        "summary": "Get all disputes (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Dispute"
-        ]
+        }
       }
     },
     "/api/v1/dispute/my-disputes": {
       "get": {
+        "tags": [
+          "Dispute"
+        ],
+        "summary": "Get my disputes",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Dispute"
-        ]
+        }
       }
     },
     "/api/v1/dispute/{id}": {
       "get": {
+        "tags": [
+          "Dispute"
+        ],
+        "summary": "Get single dispute details (Admin)",
         "description": "",
         "parameters": [
           {
@@ -5008,14 +7032,15 @@
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Dispute"
-        ]
+        }
       }
     },
     "/api/v1/dispute/{id}/status": {
       "patch": {
+        "tags": [
+          "Dispute"
+        ],
+        "summary": "Update dispute status / priority (Admin)",
         "description": "",
         "parameters": [
           {
@@ -5025,20 +7050,42 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "example": "resolved"
+                },
+                "priority": {
+                  "type": "string",
+                  "example": "high"
+                }
+              },
+              "required": [
+                "status"
+              ]
+            }
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Dispute"
-        ]
+        }
       }
     },
     "/api/v1/dispute/{id}/notes": {
       "post": {
+        "tags": [
+          "Dispute"
+        ],
+        "summary": "Add admin internal note to dispute (Admin)",
         "description": "",
         "parameters": [
           {
@@ -5047,6 +7094,23 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "note": {
+                  "type": "string",
+                  "example": "Investigated invoice details and contacted both parties."
+                }
+              },
+              "required": [
+                "note"
+              ]
             }
           }
         ],
@@ -5068,14 +7132,15 @@
               }
             }
           }
-        },
-        "tags": [
-          "Dispute"
-        ]
+        }
       }
     },
     "/api/v1/dispute/{id}/export": {
       "get": {
+        "tags": [
+          "Dispute"
+        ],
+        "summary": "Export dispute report PDF/JSON (Admin)",
         "description": "",
         "parameters": [
           {
@@ -5091,36 +7156,35 @@
           "200": {
             "description": "OK"
           }
-        },
-        "tags": [
-          "Dispute"
-        ]
+        }
       }
     },
     "/api/v1/reports/": {
       "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Get system reports (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Reports"
-        ]
+        }
       }
     },
     "/api/v1/reports/export-pdf": {
       "get": {
+        "tags": [
+          "Reports"
+        ],
+        "summary": "Export system reports PDF (Admin)",
         "description": "",
         "responses": {
           "default": {
             "description": ""
           }
-        },
-        "tags": [
-          "Reports"
-        ]
+        }
       }
     }
   },

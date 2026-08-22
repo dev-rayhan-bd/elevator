@@ -13,9 +13,27 @@ const uploadDocs = upload.array('documents', 10) as unknown as RequestHandler;
 //  VENDOR ROUTES
 // ══════════════════════════════════════════════
 
+// ══════════════════════════════════════════════
+//  VENDOR ROUTES
+// ══════════════════════════════════════════════
+
 // Submit verification request (multipart supported)
 router.post(
   '/',
+  /*
+    #swagger.tags = ['Verification']
+    #swagger.summary = 'Submit verification request'
+    #swagger.description = 'Submit vendor business verification details and documents.'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        $businessType: 'llc',
+        $taxId: '123456789',
+        $idDocumentType: 'nid'
+      }
+    }
+  */
   auth(USER_ROLE.vendor),
   uploadDocs,
   validateRequest(VerificationValidations.submitVerificationSchema),
@@ -25,6 +43,10 @@ router.post(
 // Get my verification status
 router.get(
   '/my-verification',
+  /*
+    #swagger.tags = ['Verification']
+    #swagger.summary = 'Get my verification status'
+  */
   auth(USER_ROLE.vendor),
   VerificationControllers.getMyVerification,
 );
@@ -36,6 +58,10 @@ router.get(
 // Get all verification requests
 router.get(
   '/admin',
+  /*
+    #swagger.tags = ['Verification']
+    #swagger.summary = 'Get all verification requests (Admin)'
+  */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   VerificationControllers.adminGetAllVerifications,
 );
@@ -43,6 +69,10 @@ router.get(
 // Get single verification request
 router.get(
   '/admin/:id',
+  /*
+    #swagger.tags = ['Verification']
+    #swagger.summary = 'Get single verification request (Admin)'
+  */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   VerificationControllers.getSingleVerification,
 );
@@ -50,6 +80,18 @@ router.get(
 // Approve / reject verification
 router.patch(
   '/admin/:id/status',
+  /*
+    #swagger.tags = ['Verification']
+    #swagger.summary = 'Update verification status (Admin)'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        $status: 'approved',
+        adminNote: 'Documents verified successfully'
+      }
+    }
+  */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   validateRequest(VerificationValidations.updateVerificationStatusSchema),
   VerificationControllers.adminUpdateVerificationStatus,

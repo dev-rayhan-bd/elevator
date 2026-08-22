@@ -14,6 +14,23 @@ const uploadImages = upload.array('referenceImages', 5) as unknown as RequestHan
 // Post a new event requirement
 router.post(
   '/',
+  /*
+    #swagger.tags = ['EventRequest']
+    #swagger.summary = 'Create new event request'
+    #swagger.description = 'Submit an event requirement post for vendors to submit quotes.'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        $eventTypeId: '60d5ecb8b5c9c123456789ab',
+        $eventDate: '2026-12-25',
+        $location: 'New York, NY',
+        $budget: 5000,
+        guestCount: 150,
+        description: 'Wedding reception planning and decoration'
+      }
+    }
+  */
   auth(USER_ROLE.user),
   uploadImages,
   EventRequestControllers.createEventRequest,
@@ -22,6 +39,10 @@ router.post(
 // Get my own event requests
 router.get(
   '/my-requests',
+  /*
+    #swagger.tags = ['EventRequest']
+    #swagger.summary = 'Get my event requests'
+  */
   auth(USER_ROLE.user),
   EventRequestControllers.getMyEventRequests,
 );
@@ -29,6 +50,10 @@ router.get(
 // Get single event request detail (own only)
 router.get(
   '/my-requests/:id',
+  /*
+    #swagger.tags = ['EventRequest']
+    #swagger.summary = 'Get single event request details'
+  */
   auth(USER_ROLE.user),
   EventRequestControllers.getSingleEventRequest,
 );
@@ -36,6 +61,17 @@ router.get(
 // Update event request status (close/cancel)
 router.patch(
   '/my-requests/:id/status',
+  /*
+    #swagger.tags = ['EventRequest']
+    #swagger.summary = 'Update event request status'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        $status: 'closed'
+      }
+    }
+  */
   auth(USER_ROLE.user),
   EventRequestControllers.updateEventRequestStatus,
 );
@@ -43,6 +79,10 @@ router.patch(
 // Cancel an event request (dedicated endpoint)
 router.patch(
   '/my-requests/:id/cancel',
+  /*
+    #swagger.tags = ['EventRequest']
+    #swagger.summary = 'Cancel event request'
+  */
   auth(USER_ROLE.user),
   EventRequestControllers.cancelEventRequest,
 );
@@ -52,6 +92,10 @@ router.patch(
 // Get all active event requests (for bidding - All Posts)
 router.get(
   '/all',
+  /*
+    #swagger.tags = ['EventRequest']
+    #swagger.summary = 'Get active event requests (Vendor marketplace)'
+  */
   auth(USER_ROLE.vendor),
   EventRequestControllers.getAllActiveEventRequests,
 );
@@ -59,6 +103,10 @@ router.get(
 // Get single event request detail for vendor (before sending quote)
 router.get(
   '/vendor/:id',
+  /*
+    #swagger.tags = ['EventRequest']
+    #swagger.summary = 'Get event request details for vendor'
+  */
   auth(USER_ROLE.vendor),
   EventRequestControllers.getEventRequestDetailForVendor,
 );

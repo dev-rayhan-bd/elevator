@@ -13,22 +13,59 @@ const router = express.Router();
 
 router.post(
   '/create-faq',
-
+  /*
+    #swagger.tags = ['FAQ']
+    #swagger.summary = 'Create FAQ entry (Admin)'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        $question: 'How do I book a vendor service?',
+        $answer: 'You can search for vendors, select a service package, and click Request Quote.'
+      }
+    }
+  */
   auth(USER_ROLE.superAdmin,USER_ROLE.admin),
-//   validateRequest(EventCreateSchema),
   FaqControllers.createFAQ,
 );
 
-// router.get('/retrive/:userId',UserControllers.getSingleUser)
+router.get('/allFaq',
+  /*
+    #swagger.tags = ['FAQ']
+    #swagger.summary = 'Get all FAQs'
+  */
+  FaqControllers.getAllFaq
+);
 
-router.get('/allFaq', FaqControllers.getAllFaq);
+router.get('/single-faq/:id',
+  /*
+    #swagger.tags = ['FAQ']
+    #swagger.summary = 'Get single FAQ entry'
+  */
+  FaqControllers.getSingleFAQ
+);
 
-router.get('/single-faq/:id',FaqControllers.getSingleFAQ);
+router.delete('/delete-faq/:id',
+  /*
+    #swagger.tags = ['FAQ']
+    #swagger.summary = 'Delete FAQ entry'
+  */
+  FaqControllers.deleteFaq
+);
 
-
-router.delete('/delete-faq/:id',FaqControllers.deleteFaq);
 router.patch('/update-faq/:id',
-  
-    FaqControllers.editFaq);
+  /*
+    #swagger.tags = ['FAQ']
+    #swagger.summary = 'Update FAQ entry'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      schema: {
+        question: 'Updated Question?',
+        answer: 'Updated Answer.'
+      }
+    }
+  */
+  FaqControllers.editFaq
+);
 
 export const FaqRoutes = router;
