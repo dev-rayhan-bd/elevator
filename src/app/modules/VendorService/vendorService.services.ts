@@ -148,10 +148,30 @@ const getPublicVendorServicesFromDB = async (
       : String(amenities).split(',').map((id: string) => new Types.ObjectId(id.trim()));
     $match.amenities = { $all: amIds };
   }
-  if (minPrice || maxPrice) {
+  if (minPrice !== undefined || maxPrice !== undefined) {
     $match.price = {};
-    if (minPrice) $match.price.$gte = Number(minPrice);
-    if (maxPrice) $match.price.$lte = Number(maxPrice);
+    if (minPrice !== undefined && minPrice !== '' && !isNaN(Number(minPrice))) {
+      $match.price.$gte = Number(minPrice);
+    }
+
+    if (maxPrice !== undefined && maxPrice !== '') {
+      const maxPriceStr = String(maxPrice);
+      const isPlus = maxPriceStr.includes('+') || maxPriceStr.toLowerCase().includes('plus');
+      const parsedMax = Number(maxPriceStr.replace(/[^0-9.]/g, ''));
+
+      // If maxPrice is 1M+ or >= 1000000, treat as "1 Million & Above" (no upper $lte limit)
+      if (isPlus || (!isNaN(parsedMax) && parsedMax >= 1000000)) {
+        if ($match.price.$gte === undefined) {
+          $match.price.$gte = 1000000;
+        }
+      } else if (!isNaN(parsedMax) && parsedMax > 0) {
+        $match.price.$lte = parsedMax;
+      }
+    }
+
+    if (Object.keys($match.price).length === 0) {
+      delete $match.price;
+    }
   }
   if (guestCapacity) {
     $match.guestCapacity = { $gte: Number(guestCapacity) };
@@ -240,7 +260,7 @@ const getPublicVendorServicesFromDB = async (
     pipeline.push({ $match: { 'vendor.vendor.isVerifiedBadge': true } });
   }
 
-  // ── 3d. Geo-spatial proximity filter (haversine in $addFields + $match) ──
+  // ── 3d. Geo-spatial proximity filter (haversine in $addFields + optional $match) ──
   const rawLat = queryLat ?? (query as any).lat;
   const rawLng = queryLng ?? (query as any).lng ?? (query as any).long;
   const userLat = Number(rawLat);
@@ -252,8 +272,8 @@ const getPublicVendorServicesFromDB = async (
     rawLng !== '' &&
     !isNaN(userLat) &&
     !isNaN(userLng);
-  const distKm = maxDistance ? Number(maxDistance) : hasValidLatLng ? 5 : 0;
-  const hasGeoFilter = hasValidLatLng && distKm > 0;
+  const maxDistKm = maxDistance ? Number(maxDistance) : null;
+  const hasGeoFilter = hasValidLatLng;
 
   if (hasGeoFilter) {
     // Earth radius in km
@@ -300,7 +320,11 @@ const getPublicVendorServicesFromDB = async (
         },
       },
     });
-    pipeline.push({ $match: { distanceKm: { $lte: distKm } } });
+
+    // Only apply radius cutoff if maxDistance is explicitly passed by client
+    if (maxDistKm !== null && !isNaN(maxDistKm) && maxDistKm > 0) {
+      pipeline.push({ $match: { distanceKm: { $lte: maxDistKm } } });
+    }
   }
 
   // ── 3e. isFav filter (pre-filter before $facet) ──
@@ -429,7 +453,11 @@ const getPublicVendorServicesFromDB = async (
   const effectiveSortPrice =
     sortByPrice || (sortBy === 'price' ? sortOrder : null);
 
-  if (effectiveSortPrice === 'asc' || effectiveSortPrice === 'desc') {
+  if (sortBy === 'distance' || sortBy === 'nearest' || (hasGeoFilter && !effectiveSortPrice && sortBy !== 'rating')) {
+    sortStage.distanceKm = 1;
+    sortStage.isSponsored = -1;
+    sortStage.createdAt = -1;
+  } else if (effectiveSortPrice === 'asc' || effectiveSortPrice === 'desc') {
     sortStage.isSponsored = -1;
     sortStage.price = effectiveSortPrice === 'asc' ? 1 : -1;
     sortStage.createdAt = -1;
