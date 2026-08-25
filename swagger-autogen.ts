@@ -9,14 +9,14 @@ const doc = {
   },
   servers: [
     {
-      url: 'http://localhost:5013',
-      description: 'Local server'
+      url: 'https://api.weplan.com.pk/api/v1',
+      description: 'Development server'
     },
     {
-      url: 'http://3.226.133.13',
-      description: 'Development server'
+      url: 'http://localhost:5000/api/v1', 
+      description: 'Local server'
     }
-  ],
+  ], 
   components: {
     securitySchemes: {
       bearerAuth: {
