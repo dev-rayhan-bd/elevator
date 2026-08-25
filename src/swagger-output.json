@@ -8,7 +8,7 @@
   "servers": [
     {
       "url": "https://api.weplan.com.pk",
-      "description": "Development server"
+      "description": "Production server"
     },
     {
       "url": "http://localhost:5013",
@@ -37,60 +37,7 @@
         ],
         "summary": "Register User or Vendor",
         "description": "Register a new user or vendor account.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "description": "User registration details",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "firstName": {
-                  "type": "string",
-                  "example": "John"
-                },
-                "lastName": {
-                  "type": "string",
-                  "example": "Doe"
-                },
-                "email": {
-                  "type": "string",
-                  "example": "user@example.com"
-                },
-                "phone": {
-                  "type": "string",
-                  "example": "01700000000"
-                },
-                "password": {
-                  "type": "string",
-                  "example": "password123"
-                },
-                "acceptedTerms": {
-                  "type": "boolean",
-                  "example": true
-                },
-                "role": {
-                  "type": "string",
-                  "example": "user"
-                },
-                "fcmToken": {
-                  "type": "string",
-                  "example": "optional_token"
-                }
-              },
-              "required": [
-                "firstName",
-                "lastName",
-                "email",
-                "phone",
-                "password",
-                "acceptedTerms",
-                "role"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Auth created successfully"
@@ -119,25 +66,7 @@
         ],
         "summary": "Resend OTP",
         "description": "Endpoint to create resendOtp auth.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "identifier": {
-                  "type": "string",
-                  "example": "user@example.com"
-                }
-              },
-              "required": [
-                "identifier"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Auth created successfully"
@@ -166,38 +95,39 @@
         ],
         "summary": "User Login",
         "description": "Login using email or phone identifier along with password.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "description": "User login credentials",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "identifier": {
-                  "type": "string",
-                  "example": "user@example.com"
-                },
-                "password": {
-                  "type": "string",
-                  "example": "password123"
-                },
-                "fcmToken": {
-                  "type": "string",
-                  "example": "optional_token"
-                }
-              },
-              "required": [
-                "identifier",
-                "password"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Auth created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "User login credentials",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "password123"
+                  },
+                  "fcmToken": {
+                    "type": "string",
+                    "example": "optional_token"
+                  }
+                },
+                "required": [
+                  "identifier",
+                  "password"
+                ]
+              }
+            }
           }
         }
       }
@@ -209,38 +139,39 @@
         ],
         "summary": "Admin Login",
         "description": "Login for admin and superAdmin.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "description": "Admin login credentials",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "identifier": {
-                  "type": "string",
-                  "example": "admin@example.com"
-                },
-                "password": {
-                  "type": "string",
-                  "example": "password123"
-                },
-                "fcmToken": {
-                  "type": "string",
-                  "example": "optional_token"
-                }
-              },
-              "required": [
-                "identifier",
-                "password"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Auth created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Admin login credentials",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "type": "string",
+                    "example": "admin@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "password123"
+                  },
+                  "fcmToken": {
+                    "type": "string",
+                    "example": "optional_token"
+                  }
+                },
+                "required": [
+                  "identifier",
+                  "password"
+                ]
+              }
+            }
           }
         }
       }
@@ -252,33 +183,34 @@
         ],
         "summary": "Change Password",
         "description": "Endpoint to create changePassword auth.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "oldPassword": {
-                  "type": "string",
-                  "example": "old_password_123"
-                },
-                "newPassword": {
-                  "type": "string",
-                  "example": "new_password_123"
-                }
-              },
-              "required": [
-                "oldPassword",
-                "newPassword"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Auth created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "oldPassword": {
+                    "type": "string",
+                    "example": "old_password_123"
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "example": "new_password_123"
+                  }
+                },
+                "required": [
+                  "oldPassword",
+                  "newPassword"
+                ]
+              }
+            }
           }
         }
       }
@@ -290,28 +222,29 @@
         ],
         "summary": "Refresh Token",
         "description": "Endpoint to create refresh token auth.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "refreshToken": {
-                  "type": "string",
-                  "example": "your_refresh_token_here"
-                }
-              },
-              "required": [
-                "refreshToken"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Auth created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string",
+                    "example": "your_refresh_token_here"
+                  }
+                },
+                "required": [
+                  "refreshToken"
+                ]
+              }
+            }
           }
         }
       }
@@ -323,25 +256,7 @@
         ],
         "summary": "Forgot Password",
         "description": "Endpoint to create forgotPass auth.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "phone": {
-                  "type": "string",
-                  "example": "01700000000"
-                }
-              },
-              "required": [
-                "phone"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Auth created successfully"
@@ -370,38 +285,39 @@
         ],
         "summary": "Reset Password",
         "description": "Endpoint to create resetPass auth.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "phone": {
-                  "type": "string",
-                  "example": "01700000000"
-                },
-                "otp": {
-                  "type": "string",
-                  "example": "123456"
-                },
-                "newPassword": {
-                  "type": "string",
-                  "example": "new_password_123"
-                }
-              },
-              "required": [
-                "phone",
-                "otp",
-                "newPassword"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Auth created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "example": "01700000000"
+                  },
+                  "otp": {
+                    "type": "string",
+                    "example": "123456"
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "example": "new_password_123"
+                  }
+                },
+                "required": [
+                  "phone",
+                  "otp",
+                  "newPassword"
+                ]
+              }
+            }
           }
         }
       }
@@ -413,30 +329,7 @@
         ],
         "summary": "Verify Registration OTP",
         "description": "Endpoint to create regOtpVerify auth.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "identifier": {
-                  "type": "string",
-                  "example": "user@example.com"
-                },
-                "otp": {
-                  "type": "string",
-                  "example": "123456"
-                }
-              },
-              "required": [
-                "identifier",
-                "otp"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Auth created successfully"
@@ -510,34 +403,7 @@
         ],
         "summary": "Update user profile",
         "description": "Update profile information for the authenticated user.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "description": "Profile update fields",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "firstName": {
-                  "type": "string",
-                  "example": "John"
-                },
-                "lastName": {
-                  "type": "string",
-                  "example": "Doe"
-                },
-                "phone": {
-                  "type": "string",
-                  "example": "01700000000"
-                },
-                "bio": {
-                  "type": "string",
-                  "example": "Event organizer bio"
-                }
-              }
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "User updated successfully"
@@ -566,30 +432,7 @@
         ],
         "summary": "Setup user profile",
         "description": "Initial profile setup after registration.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "description": "Profile setup payload",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "address": {
-                  "type": "string",
-                  "example": "123 Main St"
-                },
-                "city": {
-                  "type": "string",
-                  "example": "New York"
-                },
-                "state": {
-                  "type": "string",
-                  "example": "NY"
-                }
-              }
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "User updated successfully"
@@ -632,29 +475,31 @@
         ],
         "summary": "Request to become vendor",
         "description": "Submit request to upgrade user role to vendor.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "description": "Vendor application details",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "businessName": {
-                  "type": "string",
-                  "example": "Apex Event Decor"
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Professional event decoration company"
-                }
-              }
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "User created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "description": "Vendor application details",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "businessName": {
+                    "type": "string",
+                    "example": "Apex Event Decor"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Professional event decoration company"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -746,25 +591,7 @@
         ],
         "summary": "Create or update About Us page content",
         "description": "Endpoint to create create or update about.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "content": {
-                  "type": "string",
-                  "example": "About WeePlan event management platform..."
-                }
-              },
-              "required": [
-                "content"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "About created successfully"
@@ -807,25 +634,7 @@
         ],
         "summary": "Create or update Privacy Policy content",
         "description": "Endpoint to create create or update privacy.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "content": {
-                  "type": "string",
-                  "example": "Privacy policy terms and data processing policy..."
-                }
-              },
-              "required": [
-                "content"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Privacy created successfully"
@@ -1110,30 +919,7 @@
         ],
         "summary": "Create FAQ entry (Admin)",
         "description": "Endpoint to create create faq faq.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "question": {
-                  "type": "string",
-                  "example": "How do I book a vendor service?"
-                },
-                "answer": {
-                  "type": "string",
-                  "example": "You can search for vendors, select a service package, and click Request Quote."
-                }
-              },
-              "required": [
-                "question",
-                "answer"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Faq created successfully"
@@ -1235,23 +1021,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "question": {
-                  "type": "string",
-                  "example": "Updated Question?"
-                },
-                "answer": {
-                  "type": "string",
-                  "example": "Updated Answer."
-                }
-              }
-            }
           }
         ],
         "responses": {
@@ -1282,43 +1051,44 @@
         ],
         "summary": "Send contact message",
         "description": "Public contact us message submission.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Jane Smith"
-                },
-                "email": {
-                  "type": "string",
-                  "example": "jane@example.com"
-                },
-                "subject": {
-                  "type": "string",
-                  "example": "Inquiry about vendor registration"
-                },
-                "message": {
-                  "type": "string",
-                  "example": "Hello, I have a question regarding listing my venue service."
-                }
-              },
-              "required": [
-                "name",
-                "email",
-                "subject",
-                "message"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Contact created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Jane Smith"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "jane@example.com"
+                  },
+                  "subject": {
+                    "type": "string",
+                    "example": "Inquiry about vendor registration"
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Hello, I have a question regarding listing my venue service."
+                  }
+                },
+                "required": [
+                  "name",
+                  "email",
+                  "subject",
+                  "message"
+                ]
+              }
+            }
           }
         }
       }
@@ -1397,23 +1167,6 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "replyMessage": {
-                  "type": "string",
-                  "example": "Thank you for reaching out. Here are the instructions..."
-                }
-              },
-              "required": [
-                "replyMessage"
-              ]
             }
           }
         ],
@@ -1497,34 +1250,7 @@
         ],
         "summary": "Broadcast notification to all users (Admin)",
         "description": "Endpoint to create admin broadcast notification.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string",
-                  "example": "System Maintenance Notice"
-                },
-                "message": {
-                  "type": "string",
-                  "example": "We will be performing scheduled maintenance tonight at 2 AM EST."
-                },
-                "targetRole": {
-                  "type": "string",
-                  "example": "all"
-                }
-              },
-              "required": [
-                "title",
-                "message"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Notification created successfully"
@@ -1567,38 +1293,39 @@
         ],
         "summary": "Create review for vendor service",
         "description": "Endpoint to create reviews.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "serviceId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "rating": {
-                  "type": "number",
-                  "example": 5
-                },
-                "comment": {
-                  "type": "string",
-                  "example": "Exceptional service and beautiful stage decoration!"
-                }
-              },
-              "required": [
-                "serviceId",
-                "rating",
-                "comment"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Reviews created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "serviceId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ab"
+                  },
+                  "rating": {
+                    "type": "number",
+                    "example": 5
+                  },
+                  "comment": {
+                    "type": "string",
+                    "example": "Exceptional service and beautiful stage decoration!"
+                  }
+                },
+                "required": [
+                  "serviceId",
+                  "rating",
+                  "comment"
+                ]
+              }
+            }
           }
         }
       }
@@ -1658,33 +1385,34 @@
         ],
         "summary": "Admin Login",
         "description": "Endpoint to authenticate login admin.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "identifier": {
-                  "type": "string",
-                  "example": "admin@example.com"
-                },
-                "password": {
-                  "type": "string",
-                  "example": "password123"
-                }
-              },
-              "required": [
-                "identifier",
-                "password"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Admin created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "identifier": {
+                    "type": "string",
+                    "example": "admin@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "password123"
+                  }
+                },
+                "required": [
+                  "identifier",
+                  "password"
+                ]
+              }
+            }
           }
         }
       }
@@ -1696,28 +1424,29 @@
         ],
         "summary": "Forgot Password (Admin)",
         "description": "Endpoint to create forgot password admin.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "phone": {
-                  "type": "string",
-                  "example": "01700000000"
-                }
-              },
-              "required": [
-                "phone"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Admin created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "example": "01700000000"
+                  }
+                },
+                "required": [
+                  "phone"
+                ]
+              }
+            }
           }
         }
       }
@@ -1729,38 +1458,39 @@
         ],
         "summary": "Reset Password (Admin)",
         "description": "Endpoint to create reset password admin.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "phone": {
-                  "type": "string",
-                  "example": "01700000000"
-                },
-                "otp": {
-                  "type": "string",
-                  "example": "123456"
-                },
-                "newPassword": {
-                  "type": "string",
-                  "example": "new_password_123"
-                }
-              },
-              "required": [
-                "phone",
-                "otp",
-                "newPassword"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Admin created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "example": "01700000000"
+                  },
+                  "otp": {
+                    "type": "string",
+                    "example": "123456"
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "example": "new_password_123"
+                  }
+                },
+                "required": [
+                  "phone",
+                  "otp",
+                  "newPassword"
+                ]
+              }
+            }
           }
         }
       }
@@ -1800,33 +1530,34 @@
         ],
         "summary": "Change Password (Admin)",
         "description": "Endpoint to create change password admin.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "oldPassword": {
-                  "type": "string",
-                  "example": "old_password"
-                },
-                "newPassword": {
-                  "type": "string",
-                  "example": "new_password"
-                }
-              },
-              "required": [
-                "oldPassword",
-                "newPassword"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Admin created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "oldPassword": {
+                    "type": "string",
+                    "example": "old_password"
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "example": "new_password"
+                  }
+                },
+                "required": [
+                  "oldPassword",
+                  "newPassword"
+                ]
+              }
+            }
           }
         }
       }
@@ -1890,48 +1621,49 @@
         ],
         "summary": "Create new Admin (SuperAdmin only)",
         "description": "Endpoint to create create admin admin.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "firstName": {
-                  "type": "string",
-                  "example": "Admin"
-                },
-                "lastName": {
-                  "type": "string",
-                  "example": "User"
-                },
-                "email": {
-                  "type": "string",
-                  "example": "newadmin@example.com"
-                },
-                "phone": {
-                  "type": "string",
-                  "example": "01800000000"
-                },
-                "password": {
-                  "type": "string",
-                  "example": "password123"
-                }
-              },
-              "required": [
-                "firstName",
-                "lastName",
-                "email",
-                "phone",
-                "password"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Admin created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": {
+                    "type": "string",
+                    "example": "Admin"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "User"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "newadmin@example.com"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "01800000000"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "password123"
+                  }
+                },
+                "required": [
+                  "firstName",
+                  "lastName",
+                  "email",
+                  "phone",
+                  "password"
+                ]
+              }
+            }
           }
         }
       }
@@ -1943,25 +1675,7 @@
         ],
         "summary": "Resend Admin OTP",
         "description": "Endpoint to create resendOtp admin.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "identifier": {
-                  "type": "string",
-                  "example": "admin@example.com"
-                }
-              },
-              "required": [
-                "identifier"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Admin created successfully"
@@ -2102,29 +1816,7 @@
         ],
         "summary": "Create new service category",
         "description": "Endpoint to create category.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Venue Decoration"
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Floral and lighting setup"
-                }
-              },
-              "required": [
-                "name"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Category created successfully"
@@ -2211,23 +1903,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Updated Decoration Category"
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Updated description"
-                }
-              }
-            }
           }
         ],
         "responses": {
@@ -2292,34 +1967,7 @@
         ],
         "summary": "Create new subcategory",
         "description": "Endpoint to create subcategory.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Floral Design"
-                },
-                "categoryId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Custom flower arrangements"
-                }
-              },
-              "required": [
-                "name",
-                "categoryId"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Subcategory created successfully"
@@ -2430,23 +2078,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Updated Subcategory Name"
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Updated subcategory description"
-                }
-              }
-            }
           }
         ],
         "responses": {
@@ -2511,38 +2142,39 @@
         ],
         "summary": "Create new amenity",
         "description": "Endpoint to create amenity.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Parking Space"
-                },
-                "categoryId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "subcategoryId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ac"
-                }
-              },
-              "required": [
-                "name",
-                "categoryId",
-                "subcategoryId"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Amenity created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Parking Space"
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ab"
+                  },
+                  "subcategoryId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ac"
+                  }
+                },
+                "required": [
+                  "name",
+                  "categoryId",
+                  "subcategoryId"
+                ]
+              }
+            }
           }
         }
       }
@@ -2616,24 +2248,27 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "VIP Parking Space"
-                }
-              }
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Amenity updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "VIP Parking Space"
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -2679,43 +2314,44 @@
         ],
         "summary": "Create service area",
         "description": "Endpoint to create service area.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Manhattan, NY"
-                },
-                "city": {
-                  "type": "string",
-                  "example": "New York"
-                },
-                "state": {
-                  "type": "string",
-                  "example": "NY"
-                },
-                "zipCode": {
-                  "type": "string",
-                  "example": "10001"
-                }
-              },
-              "required": [
-                "name",
-                "city",
-                "state",
-                "zipCode"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Service Area created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Manhattan, NY"
+                  },
+                  "city": {
+                    "type": "string",
+                    "example": "New York"
+                  },
+                  "state": {
+                    "type": "string",
+                    "example": "NY"
+                  },
+                  "zipCode": {
+                    "type": "string",
+                    "example": "10001"
+                  }
+                },
+                "required": [
+                  "name",
+                  "city",
+                  "state",
+                  "zipCode"
+                ]
+              }
+            }
           }
         }
       }
@@ -2785,24 +2421,27 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Updated Area Name"
-                }
-              }
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Service Area updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Updated Area Name"
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -3006,52 +2645,53 @@
         ],
         "summary": "Create vendor service",
         "description": "Create a new service offering for the vendor.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string",
-                  "example": "Royal Wedding Decoration"
-                },
-                "categoryId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "subcategoryId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ac"
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Luxury wedding stage setup with floral arch"
-                },
-                "startingPrice": {
-                  "type": "number",
-                  "example": 1500
-                },
-                "serviceAreaId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ad"
-                }
-              },
-              "required": [
-                "title",
-                "categoryId",
-                "subcategoryId",
-                "description",
-                "startingPrice"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Vendor Service created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Royal Wedding Decoration"
+                  },
+                  "categoryId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ab"
+                  },
+                  "subcategoryId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ac"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Luxury wedding stage setup with floral arch"
+                  },
+                  "startingPrice": {
+                    "type": "number",
+                    "example": 1500
+                  },
+                  "serviceAreaId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ad"
+                  }
+                },
+                "required": [
+                  "title",
+                  "categoryId",
+                  "subcategoryId",
+                  "description",
+                  "startingPrice"
+                ]
+              }
+            }
           }
         }
       }
@@ -3071,28 +2711,31 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string",
-                  "example": "Updated Service Title"
-                },
-                "startingPrice": {
-                  "type": "number",
-                  "example": 1800
-                }
-              }
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Vendor Service updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Updated Service Title"
+                  },
+                  "startingPrice": {
+                    "type": "number",
+                    "example": 1800
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -3210,33 +2853,35 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "imageUrls": {
-                  "type": "array",
-                  "example": [
-                    "https://res.cloudinary.com/image1.jpg"
-                  ],
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "required": [
-                "imageUrls"
-              ]
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Vendor Service updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "imageUrls": {
+                    "type": "array",
+                    "example": [
+                      "https://res.cloudinary.com/image1.jpg"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "imageUrls"
+                ]
+              }
+            }
           }
         }
       }
@@ -3286,38 +2931,39 @@
         ],
         "summary": "Track vendor contact click (call/whatsapp)",
         "description": "Endpoint to create track contact vendor service.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "vendorId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "serviceId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ac"
-                },
-                "contactType": {
-                  "type": "string",
-                  "example": "whatsapp"
-                }
-              },
-              "required": [
-                "vendorId",
-                "serviceId",
-                "contactType"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Vendor Service created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "vendorId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ab"
+                  },
+                  "serviceId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ac"
+                  },
+                  "contactType": {
+                    "type": "string",
+                    "example": "whatsapp"
+                  }
+                },
+                "required": [
+                  "vendorId",
+                  "serviceId",
+                  "contactType"
+                ]
+              }
+            }
           }
         }
       }
@@ -3343,28 +2989,29 @@
         ],
         "summary": "Track vendor service view",
         "description": "Endpoint to create track view vendor service.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "serviceId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ac"
-                }
-              },
-              "required": [
-                "serviceId"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Vendor Service created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "serviceId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ac"
+                  }
+                },
+                "required": [
+                  "serviceId"
+                ]
+              }
+            }
           }
         }
       }
@@ -3412,28 +3059,30 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "example": "active"
-                }
-              },
-              "required": [
-                "status"
-              ]
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Vendor Service updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "example": "active"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
           }
         }
       }
@@ -3457,29 +3106,7 @@
         ],
         "summary": "Create new event type",
         "description": "Endpoint to create event type.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Wedding Ceremony"
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Complete wedding planning and setup"
-                }
-              },
-              "required": [
-                "name"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Event Type created successfully"
@@ -3551,19 +3178,6 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Updated Wedding Ceremony"
-                }
-              }
             }
           }
         ],
@@ -3771,48 +3385,7 @@
         ],
         "summary": "Create new event request",
         "description": "Submit an event requirement post for vendors to submit quotes.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "eventTypeId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "eventDate": {
-                  "type": "string",
-                  "example": "2026-12-25"
-                },
-                "location": {
-                  "type": "string",
-                  "example": "New York, NY"
-                },
-                "budget": {
-                  "type": "number",
-                  "example": 5000
-                },
-                "guestCount": {
-                  "type": "number",
-                  "example": 150
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Wedding reception planning and decoration"
-                }
-              },
-              "required": [
-                "eventTypeId",
-                "eventDate",
-                "location",
-                "budget"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Event Request created successfully"
@@ -3887,28 +3460,30 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "example": "closed"
-                }
-              },
-              "required": [
-                "status"
-              ]
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Event Request updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "example": "closed"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
           }
         }
       }
@@ -3982,48 +3557,49 @@
         ],
         "summary": "Send vendor quote for event request",
         "description": "Endpoint to create event quote.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "eventRequestId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "offeredPrice": {
-                  "type": "number",
-                  "example": 4500
-                },
-                "message": {
-                  "type": "string",
-                  "example": "Complete decoration and stage setup included"
-                },
-                "deliverables": {
-                  "type": "array",
-                  "example": [
-                    "Stage Decor",
-                    "Floral Arch",
-                    "Lighting"
-                  ],
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "required": [
-                "eventRequestId",
-                "offeredPrice"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Event Quote created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "eventRequestId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ab"
+                  },
+                  "offeredPrice": {
+                    "type": "number",
+                    "example": 4500
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Complete decoration and stage setup included"
+                  },
+                  "deliverables": {
+                    "type": "array",
+                    "example": [
+                      "Stage Decor",
+                      "Floral Arch",
+                      "Lighting"
+                    ],
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "eventRequestId",
+                  "offeredPrice"
+                ]
+              }
+            }
           }
         }
       }
@@ -4081,28 +3657,30 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "outcome": {
-                  "type": "string",
-                  "example": "won"
-                }
-              },
-              "required": [
-                "outcome"
-              ]
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Event Quote updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "outcome": {
+                    "type": "string",
+                    "example": "won"
+                  }
+                },
+                "required": [
+                  "outcome"
+                ]
+              }
+            }
           }
         }
       }
@@ -4160,28 +3738,30 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "example": "accepted"
-                }
-              },
-              "required": [
-                "status"
-              ]
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Event Quote updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "example": "accepted"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
           }
         }
       }
@@ -4217,37 +3797,38 @@
         ],
         "summary": "Send counter offer on quote",
         "description": "Endpoint to create counter event quote.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "quoteId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "counterPrice": {
-                  "type": "number",
-                  "example": 4200
-                },
-                "note": {
-                  "type": "string",
-                  "example": "Can we agree on $4200 including transportation?"
-                }
-              },
-              "required": [
-                "quoteId",
-                "counterPrice"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Event Quote created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "quoteId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ab"
+                  },
+                  "counterPrice": {
+                    "type": "number",
+                    "example": 4200
+                  },
+                  "note": {
+                    "type": "string",
+                    "example": "Can we agree on $4200 including transportation?"
+                  }
+                },
+                "required": [
+                  "quoteId",
+                  "counterPrice"
+                ]
+              }
+            }
           }
         }
       }
@@ -4259,47 +3840,48 @@
         ],
         "summary": "Request quote directly from vendor",
         "description": "Endpoint to create vendor quote.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "vendorId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "serviceId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ac"
-                },
-                "eventDate": {
-                  "type": "string",
-                  "example": "2026-11-15"
-                },
-                "budget": {
-                  "type": "number",
-                  "example": 3500
-                },
-                "message": {
-                  "type": "string",
-                  "example": "Requesting quote for corporate anniversary event"
-                }
-              },
-              "required": [
-                "vendorId",
-                "serviceId",
-                "eventDate",
-                "budget"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Vendor Quote created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "vendorId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ab"
+                  },
+                  "serviceId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ac"
+                  },
+                  "eventDate": {
+                    "type": "string",
+                    "example": "2026-11-15"
+                  },
+                  "budget": {
+                    "type": "number",
+                    "example": 3500
+                  },
+                  "message": {
+                    "type": "string",
+                    "example": "Requesting quote for corporate anniversary event"
+                  }
+                },
+                "required": [
+                  "vendorId",
+                  "serviceId",
+                  "eventDate",
+                  "budget"
+                ]
+              }
+            }
           }
         }
       }
@@ -4381,27 +3963,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "counterAmount": {
-                  "type": "number",
-                  "example": 3200
-                },
-                "message": {
-                  "type": "string",
-                  "example": "Can you match $3200?"
-                }
-              },
-              "required": [
-                "counterAmount"
-              ]
-            }
           }
         ],
         "responses": {
@@ -4459,27 +4020,6 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "counterAmount": {
-                  "type": "number",
-                  "example": 3400
-                },
-                "message": {
-                  "type": "string",
-                  "example": "Lowest price I can offer is $3400"
-                }
-              },
-              "required": [
-                "counterAmount"
-              ]
             }
           }
         ],
@@ -4741,46 +4281,7 @@
         ],
         "summary": "Create new blog post (Admin)",
         "description": "Endpoint to create blog.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string",
-                  "example": "Top 10 Event Decoration Trends for 2026"
-                },
-                "content": {
-                  "type": "string",
-                  "example": "Detailed blog content markdown or html..."
-                },
-                "categoryId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "tags": {
-                  "type": "array",
-                  "example": [
-                    "event",
-                    "decor",
-                    "wedding"
-                  ],
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              },
-              "required": [
-                "title",
-                "content",
-                "categoryId"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Blog created successfully"
@@ -4863,23 +4364,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string",
-                  "example": "Updated Blog Title"
-                },
-                "content": {
-                  "type": "string",
-                  "example": "Updated content..."
-                }
-              }
-            }
           }
         ],
         "responses": {
@@ -4944,28 +4428,29 @@
         ],
         "summary": "Create blog category",
         "description": "Endpoint to create blog category.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Event Planning"
-                }
-              },
-              "required": [
-                "name"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Blog Category created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Event Planning"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            }
           }
         }
       }
@@ -4999,24 +4484,27 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Updated Category Name"
-                }
-              }
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Blog Category updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Updated Category Name"
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -5140,39 +4628,7 @@
         ],
         "summary": "Book a banner slot (Vendor)",
         "description": "Endpoint to create book banner.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "slotId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "startDate": {
-                  "type": "string",
-                  "example": "2026-09-01"
-                },
-                "endDate": {
-                  "type": "string",
-                  "example": "2026-09-30"
-                },
-                "redirectUrl": {
-                  "type": "string",
-                  "example": "https://example.com"
-                }
-              },
-              "required": [
-                "slotId",
-                "startDate",
-                "endDate"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Banner created successfully"
@@ -5251,38 +4707,39 @@
         ],
         "summary": "Create new banner slot (Admin)",
         "description": "Endpoint to create slots banner.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Homepage Hero Top"
-                },
-                "price": {
-                  "type": "number",
-                  "example": 50
-                },
-                "durationDays": {
-                  "type": "number",
-                  "example": 30
-                }
-              },
-              "required": [
-                "name",
-                "price",
-                "durationDays"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Banner created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Homepage Hero Top"
+                  },
+                  "price": {
+                    "type": "number",
+                    "example": 50
+                  },
+                  "durationDays": {
+                    "type": "number",
+                    "example": 30
+                  }
+                },
+                "required": [
+                  "name",
+                  "price",
+                  "durationDays"
+                ]
+              }
+            }
           }
         }
       }
@@ -5383,23 +4840,6 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "example": "approved"
-                }
-              },
-              "required": [
-                "status"
-              ]
             }
           }
         ],
@@ -5519,43 +4959,44 @@
         ],
         "summary": "Create new promotion plan (Admin)",
         "description": "Endpoint to create plans promotion.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "name": {
-                  "type": "string",
-                  "example": "Featured Vendor Monthly"
-                },
-                "type": {
-                  "type": "string",
-                  "example": "featured"
-                },
-                "price": {
-                  "type": "number",
-                  "example": 99
-                },
-                "durationDays": {
-                  "type": "number",
-                  "example": 30
-                }
-              },
-              "required": [
-                "name",
-                "type",
-                "price",
-                "durationDays"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Promotion created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Featured Vendor Monthly"
+                  },
+                  "type": {
+                    "type": "string",
+                    "example": "featured"
+                  },
+                  "price": {
+                    "type": "number",
+                    "example": 99
+                  },
+                  "durationDays": {
+                    "type": "number",
+                    "example": 30
+                  }
+                },
+                "required": [
+                  "name",
+                  "type",
+                  "price",
+                  "durationDays"
+                ]
+              }
+            }
           }
         }
       }
@@ -5567,32 +5008,33 @@
         ],
         "summary": "Purchase promotion plan (Vendor)",
         "description": "Endpoint to create purchase promotion.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "planId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "serviceId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ac"
-                }
-              },
-              "required": [
-                "planId"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Promotion created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "planId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ab"
+                  },
+                  "serviceId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ac"
+                  }
+                },
+                "required": [
+                  "planId"
+                ]
+              }
+            }
           }
         }
       }
@@ -5786,28 +5228,30 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "paymentStatus": {
-                  "type": "string",
-                  "example": "paid"
-                }
-              },
-              "required": [
-                "paymentStatus"
-              ]
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Promotion updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "paymentStatus": {
+                    "type": "string",
+                    "example": "paid"
+                  }
+                },
+                "required": [
+                  "paymentStatus"
+                ]
+              }
+            }
           }
         }
       }
@@ -5857,38 +5301,39 @@
         ],
         "summary": "Submit verification request",
         "description": "Submit vendor business verification details and documents.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "businessType": {
-                  "type": "string",
-                  "example": "llc"
-                },
-                "taxId": {
-                  "type": "string",
-                  "example": "123456789"
-                },
-                "idDocumentType": {
-                  "type": "string",
-                  "example": "nid"
-                }
-              },
-              "required": [
-                "businessType",
-                "taxId",
-                "idDocumentType"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Verification created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "businessType": {
+                    "type": "string",
+                    "example": "llc"
+                  },
+                  "taxId": {
+                    "type": "string",
+                    "example": "123456789"
+                  },
+                  "idDocumentType": {
+                    "type": "string",
+                    "example": "nid"
+                  }
+                },
+                "required": [
+                  "businessType",
+                  "taxId",
+                  "idDocumentType"
+                ]
+              }
+            }
           }
         }
       }
@@ -5960,32 +5405,34 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "example": "approved"
-                },
-                "adminNote": {
-                  "type": "string",
-                  "example": "Documents verified successfully"
-                }
-              },
-              "required": [
-                "status"
-              ]
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Verification updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "example": "approved"
+                  },
+                  "adminNote": {
+                    "type": "string",
+                    "example": "Documents verified successfully"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
           }
         }
       }
@@ -5997,32 +5444,33 @@
         ],
         "summary": "Subscribe to email newsletter",
         "description": "Endpoint to create subscribe newsletter.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "type": "string",
-                  "example": "subscriber@example.com"
-                },
-                "name": {
-                  "type": "string",
-                  "example": "John"
-                }
-              },
-              "required": [
-                "email"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Newsletter created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "subscriber@example.com"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "John"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
           }
         }
       }
@@ -6034,25 +5482,7 @@
         ],
         "summary": "Unsubscribe from newsletter",
         "description": "Endpoint to create unsubscribe newsletter.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "type": "string",
-                  "example": "subscriber@example.com"
-                }
-              },
-              "required": [
-                "email"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Newsletter created successfully"
@@ -6107,32 +5537,33 @@
         ],
         "summary": "Add subscriber manually (Admin)",
         "description": "Endpoint to create admin newsletter.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "type": "string",
-                  "example": "newsubscriber@example.com"
-                },
-                "name": {
-                  "type": "string",
-                  "example": "Jane Doe"
-                }
-              },
-              "required": [
-                "email"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Newsletter created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "example": "newsubscriber@example.com"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Jane Doe"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
           }
         }
       }
@@ -6212,37 +5643,7 @@
         ],
         "summary": "Bulk import subscribers (Admin)",
         "description": "Endpoint to create admin bulk import newsletter.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "subscribers": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "email": {
-                        "type": "string",
-                        "example": "sub2@example.com"
-                      },
-                      "name": {
-                        "type": "string",
-                        "example": "User 2"
-                      }
-                    }
-                  }
-                }
-              },
-              "required": [
-                "subscribers"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Newsletter created successfully"
@@ -6278,23 +5679,6 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "example": "unsubscribed"
-                }
-              },
-              "required": [
-                "status"
-              ]
             }
           }
         ],
@@ -6378,38 +5762,39 @@
         ],
         "summary": "Create advisor service (Admin)",
         "description": "Endpoint to create services advisor.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "title": {
-                  "type": "string",
-                  "example": "1-on-1 Wedding Planning Consultation"
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Expert advice on vendor selection and budgeting"
-                },
-                "price": {
-                  "type": "number",
-                  "example": 150
-                }
-              },
-              "required": [
-                "title",
-                "description",
-                "price"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Advisor created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "1-on-1 Wedding Planning Consultation"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Expert advice on vendor selection and budgeting"
+                  },
+                  "price": {
+                    "type": "number",
+                    "example": 150
+                  }
+                },
+                "required": [
+                  "title",
+                  "description",
+                  "price"
+                ]
+              }
+            }
           }
         }
       }
@@ -6505,42 +5890,43 @@
         ],
         "summary": "Book an advisor service (User)",
         "description": "Endpoint to create bookings advisor.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "advisorServiceId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "bookingDate": {
-                  "type": "string",
-                  "example": "2026-10-01"
-                },
-                "timeSlot": {
-                  "type": "string",
-                  "example": "14:00-15:00"
-                },
-                "note": {
-                  "type": "string",
-                  "example": "Interested in budget allocation strategies"
-                }
-              },
-              "required": [
-                "advisorServiceId",
-                "bookingDate",
-                "timeSlot"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Advisor created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "advisorServiceId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ab"
+                  },
+                  "bookingDate": {
+                    "type": "string",
+                    "example": "2026-10-01"
+                  },
+                  "timeSlot": {
+                    "type": "string",
+                    "example": "14:00-15:00"
+                  },
+                  "note": {
+                    "type": "string",
+                    "example": "Interested in budget allocation strategies"
+                  }
+                },
+                "required": [
+                  "advisorServiceId",
+                  "bookingDate",
+                  "timeSlot"
+                ]
+              }
+            }
           }
         }
       }
@@ -6721,38 +6107,39 @@
         ],
         "summary": "Create advisor service review",
         "description": "Endpoint to create reviews advisor.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "advisorServiceId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "rating": {
-                  "type": "number",
-                  "example": 5
-                },
-                "comment": {
-                  "type": "string",
-                  "example": "Incredible advice, helped save 20% on venue costs!"
-                }
-              },
-              "required": [
-                "advisorServiceId",
-                "rating",
-                "comment"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Advisor created successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "advisorServiceId": {
+                    "type": "string",
+                    "example": "60d5ecb8b5c9c123456789ab"
+                  },
+                  "rating": {
+                    "type": "number",
+                    "example": 5
+                  },
+                  "comment": {
+                    "type": "string",
+                    "example": "Incredible advice, helped save 20% on venue costs!"
+                  }
+                },
+                "required": [
+                  "advisorServiceId",
+                  "rating",
+                  "comment"
+                ]
+              }
+            }
           }
         }
       }
@@ -7014,39 +6401,7 @@
         ],
         "summary": "Create new dispute ticket",
         "description": "Submit a dispute ticket against a quote/service with optional evidence attachments.",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "respondentId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ab"
-                },
-                "quoteId": {
-                  "type": "string",
-                  "example": "60d5ecb8b5c9c123456789ac"
-                },
-                "reason": {
-                  "type": "string",
-                  "example": "Service quality did not match agreed quote deliverables"
-                },
-                "description": {
-                  "type": "string",
-                  "example": "Detailed explanation of the dispute issue..."
-                }
-              },
-              "required": [
-                "respondentId",
-                "reason",
-                "description"
-              ]
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Dispute created successfully"
@@ -7133,32 +6488,34 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "status": {
-                  "type": "string",
-                  "example": "resolved"
-                },
-                "priority": {
-                  "type": "string",
-                  "example": "high"
-                }
-              },
-              "required": [
-                "status"
-              ]
-            }
           }
         ],
         "responses": {
           "200": {
             "description": "Dispute updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "example": "resolved"
+                  },
+                  "priority": {
+                    "type": "string",
+                    "example": "high"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
           }
         }
       }
@@ -7177,23 +6534,6 @@
             "required": true,
             "schema": {
               "type": "string"
-            }
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "object",
-              "properties": {
-                "note": {
-                  "type": "string",
-                  "example": "Investigated invoice details and contacted both parties."
-                }
-              },
-              "required": [
-                "note"
-              ]
             }
           }
         ],

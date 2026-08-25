@@ -9,11 +9,11 @@ const doc = {
   },
   servers: [
     {
-      url: 'https://api.weplan.com.pk/api/v1',
-      description: 'Development server'
+      url: 'https://api.weplan.com.pk',
+      description: 'Production server'
     },
     {
-      url: 'http://localhost:5000/api/v1', 
+      url: 'http://localhost:5013', 
       description: 'Local server'
     }
   ], 
@@ -118,7 +118,6 @@ swaggerAutogen({ openapi: '3.0.0' })(outputFile, routes, doc).then(() => {
       // 3. Fix blank response descriptions
       const responses = endpoint.responses;
       if (responses) {
-        // If default response exists with blank or generic description
         if (responses.default) {
           const status = m === 'POST' ? '201' : '200';
           const defaultDesc = `${resourceName} ${actionWord} successfully`;
@@ -129,16 +128,36 @@ swaggerAutogen({ openapi: '3.0.0' })(outputFile, routes, doc).then(() => {
           delete responses.default;
         }
 
-        // Ensure every response status code has a clear description
         for (const code in responses) {
           if (!responses[code].description || responses[code].description.trim() === '') {
             responses[code].description = `${resourceName} ${actionWord} successfully`;
           }
         }
       }
+
+      // 4. OpenAPI 3.0 Compatibility: Convert legacy "in: body" parameter to valid OpenAPI 3.0 "requestBody"
+      if (endpoint.parameters && Array.isArray(endpoint.parameters)) {
+        const bodyParamIndex = endpoint.parameters.findIndex((p: any) => p.in === 'body');
+        if (bodyParamIndex !== -1) {
+          const bodyParam = endpoint.parameters[bodyParamIndex];
+          if (!endpoint.requestBody) {
+            endpoint.requestBody = {
+              required: bodyParam.required ?? true,
+              description: bodyParam.description,
+              content: {
+                'application/json': {
+                  schema: bodyParam.schema || { type: 'object' },
+                },
+              },
+            };
+          }
+          // Remove the legacy 'in: body' parameter so Swagger UI uses requestBody
+          endpoint.parameters.splice(bodyParamIndex, 1);
+        }
+      }
     }
   }
 
   fs.writeFileSync(outputFile, JSON.stringify(data, null, 2));
-  console.log('✅ Tags, Summaries, Descriptions, and Response schemas generated for ALL endpoints!');
+  console.log('✅ Tags, Summaries, Descriptions, and OpenAPI 3.0 RequestBodies generated!');
 });
