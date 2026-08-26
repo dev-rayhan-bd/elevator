@@ -14,7 +14,8 @@ export const initializeSocket = (server: HttpServer) => {
       origin: [
          'https://weplan.com.pk', 
       'https://weplan.pk',
-      'https://dev.weplan.com.pk',
+      'https://dev.weplan.com.pk', 
+      'https://preview.weplan.com.pk',
       'https://admin.weplan.com.pk',
       ],
       credentials: true,

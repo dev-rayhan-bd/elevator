@@ -65,6 +65,7 @@ app.use(
       'https://weplan.pk',
       'https://dev.weplan.com.pk',
       'https://admin.weplan.com.pk',
+      'https://preview.weplan.com.pk'
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
