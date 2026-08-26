@@ -60,7 +60,7 @@ app.use(
       'http://localhost:3000',
       'http://localhost:3001',
       'http://3.226.133.13',
-      'http://3.226.133.13/dashboard',
+      'http://3.226.133.13/dashboard', 
       'https://weplan.com.pk',
       'https://weplan.pk',
       'https://dev.weplan.com.pk',

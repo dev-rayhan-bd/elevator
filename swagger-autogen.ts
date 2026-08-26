@@ -16,7 +16,7 @@ const doc = {
       url: 'http://localhost:5013', 
       description: 'Local server'
     }
-  ], 
+  ],  
   components: {
     securitySchemes: {
       bearerAuth: {
