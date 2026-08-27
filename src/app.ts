@@ -9,30 +9,21 @@ import morgan from 'morgan';
 // import { stripeWebhookHandler } from './app/webhook/webhook.stripe';
 
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import mongoSanitizeMiddleware from './app/middleware/mongosanitize';
 import { setupSwagger } from './swagger';
+import { globalLimiter } from './app/middleware/rateLimiter';
 
 const app: Application = express();
-// Trigger restart again 2
 
-
+// --- CRITICAL FOR PROXY/NGINX/AWS ---
+// Must be configured before rate limiters to resolve real client IP
+app.set('trust proxy', 1);
 
 // --- HIGH SECURITY MIDDLEWARES ---
 app.use(helmet({
   contentSecurityPolicy: false, // Disabled to allow Swagger UI inline scripts
 })); // HTTP headers security
 app.use(mongoSanitizeMiddleware);// NoSQL injection protection (e.g: email: {"$gt": ""})
-
-// --- RATE LIMITING ---
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, //14 minutes
-//   max: 100,
-//   message: 'Too many requests from this IP, please try again after 15 minutes',
-//   standardHeaders: true, 
-//   legacyHeaders: false, 
-// });
-// app.use('/api', limiter); 
 
 app.use(express.json({ limit: '10kb' })); // body size limit 10kb, to prevent DoS attacks
 
@@ -49,7 +40,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 });
 
 app.use(cookieParser());
-app.set('trust proxy', 1);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use(
   cors({
@@ -72,17 +62,30 @@ app.use(
   }) 
 );
 
-// Stripe needs raw body for signature verification
-// app.post(
-//   '/webhook/stripe',
-//   express.raw({ type: 'application/json' }),
-//   stripeWebhookHandler
-// );
-
-
-
-
 app.use(morgan('dev'));
+
+// --- RATE LIMITING ---
+app.use('/api/v1', globalLimiter);
+
+// --- TEST IP ENDPOINT ---
+app.get('/api/v1/test-ip', (req: Request, res: Response) => {
+  const xForwardedFor = req.headers['x-forwarded-for'];
+  const clientIp = xForwardedFor
+    ? (Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor).split(',')[0].trim()
+    : req.ip || req.socket.remoteAddress;
+
+  res.json({
+    success: true,
+    message: 'Client IP Details',
+    data: {
+      reqIp: req.ip,
+      clientIp: clientIp,
+      xForwardedFor: req.headers['x-forwarded-for'] || null,
+      xRealIp: req.headers['x-real-ip'] || null,
+    },
+  });
+});
+
 app.use('/api/v1', router);
 
 app.get('/', (req: Request, res: Response) => {

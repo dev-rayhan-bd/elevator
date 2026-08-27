@@ -5,6 +5,7 @@ import { AuthValidation } from './authValidation';
 import validateRequest from '../../middleware/validateRequest';
 import auth from '../../middleware/auth';
 import { upload } from '../../middleware/multer';
+import { authLimiter } from '../../middleware/rateLimiter';
 
 const router = express.Router();
 
@@ -35,6 +36,7 @@ router.post('/register', upload.single('image') as any, (req: Request, res: Resp
 );
 
 router.post('/resendOtp',
+  authLimiter,
   /*
     #swagger.tags = ['Auth']
     #swagger.summary = 'Resend OTP'
@@ -48,6 +50,7 @@ router.post('/resendOtp',
 );
 
 router.post('/login',
+  authLimiter,
   /*
     #swagger.tags = ['Auth']
     #swagger.summary = 'User Login'
@@ -68,6 +71,7 @@ router.post('/login',
 );
 
 router.post('/admin/login',
+  authLimiter,
   /*
     #swagger.tags = ['Auth']
     #swagger.summary = 'Admin Login'
@@ -121,6 +125,7 @@ router.post('/refresh-token',
 );
 
 router.post('/forgotPass',
+  authLimiter,
   /*
     #swagger.tags = ['Auth']
     #swagger.summary = 'Forgot Password'
@@ -136,6 +141,7 @@ router.post('/forgotPass',
 );
 
 router.post('/resetPass',
+  authLimiter,
   /*
     #swagger.tags = ['Auth']
     #swagger.summary = 'Reset Password'
@@ -153,6 +159,7 @@ router.post('/resetPass',
 );
 
 router.post('/regOtpVerify',
+  authLimiter,
   /*
     #swagger.tags = ['Auth']
     #swagger.summary = 'Verify Registration OTP'
