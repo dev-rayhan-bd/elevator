@@ -14,7 +14,7 @@ const notificationSchema = new Schema({
       'quote_accepted', 'quote_declined', 'quote_won', 'quote_lost',
       'quote_milestone', 'lead_alert', 'price_drop', 'profile_score_nudge',
       'new_inspiration', 'advisor_offer', 'new_requirement',
-      'request_cancelled', 'request_closed', 'promotional'
+      'request_cancelled', 'request_closed', 'promotional', 'chat_message'
     ], 
     default: 'general' 
   },
