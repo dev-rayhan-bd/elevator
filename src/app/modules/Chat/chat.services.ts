@@ -33,11 +33,23 @@ const getConversationsFromDB = async (userId: string) => {
       );
 
       // Dynamically calculate unread count from actual unread messages for THIS user
-      const unread = await Message.countDocuments({
-        conversationId: conv._id,
-        receiver: userObjId,
+      const unreadFromMsg = await Message.countDocuments({
+        conversationId: new Types.ObjectId(conv._id.toString()),
+        receiver: new Types.ObjectId(userId.toString()),
         isRead: false,
       });
+
+      let unreadFromMap = 0;
+      const convUnreadMap = convDoc.unreadCount;
+      if (convUnreadMap) {
+        if (typeof convUnreadMap.get === 'function') {
+          unreadFromMap = convUnreadMap.get(userId) || 0;
+        } else if (typeof convUnreadMap === 'object') {
+          unreadFromMap = convUnreadMap[userId] || 0;
+        }
+      }
+
+      const unread = Math.max(unreadFromMsg, unreadFromMap);
 
       return {
         _id: convDoc._id,
