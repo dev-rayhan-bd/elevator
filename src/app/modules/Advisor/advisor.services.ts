@@ -157,7 +157,42 @@ const getMyBookingsFromDB = async (userId: string, query: Record<string, unknown
 
   const result = await bookingQuery.modelQuery;
   const meta = await bookingQuery.countTotal();
-  return { meta, result };
+
+  // Fetch all active reviews by this user for advisor services/bookings
+  const userReviews = await AdvisorReview.find({
+    user: new Types.ObjectId(userId),
+    isDeleted: false,
+  }).lean();
+
+  const reviewsMap = new Map<string, any>();
+  const serviceReviewsMap = new Map<string, any>();
+
+  for (const review of userReviews) {
+    if (review.booking) {
+      reviewsMap.set(review.booking.toString(), review);
+    }
+    if (review.advisorService) {
+      serviceReviewsMap.set(review.advisorService.toString(), review);
+    }
+  }
+
+  const updatedResult = result.map((doc: any) => {
+    const docObj = doc.toObject ? doc.toObject() : doc;
+    const bookingId = docObj._id.toString();
+    const serviceId = docObj.advisorService?._id?.toString() || docObj.advisorService?.toString();
+
+    const review = reviewsMap.get(bookingId) || (serviceId ? serviceReviewsMap.get(serviceId) : null);
+    const isReviewed = Boolean(review);
+
+    return {
+      ...docObj,
+      isReviewed,
+      hasReviewed: isReviewed,
+      review: review || null,
+    };
+  });
+
+  return { meta, result: updatedResult };
 };
 
 // ══════════════════════════════════════════════
@@ -173,7 +208,27 @@ const getMySingleBookingFromDB = async (userId: string, bookingId: string) => {
     .populate('assignedAssociate', 'firstName lastName image phone email');
 
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Booking not found');
-  return result;
+
+  const docObj = result.toObject();
+  const serviceId = docObj.advisorService?._id?.toString() || docObj.advisorService?.toString();
+
+  const review = await AdvisorReview.findOne({
+    user: new Types.ObjectId(userId),
+    $or: [
+      { booking: new Types.ObjectId(bookingId) },
+      ...(serviceId ? [{ advisorService: new Types.ObjectId(serviceId) }] : []),
+    ],
+    isDeleted: false,
+  }).lean();
+
+  const isReviewed = Boolean(review);
+
+  return {
+    ...docObj,
+    isReviewed,
+    hasReviewed: isReviewed,
+    review: review || null,
+  };
 };
 
 // ══════════════════════════════════════════════
