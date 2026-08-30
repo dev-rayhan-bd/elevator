@@ -5,6 +5,8 @@ import { ServiceCategory } from './category.model';
 import { ServiceSubcategory } from '../ServiceSubcategory/subcategory.model';
 import { TServiceCategory } from './category.interface';
 import { Amenity } from '../Amenity/amenity.model';
+import { VendorService } from '../VendorService/vendorService.model';
+import { EventRequest } from '../EventRequest/eventRequest.model';
 
 const getAllCategoriesFromDB = async (query: Record<string, unknown>) => {
   const categoryQuery = new QueryBuilder(ServiceCategory.find(), query)
@@ -49,6 +51,24 @@ const deleteCategoryFromDB = async (id: string) => {
     throw new AppError(
       httpStatus.BAD_REQUEST,
       `Cannot delete category — ${subcatCount} subcategor${subcatCount === 1 ? 'y' : 'ies'} still exist under it`,
+    );
+  }
+
+  // Block deletion if vendor services exist under this category
+  const serviceCount = await VendorService.countDocuments({ category: id });
+  if (serviceCount > 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot delete category — ${serviceCount} service${serviceCount === 1 ? '' : 's'} still exist under it`,
+    );
+  }
+
+  // Block deletion if event requests reference this category
+  const eventReqCount = await EventRequest.countDocuments({ serviceCategory: id });
+  if (eventReqCount > 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot delete category — ${eventReqCount} event request${eventReqCount === 1 ? '' : 's'} reference it`,
     );
   }
 
