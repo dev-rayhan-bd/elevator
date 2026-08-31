@@ -6,5 +6,6 @@ export interface TInspiration {
   image: string;
   price: string; // "PKR 45,000" or "PKR 2,500/guest"
   vendor: Types.ObjectId;
+  category: Types.ObjectId;
   isActive: boolean;
 }

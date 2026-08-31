@@ -5,6 +5,7 @@ import { Inspiration } from './inspiration.model';
 import { User } from '../User/user.model';
 import { Types } from 'mongoose';
 import { sendNotificationToMultipleUsers } from '../../utils/sendNotification';
+import { ServiceCategory } from '../ServiceCategory/category.model';
 
 // ── Admin: Create ──
 const createInspirationIntoDB = async (payload: Record<string, unknown>) => {
@@ -15,6 +16,11 @@ const createInspirationIntoDB = async (payload: Record<string, unknown>) => {
   });
   if (!vendorUser) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Vendor not found');
+  }
+
+  const categoryExists = await ServiceCategory.findById(payload.category);
+  if (!categoryExists) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Category not found');
   }
 
   const result = await Inspiration.create(payload);
@@ -59,6 +65,14 @@ const updateInspirationInDB = async (
     }
   }
 
+  // If category is being changed, validate new category exists
+  if (payload.category) {
+    const categoryExists = await ServiceCategory.findById(payload.category);
+    if (!categoryExists) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Category not found');
+    }
+  }
+
   const result = await Inspiration.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
@@ -77,7 +91,8 @@ const deleteInspirationFromDB = async (id: string) => {
 // ── Admin: Get Single (for edit form) ──
 const getSingleInspirationFromDB = async (id: string) => {
   const result = await Inspiration.findById(id)
-    .populate('vendor', 'firstName lastName fullName image phone');
+    .populate('vendor', 'firstName lastName fullName image phone')
+    .populate('category', 'name image');
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Inspiration not found');
   return result;
 };
@@ -86,7 +101,8 @@ const getSingleInspirationFromDB = async (id: string) => {
 const getAllInspirationsFromDB = async (query: Record<string, unknown>) => {
   const inspirationQuery = new QueryBuilder(
     Inspiration.find({ isActive: true })
-      .populate('vendor', 'firstName lastName fullName image phone'),
+      .populate('vendor', 'firstName lastName fullName image phone')
+      .populate('category', 'name image'),
     query,
   )
     .search(['title', 'description'])
@@ -104,7 +120,8 @@ const getAllInspirationsFromDB = async (query: Record<string, unknown>) => {
 const getAdminInspirationsFromDB = async (query: Record<string, unknown>) => {
   const inspirationQuery = new QueryBuilder(
     Inspiration.find()
-      .populate('vendor', 'firstName lastName fullName image phone'),
+      .populate('vendor', 'firstName lastName fullName image phone')
+      .populate('category', 'name image'),
     query,
   )
     .search(['title', 'description'])

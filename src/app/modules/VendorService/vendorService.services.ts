@@ -229,6 +229,13 @@ const getPublicVendorServicesFromDB = async (
     },
   });
 
+  // ── 3a-b3. Filter: only active subcategories ──
+  pipeline.push({
+    $match: {
+      'subcategory.isActive': { $ne: false },
+    },
+  });
+
   pipeline.push({
     $lookup: {
       from: 'eventtypes',
@@ -555,11 +562,16 @@ const getSingleVendorServiceFromDB = async (
       'firstName lastName fullName image email phone lat long vendor',
     )
     .populate('category', 'name image description')
-    .populate('subcategory', 'name image')
+    .populate('subcategory', 'name image isActive')
     .populate('eventTypes', 'name image')
     .populate('serviceAreas', 'name region')
     .populate('amenities', 'name icon');
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
+
+  // Filter out if subcategory is disabled
+  if (result.subcategory && (result.subcategory as any).isActive === false) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Service not found (subcategory is disabled)');
+  }
 
   // Fetch reviews + rating summary for this service
   const reviewData = await ReviewServices.getServiceReviewsWithSummary(
@@ -1622,6 +1634,21 @@ const getSimilarServicesFromDB = async (serviceId: string) => {
         category: new Types.ObjectId(sourceCategory.toString()),
         isActive: true,
         isDraft: { $ne: true },
+      },
+    },
+
+    // ── Stage 2.5: Lookup subcategory to ensure it's active ──
+    {
+      $lookup: {
+        from: 'servicesubcategories',
+        localField: 'subcategory',
+        foreignField: '_id',
+        as: 'subcategoryData',
+      },
+    },
+    {
+      $match: {
+        'subcategoryData.isActive': { $ne: false },
       },
     },
 

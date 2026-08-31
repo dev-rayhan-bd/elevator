@@ -27,6 +27,11 @@ const inspirationSchema = new Schema<TInspiration>(
       ref: 'User',
       required: true,
     },
+    category: {
+      type: Schema.Types.ObjectId,
+      ref: 'ServiceCategory',
+      required: true,
+    },
     isActive: {
       type: Boolean,
       default: true,
@@ -40,6 +45,7 @@ const inspirationSchema = new Schema<TInspiration>(
 // Indexes for efficient querying
 inspirationSchema.index({ isActive: 1 });
 inspirationSchema.index({ vendor: 1 });
+inspirationSchema.index({ category: 1 });
 inspirationSchema.index({ createdAt: -1 });
 inspirationSchema.index({ title: 'text', description: 'text' });
 
