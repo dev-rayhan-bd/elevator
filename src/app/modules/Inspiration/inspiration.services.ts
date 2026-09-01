@@ -39,7 +39,7 @@ const createInspirationIntoDB = async (payload: Record<string, unknown>) => {
         '📸 Fresh Wedding Inspo Inside!',
         'Tap to get inspired!',
         'new_inspiration',
-        { inspirationId: result._id.toString(), action: 'new_inspiration', actionLink: '/dashboard/user/inspirations' },
+        { inspirationId: result._id.toString(), action: 'new_inspiration' },
       );
     }
   } catch (error) {
