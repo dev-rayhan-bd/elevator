@@ -3,7 +3,7 @@ import { TAmenity } from './amenity.interface';
 
 const amenitySchema = new Schema<TAmenity>(
   {
-    name: { type: String, required: true, unique: true, trim: true },
+    name: { type: String, required: true, trim: true },
     icon: { type: String },
     description: { type: String, trim: true },
     isActive: { type: Boolean, default: true },
@@ -15,5 +15,6 @@ const amenitySchema = new Schema<TAmenity>(
 
 amenitySchema.index({ category: 1 });
 amenitySchema.index({ subcategory: 1 });
+amenitySchema.index({ subcategory: 1, name: 1 }, { unique: true });
 
 export const Amenity = model<TAmenity>('Amenity', amenitySchema);

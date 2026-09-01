@@ -32,8 +32,16 @@ const getSingleAmenityFromDB = async (id: string) => {
 };
 
 const createAmenityIntoDB = async (payload: TAmenity) => {
-  const existing = await Amenity.findOne({ name: payload.name });
-  if (existing) throw new AppError(httpStatus.CONFLICT, 'Amenity already exists');
+  const existing = await Amenity.findOne({
+    name: payload.name,
+    subcategory: payload.subcategory,
+  });
+  if (existing) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'Amenity already exists in this subcategory',
+    );
+  }
 
   // Validate subcategory exists if provided
   if (payload.subcategory) {
@@ -48,12 +56,26 @@ const createAmenityIntoDB = async (payload: TAmenity) => {
 };
 
 const updateAmenityInDB = async (id: string, payload: Partial<TAmenity>) => {
-  if (payload.name) {
-    const duplicate = await Amenity.findOne({ name: payload.name, _id: { $ne: id } });
-    if (duplicate) throw new AppError(httpStatus.CONFLICT, 'Amenity name already taken');
+  const current = await Amenity.findById(id);
+  if (!current) throw new AppError(httpStatus.NOT_FOUND, 'Amenity not found');
+
+  if (payload.name || payload.subcategory) {
+    const name = payload.name || current.name;
+    const subcategory = payload.subcategory || current.subcategory;
+
+    const duplicate = await Amenity.findOne({
+      name,
+      subcategory,
+      _id: { $ne: id },
+    });
+    if (duplicate) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        'Amenity name already taken in this subcategory',
+      );
+    }
   }
   const result = await Amenity.findByIdAndUpdate(id, payload, { new: true, runValidators: true });
-  if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Amenity not found');
   return result;
 };
 
