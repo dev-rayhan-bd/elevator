@@ -93,27 +93,32 @@ const getAllCategoriesListFromDB = async () => {
 
 const getCategoriesWithSubcategoriesFromDB = async () => {
   const categories = await ServiceCategory.find({ isActive: true })
-    .select('_id name')
+    .select('_id name image')
     .sort('name')
     .lean();
 
   const subcategories = await ServiceSubcategory.find({ isActive: true })
-    .select('_id name category')
+    .select('_id name image category')
     .sort('name')
     .lean();
 
-  const subcategoryMap: Record<string, Array<{ _id: string; name: string }>> = {};
+  const subcategoryMap: Record<string, Array<{ _id: string; name: string; image?: string }>> = {};
   for (const sub of subcategories) {
     const catId = String(sub.category);
     if (!subcategoryMap[catId]) {
       subcategoryMap[catId] = [];
     }
-    subcategoryMap[catId].push({ _id: String(sub._id), name: sub.name });
+    subcategoryMap[catId].push({
+      _id: String(sub._id),
+      name: sub.name,
+      image: sub.image || '',
+    });
   }
 
   const result = categories.map((cat) => ({
     _id: String(cat._id),
     name: cat.name,
+    image: cat.image || '',
     subcategories: subcategoryMap[String(cat._id)] || [],
   }));
 
