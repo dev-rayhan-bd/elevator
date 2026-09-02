@@ -26,7 +26,7 @@ bannerSlotSchema.index({ slotType: 1 }, { unique: true });
 // ── Banner Schema (Vendor bookings) ──
 const bannerSchema = new Schema<TBanner>(
   {
-    vendor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    vendor: { type: Schema.Types.ObjectId, ref: 'User', required: false },
     slot: { type: Schema.Types.ObjectId, ref: 'BannerSlot', required: true },
     title: { type: String, required: true, trim: true },
     image: { type: String, required: true },
@@ -41,6 +41,7 @@ const bannerSchema = new Schema<TBanner>(
     },
     isActive: { type: Boolean, default: true },
     isDeleted: { type: Boolean, default: false },
+    createdByType: { type: String, enum: ['admin', 'vendor'], default: 'vendor' },
     impressions: { type: Number, default: 0, min: 0 },
     clicks: { type: Number, default: 0, min: 0 },
   },

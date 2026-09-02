@@ -170,6 +170,33 @@ router.delete(
 //  ADMIN: BANNER MANAGEMENT
 // ══════════════════════════════════════════════
 
+router.post(
+  '/admin/create',
+  /*
+    #swagger.tags = ['Banner']
+    #swagger.summary = 'Create and publish banner directly (Admin)'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        $slot: '60d5ecb8b5c9c123456789ab',
+        $title: 'Promotional Banner',
+        link: 'https://example.com',
+        startDate: '2026-09-01',
+        endDate: '2026-09-30'
+      }
+    }
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  uploadImage,
+  (req: any, res: any, next: any) => {
+    if (req.body.data) req.body = JSON.parse(req.body.data);
+    next();
+  },
+  validateRequest(BannerValidations.createAdminBannerSchema),
+  BannerControllers.createAdminBanner,
+);
+
 router.get(
   '/admin',
   /*

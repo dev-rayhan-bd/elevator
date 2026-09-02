@@ -5,7 +5,10 @@ import { InspirationControllers } from './inspiration.controller';
 import { upload } from '../../middleware/multer';
 
 const router = express.Router();
-const uploadImage = upload.single('image') as unknown as RequestHandler;
+const uploadImagesMiddleware = upload.fields([
+  { name: 'images', maxCount: 10 },
+  { name: 'image', maxCount: 1 },
+]) as unknown as RequestHandler;
 
 // ── Public Routes ──
 router.get('/public',
@@ -43,7 +46,7 @@ router.post(
     #swagger.summary = 'Create inspiration post (Admin)'
   */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
-  uploadImage,
+  uploadImagesMiddleware,
   InspirationControllers.createInspiration,
 );
 
@@ -54,7 +57,7 @@ router.patch(
     #swagger.summary = 'Update inspiration post (Admin)'
   */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
-  uploadImage,
+  uploadImagesMiddleware,
   InspirationControllers.updateInspiration,
 );
 

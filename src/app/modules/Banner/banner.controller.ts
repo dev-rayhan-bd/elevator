@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
+import AppError from '../../errors/AppError';
 import { BannerServices } from './banner.services';
 import uploadImage from '../../middleware/upload';
 
@@ -230,6 +231,28 @@ const runExpiryCron = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const createAdminBanner = catchAsync(async (req: Request, res: Response) => {
+  let imageUrl = '';
+  if (req.file) {
+    imageUrl = await uploadImage(req);
+  }
+
+  const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+  const payload = { ...rawData, image: imageUrl || rawData.image };
+
+  if (!payload.image) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Banner image is required');
+  }
+
+  const result = await BannerServices.createAdminBannerIntoDB(payload);
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Admin banner created and published successfully',
+    data: result,
+  });
+});
+
 export const BannerControllers = {
   // Slot (Admin)
   createSlot,
@@ -245,6 +268,7 @@ export const BannerControllers = {
   getActiveBanners,
   getAvailableSlots,
   // Admin
+  createAdminBanner,
   adminGetAllBanners,
   adminUpdateBannerStatus,
   adminToggleBannerIsActive,

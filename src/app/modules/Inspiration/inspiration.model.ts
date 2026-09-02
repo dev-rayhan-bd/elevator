@@ -15,7 +15,11 @@ const inspirationSchema = new Schema<TInspiration>(
     },
     image: {
       type: String,
-      required: true,
+      default: '',
+    },
+    images: {
+      type: [String],
+      default: [],
     },
     price: {
       type: String,

@@ -34,4 +34,11 @@ const uploadImage = async (
   });
 };
 
+export const uploadMultipleImages = async (
+  files: Express.Multer.File[],
+): Promise<string[]> => {
+  if (!files || files.length === 0) return [];
+  return Promise.all(files.map((file) => uploadImage({} as any, file)));
+};
+
 export default uploadImage;

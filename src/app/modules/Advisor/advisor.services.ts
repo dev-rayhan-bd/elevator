@@ -260,14 +260,62 @@ const cancelBookingFromDB = async (userId: string, bookingId: string) => {
 // ══════════════════════════════════════════════
 
 const adminGetAllBookingsFromDB = async (query: Record<string, unknown>) => {
+  const filterCondition: Record<string, any> = {};
+
+  // Status Filter
+  if (query.status) {
+    const statusVal = String(query.status).trim();
+    if (statusVal === 'inProgress' || statusVal === 'in_progress') {
+      filterCondition.status = 'in_progress';
+    } else {
+      filterCondition.status = statusVal;
+    }
+  }
+
+  // Payment Status Filter
+  if (query.paymentStatus) {
+    filterCondition.paymentStatus = String(query.paymentStatus).trim();
+  }
+
+  // Date Range Filter (supports startDate/endDate, dateFrom/dateTo, from/to)
+  const startDate = query.startDate || query.dateFrom || query.from;
+  const endDate = query.endDate || query.dateTo || query.to;
+
+  if (startDate || endDate) {
+    const dateQuery: Record<string, any> = {};
+    if (startDate) {
+      dateQuery.$gte = new Date(startDate as string);
+    }
+    if (endDate) {
+      const end = new Date(endDate as string);
+      if (typeof endDate === 'string' && endDate.length <= 10) {
+        end.setHours(23, 59, 59, 999);
+      }
+      dateQuery.$lte = end;
+    }
+    const dateField = query.dateField === 'weddingDate' ? 'weddingDate' : 'createdAt';
+    filterCondition[dateField] = dateQuery;
+  }
+
+  const queryObj = { ...query };
+  delete queryObj.status;
+  delete queryObj.paymentStatus;
+  delete queryObj.startDate;
+  delete queryObj.endDate;
+  delete queryObj.dateFrom;
+  delete queryObj.dateTo;
+  delete queryObj.from;
+  delete queryObj.to;
+  delete queryObj.dateField;
+
   const bookingQuery = new QueryBuilder(
-    AdvisorBooking.find()
+    AdvisorBooking.find(filterCondition)
       .populate('user', 'firstName lastName email image phone')
       .populate('advisorService', 'name description price')
       .populate('assignedAssociate', 'firstName lastName image phone'),
-    query,
+    queryObj,
   )
-    .search(['adminNotes'])
+    .search(['fullName', 'email', 'phone', 'adminNotes'])
     .filter()
     .sort()
     .paginate()

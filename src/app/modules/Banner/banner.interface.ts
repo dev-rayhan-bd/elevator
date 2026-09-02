@@ -30,7 +30,7 @@ export interface TBannerTracking {
 }
 
 export interface TBanner {
-  vendor: Types.ObjectId;
+  vendor?: Types.ObjectId;
   slot: Types.ObjectId;
   title: string;
   image: string;
@@ -41,6 +41,7 @@ export interface TBanner {
   status: TBannerStatus;
   isActive: boolean;
   isDeleted?: boolean;
+  createdByType?: 'admin' | 'vendor';
   impressions: number;
   clicks: number;
 }

@@ -275,9 +275,16 @@ const adminGetAllBannersFromDB = async (query: Record<string, unknown>) => {
     filterCondition.isDeleted = { $ne: true };
   }
 
+  if (query.createdByType === 'admin') {
+    filterCondition.createdByType = 'admin';
+  } else if (query.createdByType === 'vendor') {
+    filterCondition.createdByType = { $ne: 'admin' };
+  }
+
   const queryObj = { ...query };
   delete queryObj.isDeleted;
   delete queryObj.includeDeleted;
+  delete queryObj.createdByType;
 
   const bannerQuery = new QueryBuilder(
     Banner.find(filterCondition)
@@ -445,6 +452,48 @@ const runExpiryCron = async () => {
   return { message: 'Expired banners processed', modifiedCount: result.modifiedCount };
 };
 
+const createAdminBannerIntoDB = async (payload: {
+  slot: string;
+  title: string;
+  image: string;
+  link?: string;
+  startDate?: string | Date;
+  endDate?: string | Date;
+  price?: number;
+  isActive?: boolean;
+}) => {
+  const slot = await BannerSlot.findById(payload.slot);
+  if (!slot) throw new AppError(httpStatus.NOT_FOUND, 'Slot not found');
+
+  const start = payload.startDate ? new Date(payload.startDate) : new Date();
+  let end: Date;
+  if (payload.endDate) {
+    end = new Date(payload.endDate);
+  } else {
+    end = new Date(start);
+    end.setDate(end.getDate() + (slot.durationDays || 30));
+  }
+
+  const bannerData: Partial<TBanner> = {
+    slot: new Types.ObjectId(payload.slot),
+    title: payload.title,
+    image: payload.image,
+    link: payload.link,
+    startDate: start,
+    endDate: end,
+    price: payload.price !== undefined ? payload.price : slot.price,
+    status: 'approved',
+    isActive: payload.isActive !== undefined ? payload.isActive : true,
+    isDeleted: false,
+    createdByType: 'admin',
+    impressions: 0,
+    clicks: 0,
+  };
+
+  const result = await Banner.create(bannerData);
+  return result;
+};
+
 export const BannerServices = {
   // Slot management (Admin)
   createSlotIntoDB,
@@ -460,6 +509,7 @@ export const BannerServices = {
   getActiveBannersFromDB,
   getAvailableSlotsFromDB,
   // Admin banner management
+  createAdminBannerIntoDB,
   adminGetAllBannersFromDB,
   adminUpdateBannerStatusInDB,
   adminToggleBannerIsActiveInDB,

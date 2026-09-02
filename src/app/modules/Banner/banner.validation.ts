@@ -37,6 +37,16 @@ export const bookBannerSchema = z.object({
   link: z.string().optional(),
 });
 
+export const createAdminBannerSchema = z.object({
+  slot: z.string().min(1, 'Slot ID is required'),
+  title: z.string().min(1, 'Banner title is required'),
+  link: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  price: z.number().min(0).optional(),
+  isActive: z.boolean().optional(),
+});
+
 export const updateBannerStatusSchema = z.object({
   status: z.enum(['approved', 'rejected']),
 });
@@ -45,5 +55,6 @@ export const BannerValidations = {
   createSlotSchema,
   updateSlotSchema,
   bookBannerSchema,
+  createAdminBannerSchema,
   updateBannerStatusSchema,
 };

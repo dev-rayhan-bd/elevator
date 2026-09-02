@@ -2,19 +2,44 @@ import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { InspirationServices } from './inspiration.services';
-import uploadImage from '../../middleware/upload';
+import uploadImage, { uploadMultipleImages } from '../../middleware/upload';
 
 // ── Admin: Create ──
 const createInspiration = catchAsync(async (req, res) => {
-  // Upload image to Cloudinary
-  let imageUrl = '';
-  if (req.file) {
-    imageUrl = await uploadImage(req);
+  let fileList: Express.Multer.File[] = [];
+  if (req.files) {
+    if (Array.isArray(req.files)) {
+      fileList = req.files;
+    } else {
+      const filesObj = req.files as { [fieldname: string]: Express.Multer.File[] };
+      if (filesObj.images) fileList.push(...filesObj.images);
+      if (filesObj.image) fileList.push(...filesObj.image);
+    }
+  } else if (req.file) {
+    fileList = [req.file];
+  }
+
+  let uploadedUrls: string[] = [];
+  if (fileList.length > 0) {
+    uploadedUrls = await uploadMultipleImages(fileList);
   }
 
   // Parse FormData 'data' field
   const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const payload = { ...rawData, image: imageUrl };
+  const existingImages = Array.isArray(rawData.images)
+    ? rawData.images
+    : rawData.images
+    ? [rawData.images]
+    : rawData.image
+    ? [rawData.image]
+    : [];
+
+  const finalImages = [...existingImages, ...uploadedUrls];
+  const payload = {
+    ...rawData,
+    images: finalImages,
+    image: finalImages[0] || '',
+  };
 
   const result = await InspirationServices.createInspirationIntoDB(payload);
   sendResponse(res, {
@@ -27,15 +52,44 @@ const createInspiration = catchAsync(async (req, res) => {
 
 // ── Admin: Update ──
 const updateInspiration = catchAsync(async (req, res) => {
-  // Upload image to Cloudinary if new file provided
-  let imageUrl: string | undefined;
-  if (req.file) {
-    imageUrl = await uploadImage(req);
+  let fileList: Express.Multer.File[] = [];
+  if (req.files) {
+    if (Array.isArray(req.files)) {
+      fileList = req.files;
+    } else {
+      const filesObj = req.files as { [fieldname: string]: Express.Multer.File[] };
+      if (filesObj.images) fileList.push(...filesObj.images);
+      if (filesObj.image) fileList.push(...filesObj.image);
+    }
+  } else if (req.file) {
+    fileList = [req.file];
+  }
+
+  let uploadedUrls: string[] = [];
+  if (fileList.length > 0) {
+    uploadedUrls = await uploadMultipleImages(fileList);
   }
 
   // Parse FormData 'data' field
   const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const payload = { ...rawData, ...(imageUrl && { image: imageUrl }) };
+
+  let finalImages: string[] | undefined;
+  if (rawData.images !== undefined || uploadedUrls.length > 0) {
+    const existingImages = Array.isArray(rawData.images)
+      ? rawData.images
+      : rawData.images
+      ? [rawData.images]
+      : [];
+    finalImages = [...existingImages, ...uploadedUrls];
+  }
+
+  const payload = {
+    ...rawData,
+    ...(finalImages !== undefined && {
+      images: finalImages,
+      image: finalImages[0] || rawData.image || '',
+    }),
+  };
 
   const result = await InspirationServices.updateInspirationInDB(
     req.params.id,
