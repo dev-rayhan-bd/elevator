@@ -174,7 +174,12 @@ router.get(
   '/bookings/admin',
   /*
     #swagger.tags = ['Advisor']
-    #swagger.summary = 'Get all advisor bookings (Admin)'
+    #swagger.summary = 'Get all advisor bookings with status and date range filtering (Admin)'
+    #swagger.parameters['status'] = { in: 'query', description: 'Filter by status: pending, assigned, in_progress, completed, cancelled', type: 'string' }
+    #swagger.parameters['paymentStatus'] = { in: 'query', description: 'Filter by payment status: unpaid, paid, refunded', type: 'string' }
+    #swagger.parameters['startDate'] = { in: 'query', description: 'Filter start date (YYYY-MM-DD)', type: 'string' }
+    #swagger.parameters['endDate'] = { in: 'query', description: 'Filter end date (YYYY-MM-DD)', type: 'string' }
+    #swagger.parameters['dateField'] = { in: 'query', description: 'Date field to filter on: createdAt (default) or weddingDate', type: 'string' }
   */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   AdvisorControllers.adminGetAllBookings,

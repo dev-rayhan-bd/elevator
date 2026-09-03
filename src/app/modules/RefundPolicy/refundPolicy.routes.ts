@@ -11,7 +11,7 @@ refundPolicyRouter.post(
   RefundPolicyController.createOrUpdateRefundPolicy,
 );
 
-refundPolicyRouter.get('/retrive', RefundPolicyController.getRefundPolicy);
-refundPolicyRouter.get('/', RefundPolicyController.getRefundPolicy);
+refundPolicyRouter.get('/retrive', RefundPolicyController.getRefundPolicy);     
+refundPolicyRouter.get('/', RefundPolicyController.getRefundPolicy);   
 
 export default refundPolicyRouter;

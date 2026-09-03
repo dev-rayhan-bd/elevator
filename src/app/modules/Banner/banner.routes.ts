@@ -202,6 +202,7 @@ router.get(
   /*
     #swagger.tags = ['Banner']
     #swagger.summary = 'Get all banners (Admin)'
+    #swagger.parameters['createdByType'] = { in: 'query', description: 'Filter banners by creator: admin or vendor', type: 'string' }
   */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   BannerControllers.adminGetAllBanners,

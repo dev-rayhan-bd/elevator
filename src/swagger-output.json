@@ -16,6 +16,36 @@
     }
   ],
   "paths": {
+    "/api/v1/test-ip": {
+      "get": {
+        "description": "Endpoint to fetch test ip.",
+        "parameters": [
+          {
+            "name": "x-forwarded-for",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "x-real-ip",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "TestIp"
+        ],
+        "summary": "Fetch Test Ip"
+      }
+    },
     "/": {
       "get": {
         "description": "Endpoint to fetch default.",
@@ -4812,6 +4842,35 @@
         }
       }
     },
+    "/api/v1/banner/admin/create": {
+      "post": {
+        "tags": [
+          "Banner"
+        ],
+        "summary": "Create and publish banner directly (Admin)",
+        "description": "Endpoint to create admin create banner.",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Banner created successfully"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/banner/admin": {
       "get": {
         "tags": [
@@ -4819,6 +4878,16 @@
         ],
         "summary": "Get all banners (Admin)",
         "description": "Endpoint to fetch admin banner.",
+        "parameters": [
+          {
+            "name": "createdByType",
+            "in": "query",
+            "description": "Filter banners by creator: admin or vendor",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Banner retrieved successfully"
@@ -5998,8 +6067,50 @@
         "tags": [
           "Advisor"
         ],
-        "summary": "Get all advisor bookings (Admin)",
+        "summary": "Get all advisor bookings with status and date range filtering (Admin)",
         "description": "Endpoint to fetch bookings admin advisor.",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "description": "Filter by status: pending, assigned, in_progress, completed, cancelled",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paymentStatus",
+            "in": "query",
+            "description": "Filter by payment status: unpaid, paid, refunded",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "description": "Filter start date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "description": "Filter end date (YYYY-MM-DD)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dateField",
+            "in": "query",
+            "description": "Date field to filter on: createdAt (default) or weddingDate",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Advisor retrieved successfully"
