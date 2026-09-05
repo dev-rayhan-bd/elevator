@@ -3,6 +3,11 @@ import { IFooter } from './Footer.interface';
 
 export const footerSchema = new mongoose.Schema<IFooter>(
   {
+    companyName: { type: String, default: '' },
+    tagline: { type: String, default: '' },
+    address: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    email: { type: String, default: '' },
     description: { type: String, default: '' },
     socialLinks: {
       facebook: { type: String, default: '' },

@@ -8,6 +8,11 @@ export interface ISocialLinks {
 }
 
 export interface IFooter {
+  companyName?: string;
+  tagline?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
   description: string;
   socialLinks: ISocialLinks;
 }

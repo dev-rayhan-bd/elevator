@@ -9,12 +9,13 @@ const inspirationSchema = new Schema<TInspiration>(
       trim: true,
     },
     description: {
-      type: String,
+
+      type: String, 
       required: true,
       trim: true,
     },
     image: {
-      type: String,
+      type: String, 
       default: '',
     },
     images: {

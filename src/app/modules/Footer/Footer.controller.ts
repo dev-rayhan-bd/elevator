@@ -5,16 +5,26 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 
 const createOrUpdateFooter = catchAsync(async (req: Request, res: Response) => {
-  const { description, socialLinks } = req.body;
+  const { companyName, tagline, address, phone, email, description, socialLinks } = req.body;
 
   const existing = await Footer.findOne();
 
   if (existing) {
     const updateData: Record<string, any> = {};
+    if (companyName !== undefined) updateData.companyName = companyName;
+    if (tagline !== undefined) updateData.tagline = tagline;
+    if (address !== undefined) updateData.address = address;
+    if (phone !== undefined) updateData.phone = phone;
+    if (email !== undefined) updateData.email = email;
     if (description !== undefined) updateData.description = description;
     if (socialLinks !== undefined) {
+      const existingLinks = existing.socialLinks
+        ? typeof (existing.socialLinks as any).toObject === 'function'
+          ? (existing.socialLinks as any).toObject()
+          : existing.socialLinks
+        : {};
       updateData.socialLinks = {
-        ...existing.socialLinks,
+        ...existingLinks,
         ...socialLinks,
       };
     }
@@ -33,6 +43,11 @@ const createOrUpdateFooter = catchAsync(async (req: Request, res: Response) => {
     });
   } else {
     const newFooter = await Footer.create({
+      companyName: companyName || '',
+      tagline: tagline || '',
+      address: address || '',
+      phone: phone || '',
+      email: email || '',
       description: description || '',
       socialLinks: socialLinks || {},
     });
@@ -51,6 +66,11 @@ const getFooter = catchAsync(async (req: Request, res: Response) => {
 
   if (!footer) {
     footer = await Footer.create({
+      companyName: 'WePlan Inc.',
+      tagline: 'Making your events unforgettable',
+      address: '123 Wedding Street, Event City, EC 12345',
+      phone: '+1 (555) 123-4567',
+      email: 'hello@weplan.com',
       description: 'Your trusted platform to find the perfect wedding vendors and plan your dream wedding effortlessly.',
       socialLinks: {
         facebook: '',
