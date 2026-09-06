@@ -94,12 +94,12 @@ const getAllCategoriesListFromDB = async () => {
 const getCategoriesWithSubcategoriesFromDB = async () => {
   const categories = await ServiceCategory.find({ isActive: true })
     .select('_id name image')
-    .sort('name')
+    .sort('-createdAt')
     .lean();
 
   const subcategories = await ServiceSubcategory.find({ isActive: true })
     .select('_id name image category')
-    .sort('name')
+    .sort('-createdAt')
     .lean();
 
   const subcategoryMap: Record<string, Array<{ _id: string; name: string; image?: string }>> = {};
