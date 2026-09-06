@@ -107,9 +107,18 @@ router.get('/pending-vendors',
 router.patch('/approve-vendor/:id',
   /*
     #swagger.tags = ['Admin']
-    #swagger.summary = 'Approve vendor application'
+    #swagger.summary = 'Approve or Reject vendor application'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: false,
+      schema: {
+        status: 'approved',
+        rejectionReason: 'Incomplete business documents provided'
+      }
+    }
   */
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  validateRequest(AdminValidation.approveRejectVendorSchema),
   AdminControllers.approveVendor
 );
 

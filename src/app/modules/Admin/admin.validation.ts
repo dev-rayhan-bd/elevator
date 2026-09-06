@@ -41,4 +41,8 @@ export const AdminValidation = {
       newPassword: z.string().min(8),
 
   }),
+  approveRejectVendorSchema: z.object({
+    status: z.enum(['approved', 'rejected']).optional().default('approved'),
+    rejectionReason: z.string().optional(),
+  }),
 };

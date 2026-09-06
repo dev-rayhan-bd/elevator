@@ -79,30 +79,66 @@ const createAdminInDB = async (payload: any) => {
 };
 
 
-const approveVendorRequest = async (id: string) => {
+const manageVendorApplication = async (
+  id: string,
+  payload?: { status?: 'approved' | 'rejected'; rejectionReason?: string }
+) => {
   const user = await User.findById(id);
   if (!user || !user.vendor) throw new AppError(httpStatus.NOT_FOUND, 'Invalid vendor request');
 
-  const result = await User.findByIdAndUpdate(
-    id,
-    {
-      role: 'vendor',
-      status: 'active',
-      'vendor.isProfileCompleted': true,
-    },
-    { new: true }
-  );
+  const actionStatus = payload?.status || 'approved';
 
-  // Trigger vendor approval notification (fire-and-forget)
-  sendNotification(
-    id,
-    'Vendor Application Approved! 🎉',
-    'Congratulations! Your vendor application has been approved. Your profile is now active.',
-    'vendor_approved',
-    { action: 'vendor_approved' }
-  );
+  if (actionStatus === 'rejected') {
+    const reason =
+      payload?.rejectionReason ||
+      'Your vendor application has been rejected. Please contact support for more details.';
 
-  return result;
+    const result = await User.findByIdAndUpdate(
+      id,
+      {
+        status: 'blocked',
+      },
+      { new: true }
+    );
+
+    // Trigger vendor rejection notification (fire-and-forget)
+    sendNotification(
+      id,
+      'Vendor Application Rejected ❌',
+      reason,
+      'vendor_rejected',
+      { action: 'vendor_rejected', rejectionReason: reason }
+    );
+
+    return {
+      message: 'Vendor application rejected successfully',
+      result,
+    };
+  } else {
+    const result = await User.findByIdAndUpdate(
+      id,
+      {
+        role: 'vendor',
+        status: 'active',
+        'vendor.isProfileCompleted': true,
+      },
+      { new: true }
+    );
+
+    // Trigger vendor approval notification (fire-and-forget)
+    sendNotification(
+      id,
+      'Vendor Application Approved! 🎉',
+      'Congratulations! Your vendor application has been approved. Your profile is now active.',
+      'vendor_approved',
+      { action: 'vendor_approved' }
+    );
+
+    return {
+      message: 'Vendor approved successfully',
+      result,
+    };
+  }
 };
 
 const getPendingVendorsFromDB = async (query: Record<string, unknown>) => {
@@ -270,7 +306,8 @@ const getAllAdminsFromDB = async (query: Record<string, unknown>) => {
 export const AdminServices = { 
   loginAdminFromDB, 
   createAdminInDB, 
-  approveVendorRequest, 
+  manageVendorApplication, 
+  approveVendorRequest: manageVendorApplication, 
   getPendingVendorsFromDB, 
   getAllAdminsFromDB,
   updateAdminProfile, 

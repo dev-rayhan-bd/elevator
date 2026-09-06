@@ -74,11 +74,16 @@ const resetPassword = catchAsync(async (req, res) => {
 });
 
 const approveVendor = catchAsync(async (req, res) => {
-  const result = await AdminServices.approveVendorRequest(req.params.id);
+  const { status, rejectionReason } = req.body || {};
+  const { message, result } = await AdminServices.manageVendorApplication(req.params.id, {
+    status,
+    rejectionReason,
+  });
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Vendor approved successfully',
+    message,
     data: result,
   });
 });
