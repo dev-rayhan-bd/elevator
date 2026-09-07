@@ -182,6 +182,210 @@ const updateEventRequestStatusFromDB = async (
   return eventRequest;
 };
 
+/**
+ * Admin: Get all user requirements with quote counts, multi-field search, full filters, and summary statistics
+ */
+const getAdminRequirementsFromDB = async (query: Record<string, unknown>) => {
+  const [
+    totalRequirements,
+    activeRequirements,
+    closedRequirements,
+    cancelledRequirements,
+    totalQuotationsReceived,
+  ] = await Promise.all([
+    EventRequest.countDocuments(),
+    EventRequest.countDocuments({ status: 'active' }),
+    EventRequest.countDocuments({ status: 'closed' }),
+    EventRequest.countDocuments({ status: 'cancelled' }),
+    EventQuote.countDocuments(),
+  ]);
+
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  // Build match stage for direct field filters
+  const matchStage: Record<string, any> = {};
+
+  if (query.status) {
+    matchStage.status = query.status;
+  }
+  if (query.user || query.userId) {
+    matchStage.user = new Types.ObjectId((query.user || query.userId) as string);
+  }
+  if (query.serviceCategory || query.category) {
+    matchStage.serviceCategory = new Types.ObjectId((query.serviceCategory || query.category) as string);
+  }
+  if (query.eventType) {
+    matchStage.eventType = new Types.ObjectId(query.eventType as string);
+  }
+  if (query.area) {
+    matchStage.area = new Types.ObjectId(query.area as string);
+  }
+
+  // Budget range filtering
+  if (query.minBudget !== undefined) {
+    matchStage.budgetMax = { $gte: Number(query.minBudget) };
+  }
+  if (query.maxBudget !== undefined) {
+    matchStage.budgetMin = { ...(matchStage.budgetMin || {}), $lte: Number(query.maxBudget) };
+  }
+
+  // Date range filtering (Event Date)
+  if (query.startDate || query.endDate) {
+    matchStage.eventDate = {};
+    if (query.startDate) {
+      const sDate = new Date(query.startDate as string);
+      sDate.setHours(0, 0, 0, 0);
+      matchStage.eventDate.$gte = sDate;
+    }
+    if (query.endDate) {
+      const eDate = new Date(query.endDate as string);
+      eDate.setHours(23, 59, 59, 999);
+      matchStage.eventDate.$lte = eDate;
+    }
+  }
+
+  // Post Creation Date range filtering (Created At)
+  if (query.createdStartDate || query.createdEndDate) {
+    matchStage.createdAt = {};
+    if (query.createdStartDate) {
+      const csDate = new Date(query.createdStartDate as string);
+      csDate.setHours(0, 0, 0, 0);
+      matchStage.createdAt.$gte = csDate;
+    }
+    if (query.createdEndDate) {
+      const ceDate = new Date(query.createdEndDate as string);
+      ceDate.setHours(23, 59, 59, 999);
+      matchStage.createdAt.$lte = ceDate;
+    }
+  }
+
+  const pipeline: any[] = [
+    { $match: matchStage },
+    { $sort: { createdAt: -1 } },
+
+    // Lookup quotation/bid counts via Aggregation $lookup & $size
+    {
+      $lookup: {
+        from: 'eventquotes',
+        localField: '_id',
+        foreignField: 'eventRequest',
+        as: 'quotes',
+      },
+    },
+    {
+      $addFields: {
+        totalQuotesCount: { $size: '$quotes' },
+      },
+    },
+    {
+      $project: {
+        quotes: 0,
+      },
+    },
+
+    // Lookup user details
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'user',
+      },
+    },
+    { $unwind: { path: '$user', preserveNullAndEmptyArrays: true } },
+
+    // Lookup eventType details
+    {
+      $lookup: {
+        from: 'eventtypes',
+        localField: 'eventType',
+        foreignField: '_id',
+        as: 'eventType',
+      },
+    },
+    { $unwind: { path: '$eventType', preserveNullAndEmptyArrays: true } },
+
+    // Lookup area details
+    {
+      $lookup: {
+        from: 'serviceareas',
+        localField: 'area',
+        foreignField: '_id',
+        as: 'area',
+      },
+    },
+    { $unwind: { path: '$area', preserveNullAndEmptyArrays: true } },
+
+    // Lookup serviceCategory details
+    {
+      $lookup: {
+        from: 'servicecategories',
+        localField: 'serviceCategory',
+        foreignField: '_id',
+        as: 'serviceCategory',
+      },
+    },
+    { $unwind: { path: '$serviceCategory', preserveNullAndEmptyArrays: true } },
+
+    // Project clean output fields
+    {
+      $project: {
+        'user.password': 0,
+        'user.otp': 0,
+        'user.otpExpires': 0,
+      },
+    },
+  ];
+
+  // Comprehensive multi-field search (details, user name/email/phone, category/eventType/area names)
+  if (query.searchTerm) {
+    const searchRegex = { $regex: String(query.searchTerm), $options: 'i' };
+    pipeline.push({
+      $match: {
+        $or: [
+          { additionalDetails: searchRegex },
+          { 'user.firstName': searchRegex },
+          { 'user.lastName': searchRegex },
+          { 'user.email': searchRegex },
+          { 'user.phone': searchRegex },
+          { 'eventType.name': searchRegex },
+          { 'serviceCategory.name': searchRegex },
+          { 'area.name': searchRegex },
+          { 'area.region': searchRegex },
+        ],
+      },
+    });
+  }
+
+  // Execute aggregation pipeline for data and count
+  const [countResult, result] = await Promise.all([
+    EventRequest.aggregate([...pipeline, { $count: 'total' }]),
+    EventRequest.aggregate([...pipeline, { $skip: skip }, { $limit: limit }]),
+  ]);
+
+  const total = countResult[0]?.total || 0;
+  const totalPage = Math.ceil(total / limit);
+
+  return {
+    summary: {
+      totalRequirements,
+      activeRequirements,
+      closedRequirements,
+      cancelledRequirements,
+      totalQuotationsReceived,
+    },
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage,
+    },
+    result,
+  };
+};
+
 export const EventRequestServices = {
   createEventRequestIntoDB,
   getMyEventRequestsFromDB,
@@ -189,4 +393,5 @@ export const EventRequestServices = {
   getAllActiveEventRequestsFromDB,
   getEventRequestDetailForVendorFromDB,
   updateEventRequestStatusFromDB,
+  getAdminRequirementsFromDB,
 };

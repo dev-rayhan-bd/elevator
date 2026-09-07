@@ -111,4 +111,18 @@ router.get(
   EventRequestControllers.getEventRequestDetailForVendor,
 );
 
+// ── Admin Routes ──
+
+// Get all user requirements with quote counts & summary statistics (Admin Panel)
+router.get(
+  '/admin/all-requirements',
+  /*
+    #swagger.tags = ['EventRequest']
+    #swagger.summary = 'Get all user requirements with quotation counts (Admin)'
+    #swagger.description = 'Retrieve all requirements posted by users along with bid/quotation counts for each requirement.'
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  EventRequestControllers.getAdminRequirements,
+);
+
 export const EventRequestRoutes = router;

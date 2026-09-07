@@ -6,11 +6,21 @@ import { TAmenity } from './amenity.interface';
 import { ServiceSubcategory } from '../ServiceSubcategory/subcategory.model';
 
 const getAllAmenitiesFromDB = async (query: Record<string, unknown>) => {
+  const filterQuery = { ...query };
+  if (filterQuery.categoryId) {
+    filterQuery.category = filterQuery.categoryId;
+    delete filterQuery.categoryId;
+  }
+  if (filterQuery.subcategoryId) {
+    filterQuery.subcategory = filterQuery.subcategoryId;
+    delete filterQuery.subcategoryId;
+  }
+
   const amenityQuery = new QueryBuilder(
     Amenity.find()
       .populate('category', 'name image')
       .populate('subcategory', 'name image'),
-    query,
+    filterQuery,
   )
     .search(['name'])
     .filter()
@@ -31,11 +41,30 @@ const getSingleAmenityFromDB = async (id: string) => {
   return result;
 };
 
-const createAmenityIntoDB = async (payload: TAmenity) => {
-  const existing = await Amenity.findOne({
-    name: payload.name,
-    subcategory: payload.subcategory,
-  });
+const createAmenityIntoDB = async (payload: any) => {
+  const category = payload.category || payload.categoryId;
+  const subcategory = payload.subcategory || payload.subcategoryId;
+  const name = payload.name ? String(payload.name).trim() : '';
+
+  if (!name) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Amenity name is required');
+  }
+
+  payload.category = category;
+  payload.subcategory = subcategory;
+  payload.name = name;
+
+  const existingQuery: Record<string, any> = {
+    name: { $regex: new RegExp(`^${name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') },
+  };
+
+  if (subcategory) {
+    existingQuery.subcategory = subcategory;
+  } else if (category) {
+    existingQuery.category = category;
+  }
+
+  const existing = await Amenity.findOne(existingQuery);
   if (existing) {
     throw new AppError(
       httpStatus.CONFLICT,
@@ -44,8 +73,8 @@ const createAmenityIntoDB = async (payload: TAmenity) => {
   }
 
   // Validate subcategory exists if provided
-  if (payload.subcategory) {
-    const subcat = await ServiceSubcategory.findById(payload.subcategory);
+  if (subcategory) {
+    const subcat = await ServiceSubcategory.findById(subcategory);
     if (!subcat) {
       throw new AppError(httpStatus.NOT_FOUND, 'Subcategory not found');
     }
@@ -55,19 +84,30 @@ const createAmenityIntoDB = async (payload: TAmenity) => {
   return result;
 };
 
-const updateAmenityInDB = async (id: string, payload: Partial<TAmenity>) => {
+const updateAmenityInDB = async (id: string, payload: any) => {
   const current = await Amenity.findById(id);
   if (!current) throw new AppError(httpStatus.NOT_FOUND, 'Amenity not found');
 
-  if (payload.name || payload.subcategory) {
-    const name = payload.name || current.name;
-    const subcategory = payload.subcategory || current.subcategory;
+  const category = payload.category || payload.categoryId || current.category;
+  const subcategory = payload.subcategory || payload.subcategoryId || current.subcategory;
+  const name = payload.name !== undefined ? String(payload.name).trim() : current.name;
 
-    const duplicate = await Amenity.findOne({
-      name,
-      subcategory,
+  payload.category = category;
+  payload.subcategory = subcategory;
+  payload.name = name;
+
+  if (payload.name !== undefined || payload.subcategory || payload.subcategoryId) {
+    const duplicateQuery: Record<string, any> = {
+      name: { $regex: new RegExp(`^${name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') },
       _id: { $ne: id },
-    });
+    };
+    if (subcategory) {
+      duplicateQuery.subcategory = subcategory;
+    } else if (category) {
+      duplicateQuery.category = category;
+    }
+
+    const duplicate = await Amenity.findOne(duplicateQuery);
     if (duplicate) {
       throw new AppError(
         httpStatus.CONFLICT,

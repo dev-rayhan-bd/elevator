@@ -142,6 +142,19 @@ const cancelEventRequest = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Admin: Get all user requirements with quote counts and summary
+ */
+const getAdminRequirements = catchAsync(async (req, res) => {
+  const result = await EventRequestServices.getAdminRequirementsFromDB(req.query);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'All user requirements retrieved successfully for admin',
+    data: result,
+  });
+});
+
 export const EventRequestControllers = {
   createEventRequest,
   getMyEventRequests,
@@ -150,4 +163,5 @@ export const EventRequestControllers = {
   getEventRequestDetailForVendor,
   updateEventRequestStatus,
   cancelEventRequest,
+  getAdminRequirements,
 };
