@@ -826,6 +826,21 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "companyName": {
+                    "example": "any"
+                  },
+                  "tagline": {
+                    "example": "any"
+                  },
+                  "address": {
+                    "example": "any"
+                  },
+                  "phone": {
+                    "example": "any"
+                  },
+                  "email": {
+                    "example": "any"
+                  },
                   "description": {
                     "example": "any"
                   },
@@ -857,6 +872,21 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "companyName": {
+                    "example": "any"
+                  },
+                  "tagline": {
+                    "example": "any"
+                  },
+                  "address": {
+                    "example": "any"
+                  },
+                  "phone": {
+                    "example": "any"
+                  },
+                  "email": {
+                    "example": "any"
+                  },
                   "description": {
                     "example": "any"
                   },
@@ -1625,7 +1655,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Approve vendor application",
+        "summary": "Approve or Reject vendor application",
         "description": "Endpoint to update approve vendor admin by ID.",
         "parameters": [
           {
@@ -1640,6 +1670,23 @@
         "responses": {
           "200": {
             "description": "Admin updated successfully"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "example": "any"
+                  },
+                  "rejectionReason": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -3573,6 +3620,20 @@
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Event Request retrieved successfully"
+          }
+        }
+      }
+    },
+    "/api/v1/event-request/admin/all-requirements": {
+      "get": {
+        "tags": [
+          "EventRequest"
+        ],
+        "summary": "Get all user requirements with quotation counts (Admin)",
+        "description": "Retrieve all requirements posted by users along with bid/quotation counts for each requirement.",
         "responses": {
           "200": {
             "description": "Event Request retrieved successfully"
