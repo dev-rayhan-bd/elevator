@@ -18,6 +18,16 @@ router.get(
   NotificationControllers.getMyNotifications
 );
 
+router.get(
+  '/unread-count',
+  /*
+    #swagger.tags = ['Notification']
+    #swagger.summary = 'Get unread notification count'
+  */
+  auth(USER_ROLE.user, USER_ROLE.vendor, USER_ROLE.superAdmin, USER_ROLE.admin),
+  NotificationControllers.getUnreadCount
+);
+
  //(Mark All as Read)
 router.patch(
   '/mark-all-read',

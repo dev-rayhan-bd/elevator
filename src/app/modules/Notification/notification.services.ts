@@ -5,6 +5,8 @@ import { NotificationModel } from './notification.model';
 import { User } from '../User/user.model';
 import { sendNotification } from '../../utils/sendNotification';
 
+import { getIO } from '../../utils/socket';
+
 const BATCH_SIZE = 50; // send 50 notifications per chunk
 
 const getMyNotificationsFromDB = async (userId: string, query: Record<string, unknown>) => {
@@ -23,24 +25,47 @@ const getMyNotificationsFromDB = async (userId: string, query: Record<string, un
   return { meta, result };
 };
 
+const getUnreadCountFromDB = async (userId: string) => {
+  const unreadCount = await NotificationModel.countDocuments({
+    user: userId,
+    isRead: false,
+  });
+  return { unreadCount };
+};
 
 const markAllAsReadInDB = async (userId: string) => {
-  return await NotificationModel.updateMany(
+  const result = await NotificationModel.updateMany(
     { user: userId, isRead: false },
     { $set: { isRead: true } }
   );
-};
 
+  try {
+    getIO().to(userId).emit('UNREAD_COUNT_CHANGED', { unreadCount: 0 });
+  } catch (err) {}
+
+  return result;
+};
 
 const markSingleAsReadInDB = async (userId: string, notificationId: string) => {
   const notification = await NotificationModel.findOne({ _id: notificationId, user: userId });
   if (!notification) throw new AppError(httpStatus.NOT_FOUND, "Notification not found!");
 
-  return await NotificationModel.findByIdAndUpdate(
+  const result = await NotificationModel.findByIdAndUpdate(
     notificationId,
     { isRead: true },
     { new: true }
   );
+
+  const unreadCount = await NotificationModel.countDocuments({
+    user: userId,
+    isRead: false,
+  });
+
+  try {
+    getIO().to(userId).emit('UNREAD_COUNT_CHANGED', { unreadCount });
+  } catch (err) {}
+
+  return result;
 };
 
 // ── Broadcast Notification (Admin) ──
@@ -104,6 +129,7 @@ const sendBroadcastNotification = async (payload: BroadcastPayload) => {
 
 export const NotificationServices = {
   getMyNotificationsFromDB,
+  getUnreadCountFromDB,
   markAllAsReadInDB,
   markSingleAsReadInDB,
   sendBroadcastNotification,

@@ -16,6 +16,8 @@ if (!getApps().length) {
   });
 }
 
+import { getIO } from './socket';
+
 type LeanUser = TUser & { _id: Types.ObjectId };
 
 /**
@@ -40,7 +42,7 @@ export const sendNotification = async (
     }
 
     // Persist notification to DB
-    await NotificationModel.create({
+    const notification = await NotificationModel.create({
       user: userId,
       title,
       message,
@@ -48,9 +50,25 @@ export const sendNotification = async (
       data,
     });
 
+    // Count unread notifications
+    const unreadCount = await NotificationModel.countDocuments({
+      user: userId,
+      isRead: false,
+    });
+
+    // Emit real-time Socket event
+    try {
+      getIO().to(userId).emit('NEW_NOTIFICATION', {
+        notification,
+        unreadCount,
+      });
+    } catch (socketErr) {
+      // Socket server might not be initialized during CLI scripts
+    }
+
     // Send FCM push if token exists
     if (user.fcmToken) {
-      await sendFCMPush(user, title, message, type, data);
+      await sendFCMPush(user, title, message, type, data, unreadCount);
     } else {
       console.log(`⚠️ No FCM token found for user: ${userId}`);
     }
@@ -67,7 +85,8 @@ const sendFCMPush = async (
   title: string,
   message: string,
   type: string,
-  data: Record<string, string> = {}
+  data: Record<string, string> = {},
+  unreadCount: number = 1
 ) => {
   try {
     const payload: Message = {
@@ -88,7 +107,7 @@ const sendFCMPush = async (
         payload: {
           aps: {
             sound: 'default',
-            badge: 1,
+            badge: unreadCount,
             contentAvailable: true,
           },
         },
