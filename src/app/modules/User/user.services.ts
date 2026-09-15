@@ -89,6 +89,8 @@ const applyToBecomeVendor = async (userId: string, vendorData: any) => {
       vendor: {
         ...vendorData,
         profileScore: 40,
+        completedTasks: ['PROFILE_COMPLETION'],
+        isProfileCompleted: true,
       }
     },
     { new: true, runValidators: true }
@@ -368,23 +370,29 @@ const calculateAndUpdateVisibilityScore = async (vendorId: string): Promise<numb
 
   let score = 0;
 
-  // ── Task 1: Business Verification (+25%) ──
+  // ── Task 0: Profile Setup & Registration (+40%) ──
+  if (vendor.vendor?.businessName || vendor.role === 'vendor') {
+    score += VISIBILITY_POINTS.PROFILE_COMPLETION;
+    newlyCompleted.add('PROFILE_COMPLETION');
+  }
+
+  // ── Task 1: Business Verification (+15%) ──
   if (vendor.vendor?.isVerifiedBadge) {
     score += VISIBILITY_POINTS.BUSINESS_VERIFICATION;
     newlyCompleted.add('BUSINESS_VERIFICATION');
   }
 
-  // ── Task 2: Services Variety (+20%) ──
-  const distinctCategories = await VendorService.distinct('category', {
+  // ── Task 2: Services Variety (+15%) ──
+  const activeServiceCount = await VendorService.countDocuments({
     vendor: new Types.ObjectId(vendorId),
     isDraft: { $ne: true },
   });
-  if (distinctCategories.length >= 3) {
+  if (activeServiceCount >= 1) {
     score += VISIBILITY_POINTS.SERVICES_VARIETY;
     newlyCompleted.add('SERVICES_VARIETY');
   }
 
-  // ── Task 3: Packages & Pricing (+20%) ──
+  // ── Task 3: Packages & Pricing (+10%) ──
   const activePackageCount = await ServicePackage.countDocuments({
     vendor: new Types.ObjectId(vendorId),
     isActive: true,
@@ -394,7 +402,7 @@ const calculateAndUpdateVisibilityScore = async (vendorId: string): Promise<numb
     newlyCompleted.add('PACKAGES_PRICING');
   }
 
-  // ── Task 4: Activity & Engagement (+15%) ──
+  // ── Task 4: Activity & Engagement (+10%) ──
   const now = new Date();
   const vendorDoc = vendor as any; // access Mongoose virtual timestamps
   const lastActive = vendor.lastActiveAt || vendorDoc.updatedAt;
@@ -411,7 +419,7 @@ const calculateAndUpdateVisibilityScore = async (vendorId: string): Promise<numb
     newlyCompleted.add('ACTIVITY_ENGAGEMENT');
   }
 
-  // ── Task 5: Quick Quote Submissions (+10%) ──
+  // ── Task 5: Quick Quote Submissions (+5%) ──
   let quickQuotesGranted = false;
 
   const latestQuote = await VendorQuote.findOne({
@@ -456,7 +464,7 @@ const calculateAndUpdateVisibilityScore = async (vendorId: string): Promise<numb
     newlyCompleted.add('QUICK_QUOTES');
   }
 
-  // ── Task 6: Ads & Promotion (+10%) ──
+  // ── Task 6: Ads & Promotion (+5%) ──
   const activePromotion = await VendorPromotion.findOne({
     vendor: new Types.ObjectId(vendorId),
     isActive: true,
@@ -491,6 +499,7 @@ const calculateAndUpdateVisibilityScore = async (vendorId: string): Promise<numb
   await User.findByIdAndUpdate(vendorId, {
     'vendor.profileScore': score,
     'vendor.completedTasks': completedTasksArray,
+    'vendor.isProfileCompleted': true,
     lastActiveAt: now,
   });
 

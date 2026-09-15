@@ -109,7 +109,7 @@ const getSingleSlotFromDB = async (id: string) => {
 
 const bookBannerIntoDB = async (
   vendorId: string,
-  payload: { slot: string; title: string; image: string; link?: string },
+  payload: { slot: string; title: string; image: string; link?: string; startDate?: string | Date },
 ) => {
   // Validate slot exists and is active
   const slot = await BannerSlot.findById(payload.slot);
@@ -130,6 +130,7 @@ const bookBannerIntoDB = async (
     isDeleted: false,
     impressions: 0,
     clicks: 0,
+    ...(payload.startDate ? { startDate: new Date(payload.startDate) } : {}),
   };
 
   const result = await Banner.create(bannerData);
@@ -318,22 +319,27 @@ const adminUpdateBannerStatusInDB = async (
 
   const updateData: Record<string, unknown> = { status };
 
-  // If approving, set startDate = now + calculate endDate from slot duration
+  // If approving, set startDate (preserve requested future startDate or default to now) + calculate endDate
   if (status === 'approved') {
     const slot = banner.slot as unknown as TBannerSlot;
     const now = new Date();
-    const endDate = new Date(now);
+    const startDate =
+      banner.startDate && new Date(banner.startDate) > now
+        ? new Date(banner.startDate)
+        : now;
+
+    const endDate = new Date(startDate);
     endDate.setDate(endDate.getDate() + slot.durationDays);
 
-    // Check maxActive capacity
+    // Check maxActive capacity for overlapping period
     const activeCount = await Banner.countDocuments({
       _id: { $ne: bannerId },
       slot: banner.slot,
       status: 'approved',
       isActive: true,
       isDeleted: { $ne: true },
-      startDate: { $lte: now },
-      endDate: { $gte: now },
+      startDate: { $lte: endDate },
+      endDate: { $gte: startDate },
     });
     if (activeCount >= slot.maxActive) {
       throw new AppError(
@@ -342,7 +348,7 @@ const adminUpdateBannerStatusInDB = async (
       );
     }
 
-    updateData.startDate = now;
+    updateData.startDate = startDate;
     updateData.endDate = endDate;
   }
 

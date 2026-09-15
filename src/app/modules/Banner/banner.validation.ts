@@ -35,6 +35,7 @@ export const bookBannerSchema = z.object({
   slot: z.string().min(1, 'Slot ID is required'),
   title: z.string().min(1, 'Banner title is required'),
   link: z.string().optional(),
+  startDate: z.string().optional(),
 });
 
 export const createAdminBannerSchema = z.object({

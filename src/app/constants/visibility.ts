@@ -4,12 +4,13 @@
 // ──────────────────────────────────────────────────────────
 
 export const VISIBILITY_POINTS = {
-  BUSINESS_VERIFICATION: 25, // Get a verified badge
-  SERVICES_VARIETY: 20,      // Create services in 3 different categories
-  PACKAGES_PRICING: 20,      // Set up detailed service packages
-  ACTIVITY_ENGAGEMENT: 15,   // Login frequency, response time, portfolio updates
-  QUICK_QUOTES: 10,          // Respond quickly to customer requests
-  ADS_PROMOTION: 10,         // Launch first ad/promotion
+  PROFILE_COMPLETION: 40,    // Complete basic profile setup during registration
+  BUSINESS_VERIFICATION: 15, // Get a verified badge
+  SERVICES_VARIETY: 15,      // Create active service listings
+  PACKAGES_PRICING: 10,      // Set up detailed service packages
+  ACTIVITY_ENGAGEMENT: 10,   // Login frequency, response time, portfolio updates
+  QUICK_QUOTES: 5,           // Respond quickly to customer requests
+  ADS_PROMOTION: 5,          // Launch first ad/promotion
 } as const;
 
 export type VisibilityTaskKey = keyof typeof VISIBILITY_POINTS;
@@ -24,45 +25,52 @@ export interface IVisibilityTask {
 
 export const VISIBILITY_TASKS: IVisibilityTask[] = [
   {
+    key: 'PROFILE_COMPLETION',
+    label: 'Profile Setup & Registration',
+    description: 'Complete basic profile setup during registration',
+    points: 40,
+    icon: '📝',
+  },
+  {
     key: 'BUSINESS_VERIFICATION',
     label: 'Business Verification',
     description: 'Get a verified badge',
-    points: 25,
+    points: 15,
     icon: '🛡️',
   },
   {
     key: 'SERVICES_VARIETY',
     label: 'Services Variety',
-    description: 'Create services in 3 different categories',
-    points: 20,
+    description: 'Create active service listings',
+    points: 15,
     icon: '🛠️',
   },
   {
     key: 'PACKAGES_PRICING',
     label: 'Packages & Pricing',
     description: 'Set up detailed service packages',
-    points: 20,
+    points: 10,
     icon: '📦',
   },
   {
     key: 'ACTIVITY_ENGAGEMENT',
     label: 'Activity & Engagement',
     description: 'Login frequency, response time, portfolio updates',
-    points: 15,
+    points: 10,
     icon: '⚡',
   },
   {
     key: 'QUICK_QUOTES',
     label: 'Quick Quote Submissions',
     description: 'Respond quickly to customer requests',
-    points: 10,
+    points: 5,
     icon: '💬',
   },
   {
     key: 'ADS_PROMOTION',
     label: 'Get More Leads with Ads',
     description: 'Launch first ad/promotion',
-    points: 10,
+    points: 5,
     icon: '📢',
   },
 ];

@@ -15,8 +15,8 @@ let server: Server;
 async function main() {
   try {
     await mongoose.connect(config.database_url as string);
-    
-    await seedAdmin(); 
+
+    await seedAdmin();
 
     // Start scheduled cron jobs (Promotion & Banner expiry)
     startCronJobs();

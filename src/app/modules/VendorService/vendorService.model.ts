@@ -68,7 +68,7 @@ const vendorServiceSchema = new Schema<TVendorService>(
     isActive: { type: Boolean, default: true },
     isDraft: { type: Boolean, default: false },
     entireCity: { type: Boolean, default: false },
-       // ── Venue-only: auto-filled from vendor profile ──
+    // ── Venue-only: auto-filled from vendor profile ──
     location: {
       lat: { type: Number },
       long: { type: Number },
