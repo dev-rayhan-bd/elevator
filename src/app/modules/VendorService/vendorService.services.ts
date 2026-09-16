@@ -140,20 +140,35 @@ const getPublicVendorServicesFromDB = async (
 
     const targetAreaDoc = await ServiceArea.findById(targetAreaId).lean();
     if (targetAreaDoc) {
-      const allAreaQuery: Record<string, any> = {
-        name: { $regex: /^all/i },
-        _id: { $ne: targetAreaId },
-      };
-      if (targetAreaDoc.region) {
-        allAreaQuery.$or = [
-          { region: new RegExp(targetAreaDoc.region, 'i') },
-          { region: { $exists: false } },
-          { region: '' },
-        ];
-      }
-      const allAreaDocs = await ServiceArea.find(allAreaQuery).select('_id').lean();
-      for (const doc of allAreaDocs) {
-        areaMatchIds.push(doc._id as Types.ObjectId);
+      const isAllOption = /^all/i.test(targetAreaDoc.name.trim());
+
+      if (isAllOption) {
+        // User selected "All Karachi" -> Match ANY service area in the same region
+        const sameRegionQuery: Record<string, any> = { isActive: true };
+        if (targetAreaDoc.region) {
+          sameRegionQuery.region = new RegExp(targetAreaDoc.region, 'i');
+        }
+        const regionAreaDocs = await ServiceArea.find(sameRegionQuery).select('_id').lean();
+        for (const doc of regionAreaDocs) {
+          areaMatchIds.push(doc._id as Types.ObjectId);
+        }
+      } else {
+        // User selected a specific sub-area (e.g. Clifton) -> Match Clifton + "All Karachi"
+        const allAreaQuery: Record<string, any> = {
+          name: { $regex: /^all/i },
+          _id: { $ne: targetAreaId },
+        };
+        if (targetAreaDoc.region) {
+          allAreaQuery.$or = [
+            { region: new RegExp(targetAreaDoc.region, 'i') },
+            { region: { $exists: false } },
+            { region: '' },
+          ];
+        }
+        const allAreaDocs = await ServiceArea.find(allAreaQuery).select('_id').lean();
+        for (const doc of allAreaDocs) {
+          areaMatchIds.push(doc._id as Types.ObjectId);
+        }
       }
     }
 

@@ -58,7 +58,22 @@ const getAllServiceAreasWithQueryFromDB = async (query: Record<string, unknown>)
 };
 
 const getAllServiceAreasListFromDB = async () => {
-  const result = await ServiceArea.find({ isActive: true }).sort('name');
+  const result = await ServiceArea.aggregate([
+    { $match: { isActive: true } },
+    {
+      $addFields: {
+        isAll: {
+          $cond: [
+            { $regexMatch: { input: '$name', regex: /^all/i } },
+            0,
+            1,
+          ],
+        },
+      },
+    },
+    { $sort: { isAll: 1, name: 1 } },
+    { $project: { isAll: 0 } },
+  ]);
   return result;
 };
 
