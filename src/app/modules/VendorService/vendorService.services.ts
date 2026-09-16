@@ -13,6 +13,7 @@ import { UserServices } from '../User/user.services';
 import { VendorQuote } from '../VendorQuote/vendorQuote.model';
 import { Review } from '../Review/review.model';
 import { ServicePackage } from '../ServicePackage/package.model';
+import { ServiceArea } from '../ServiceArea/serviceArea.model';
 
 // ── Helper: split amenities into ObjectId refs + custom free-text ──
 const processAmenitiesInput = (amenities: any[]) => {
@@ -134,7 +135,29 @@ const getPublicVendorServicesFromDB = async (
   if (category) $match.category = new Types.ObjectId(category as string);
   if (subcategory) $match.subcategory = new Types.ObjectId(subcategory as string);
   if (area) {
-    $match.serviceAreas = { $in: [new Types.ObjectId(area as string)] };
+    const targetAreaId = new Types.ObjectId(area as string);
+    const areaMatchIds: Types.ObjectId[] = [targetAreaId];
+
+    const targetAreaDoc = await ServiceArea.findById(targetAreaId).lean();
+    if (targetAreaDoc) {
+      const allAreaQuery: Record<string, any> = {
+        name: { $regex: /^all/i },
+        _id: { $ne: targetAreaId },
+      };
+      if (targetAreaDoc.region) {
+        allAreaQuery.$or = [
+          { region: new RegExp(targetAreaDoc.region, 'i') },
+          { region: { $exists: false } },
+          { region: '' },
+        ];
+      }
+      const allAreaDocs = await ServiceArea.find(allAreaQuery).select('_id').lean();
+      for (const doc of allAreaDocs) {
+        areaMatchIds.push(doc._id as Types.ObjectId);
+      }
+    }
+
+    $match.serviceAreas = { $in: areaMatchIds };
   }
   if (eventTypes) {
     const etIds = Array.isArray(eventTypes)
