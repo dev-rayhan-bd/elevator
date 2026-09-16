@@ -60,7 +60,7 @@ const registerUser = async (payload: TUser) => {
   delete (payload as any).isDeleted;
   if (payload.vendor) {
     delete (payload.vendor as any).isVerifiedBadge;
-    payload.vendor.profileScore = 40; // Default score for new vendors
+    payload.vendor.profileScore = 20; // Default score for new vendors
     (payload.vendor as any).completedTasks = ['PROFILE_COMPLETION'];
     (payload.vendor as any).isProfileCompleted = true;
     delete (payload.vendor as any).passwordChangedAt;

@@ -4,12 +4,12 @@
 // ──────────────────────────────────────────────────────────
 
 export const VISIBILITY_POINTS = {
-  PROFILE_COMPLETION: 40,    // Complete basic profile setup during registration
-  BUSINESS_VERIFICATION: 15, // Get a verified badge
+  PROFILE_COMPLETION: 20,    // Complete basic profile setup during registration
+  BUSINESS_VERIFICATION: 25, // Get a verified badge
   SERVICES_VARIETY: 15,      // Create active service listings
-  PACKAGES_PRICING: 10,      // Set up detailed service packages
+  PACKAGES_PRICING: 15,      // Set up detailed service packages
   ACTIVITY_ENGAGEMENT: 10,   // Login frequency, response time, portfolio updates
-  QUICK_QUOTES: 5,           // Respond quickly to customer requests
+  QUICK_QUOTES: 10,          // Respond quickly to customer requests
   ADS_PROMOTION: 5,          // Launch first ad/promotion
 } as const;
 
@@ -28,14 +28,14 @@ export const VISIBILITY_TASKS: IVisibilityTask[] = [
     key: 'PROFILE_COMPLETION',
     label: 'Profile Setup & Registration',
     description: 'Complete basic profile setup during registration',
-    points: 40,
+    points: 20,
     icon: '📝',
   },
   {
     key: 'BUSINESS_VERIFICATION',
     label: 'Business Verification',
     description: 'Get a verified badge',
-    points: 15,
+    points: 25,
     icon: '🛡️',
   },
   {
@@ -49,7 +49,7 @@ export const VISIBILITY_TASKS: IVisibilityTask[] = [
     key: 'PACKAGES_PRICING',
     label: 'Packages & Pricing',
     description: 'Set up detailed service packages',
-    points: 10,
+    points: 15,
     icon: '📦',
   },
   {
@@ -63,7 +63,7 @@ export const VISIBILITY_TASKS: IVisibilityTask[] = [
     key: 'QUICK_QUOTES',
     label: 'Quick Quote Submissions',
     description: 'Respond quickly to customer requests',
-    points: 5,
+    points: 10,
     icon: '💬',
   },
   {

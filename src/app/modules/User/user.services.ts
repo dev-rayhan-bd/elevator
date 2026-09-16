@@ -88,7 +88,7 @@ const applyToBecomeVendor = async (userId: string, vendorData: any) => {
       status: 'pending',
       vendor: {
         ...vendorData,
-        profileScore: 40,
+        profileScore: 20,
         completedTasks: ['PROFILE_COMPLETION'],
         isProfileCompleted: true,
       }
