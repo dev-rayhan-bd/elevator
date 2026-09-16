@@ -5,6 +5,8 @@ import { TUser } from "../modules/User/user.interface";
 import { User } from "../modules/User/user.model";
 
 
+import { ServiceArea } from "../modules/ServiceArea/serviceArea.model";
+
 const seedAdmin = async () => {
 
   const superUser: Partial<TUser> = {
@@ -29,8 +31,19 @@ const seedAdmin = async () => {
     } else {
       console.log("ℹ️ Super Admin already exists. Skipping seed.");
     }
+
+    // Seed "All Karachi" ServiceArea if missing
+    const isAllKarachiExists = await ServiceArea.findOne({ name: 'All Karachi' });
+    if (!isAllKarachiExists) {
+      await ServiceArea.create({
+        name: 'All Karachi',
+        region: 'Karachi',
+        isActive: true,
+      });
+      console.log('✅ "All Karachi" ServiceArea seeded successfully!');
+    }
   } catch (error) {
-    console.error("❌ Error seeding Admin:", error);
+    console.error("❌ Error seeding Admin/Data:", error);
   }
 };
 
