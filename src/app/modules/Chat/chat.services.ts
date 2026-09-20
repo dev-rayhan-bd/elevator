@@ -88,12 +88,24 @@ const getMessagesFromDB = async (
   const limit = Math.min(100, Math.max(1, parseInt(query.limit || '50', 10)));
   const skip = (page - 1) * limit;
 
+  if (!Types.ObjectId.isValid(conversationId)) {
+    return {
+      conversationExists: false,
+      messages: [],
+      meta: { page, limit, total: 0, totalPages: 0 },
+    };
+  }
+
   const conversation = await Conversation.findOne({
     _id: conversationId,
     participants: userId,
   });
   if (!conversation) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Conversation not found');
+    return {
+      conversationExists: false,
+      messages: [],
+      meta: { page, limit, total: 0, totalPages: 0 },
+    };
   }
 
   const messages = await Message.find({ conversationId })
@@ -106,6 +118,7 @@ const getMessagesFromDB = async (
   const total = await Message.countDocuments({ conversationId });
 
   return {
+    conversationExists: true,
     messages: messages.reverse(),
     meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
   };

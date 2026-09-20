@@ -35,11 +35,26 @@ const getMessages = catchAsync(async (req: Request, res: Response) => {
     req.query as { page?: string; limit?: string },
   );
 
+  if (!result.conversationExists) {
+    return sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'No conversation found. Start chatting!',
+      data: {
+        messages: [],
+        meta: result.meta,
+      },
+    });
+  }
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'Messages retrieved successfully',
-    data: result,
+    data: {
+      messages: result.messages,
+      meta: result.meta,
+    },
   });
 });
 
