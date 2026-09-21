@@ -2,12 +2,14 @@
 /* eslint-disable no-unused-vars */
 import { ErrorRequestHandler } from 'express';
 import { ZodError } from 'zod'; 
+import { MulterError } from 'multer';
 import config from '../config';
 import { TErrorSources } from '../interface/error';
 import handleZodError from '../errors/handleZodError';
 import handleValidationError from '../errors/handleValidateError';
 import handleCastError from '../errors/handleCastError';
 import handleDuplicateError from '../errors/handleDuplicateError';
+import handleMulterError from '../errors/handleMulterError';
 import AppError from '../errors/AppError';
 
 
@@ -28,6 +30,11 @@ const globalErrorHandler: ErrorRequestHandler = (err, req, res, next): void => {
 
   if (err instanceof ZodError) {
     const simplifiedError = handleZodError(err);
+    statusCode = simplifiedError?.statusCode;
+    message = simplifiedError?.message;
+    errorSources = simplifiedError?.errorSources;
+  } else if (err instanceof MulterError || err?.name === 'MulterError') {
+    const simplifiedError = handleMulterError(err);
     statusCode = simplifiedError?.statusCode;
     message = simplifiedError?.message;
     errorSources = simplifiedError?.errorSources;

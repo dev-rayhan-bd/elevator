@@ -2,7 +2,8 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { UserServices } from './user.services';
 import uploadImage from '../../middleware/upload';
-import  httpStatus  from 'http-status';
+import httpStatus from 'http-status';
+import AppError from '../../errors/AppError';
 
 const getAllUsers = catchAsync(async (req, res) => {
   const result = await UserServices.getAllUsersFromDB(req.query);
@@ -34,20 +35,29 @@ const setupProfile = catchAsync(async (req, res) => {
 });
 
 const updatePortfolio = catchAsync(async (req, res) => {
-  const files = req.files as any;
-  const portfolioUrls = [];
+  const files = req.files as Express.Multer.File[];
   
-  if (files) {
-    for (const file of files) {
-      portfolioUrls.push(await uploadImage(req, file));
-    }
+  if (!files || files.length === 0) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Please select at least one image to upload with field name "portfolio"',
+    );
   }
 
+  const portfolioUrls = await Promise.all(
+    files.map((file) => uploadImage(req, file)),
+  );
+
   const result = await UserServices.updateProfileInDB(req.user.userId, {
-    $push: { 'vendor.portfolio': { $each: portfolioUrls } }
+    $push: { 'vendor.portfolio': { $each: portfolioUrls } },
   } as any);
 
-  sendResponse(res, { statusCode: 200, success: true, message: 'Portfolio updated', data: result });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Portfolio updated successfully',
+    data: result,
+  });
 });
 
 const updateAvailability = catchAsync(async (req, res) => {
