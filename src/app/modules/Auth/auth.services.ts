@@ -155,6 +155,11 @@ const loginUser = async (payload: { identifier: string; password: string; fcmTok
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
+  // Prevent Admins/SuperAdmins from logging in via the User/Vendor portal
+  if (user.role === 'admin' || user.role === 'superAdmin') {
+    throw new AppError(httpStatus.FORBIDDEN, 'Admin credentials are not allowed here. Please use the Admin Panel.');
+  }
+
   if (user.status === 'blocked') {
     throw new AppError(httpStatus.FORBIDDEN, 'Your account has been blocked by admin');
   }
