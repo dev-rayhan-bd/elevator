@@ -823,8 +823,14 @@ const getAdminVendorPerformanceStatsFromDB = async () => {
   ] = await Promise.all([
     User.countDocuments({ role: 'vendor', isDeleted: false }),
     User.countDocuments({ role: 'vendor', isDeleted: false, createdAt: { $lt: startOfThisMonth } }),
-    LeadClick.countDocuments({ type: { $in: ['phone', 'whatsapp'] } }),
-    LeadClick.countDocuments({ type: { $in: ['phone', 'whatsapp'] }, createdAt: { $lt: startOfThisMonth } }),
+    Promise.all([
+      LeadClick.countDocuments({ type: { $in: ['phone', 'whatsapp'] } }),
+      EventQuote.countDocuments()
+    ]).then(([clicks, quotes]) => clicks + quotes),
+    Promise.all([
+      LeadClick.countDocuments({ type: { $in: ['phone', 'whatsapp'] }, createdAt: { $lt: startOfThisMonth } }),
+      EventQuote.countDocuments({ createdAt: { $lt: startOfThisMonth } })
+    ]).then(([clicks, quotes]) => clicks + quotes),
     User.aggregate([
       { $match: { role: 'vendor', isDeleted: false } },
       { $group: { _id: null, avgScore: { $avg: '$vendor.profileScore' } } }
@@ -952,7 +958,7 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
     },
     {
       $addFields: {
-        totalLeads: { $size: '$clicks' },
+        totalLeads: { $add: [{ $size: '$clicks' }, { $size: '$quotes' }] },
         wonLeads: {
           $size: {
             $filter: {
@@ -1080,9 +1086,32 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
     }
   ];
 
+  const now = new Date();
+  const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
   const topPerformers = await User.aggregate([
     { $match: { role: 'vendor', isDeleted: { $ne: true } } },
-    ...aggregationPipeline.slice(1),
+    {
+      $lookup: {
+        from: 'leadclicks',
+        let: { vendorId: '$_id' },
+        pipeline: [
+          { $match: { $expr: { $eq: ['$vendor', '$$vendorId'] }, createdAt: { $gte: startOfThisMonth } } }
+        ],
+        as: 'clicks'
+      }
+    },
+    {
+      $lookup: {
+        from: 'eventquotes',
+        let: { vendorId: '$_id' },
+        pipeline: [
+          { $match: { $expr: { $eq: ['$vendor', '$$vendorId'] }, createdAt: { $gte: startOfThisMonth } } }
+        ],
+        as: 'quotes'
+      }
+    },
+    ...aggregationPipeline.slice(3),
     { $sort: { performanceScore: -1 } },
     { $limit: 3 },
     {
