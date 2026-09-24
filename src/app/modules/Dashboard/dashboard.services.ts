@@ -943,6 +943,14 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
       }
     },
     {
+      $lookup: {
+        from: 'reviews',
+        localField: '_id',
+        foreignField: 'vendor',
+        as: 'reviews'
+      }
+    },
+    {
       $addFields: {
         totalLeads: { $size: '$clicks' },
         wonLeads: {
@@ -954,13 +962,119 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
             }
           }
         },
+        activeDeals: {
+          $size: {
+            $filter: {
+              input: '$quotes',
+              as: 'q',
+              cond: { $eq: ['$$q.status', 'accepted'] }
+            }
+          }
+        },
+        customerSatisfaction: { 
+          $round: [{ $ifNull: [{ $avg: '$reviews.rating' }, 0] }, 1] 
+        },
         profileStrength: { $ifNull: ['$vendor.profileScore', 0] }
       }
     },
     {
+      $lookup: {
+        from: 'eventrequests',
+        localField: 'quotes.eventRequest',
+        foreignField: '_id',
+        as: 'requests'
+      }
+    },
+    {
       $addFields: {
+        conversionRate: {
+          $cond: {
+            if: { $gt: ['$totalLeads', 0] },
+            then: { 
+              $round: [
+                { $min: [100, { $multiply: [{ $divide: ['$wonLeads', '$totalLeads'] }, 100] }] }, 
+                0
+              ] 
+            },
+            else: 0
+          }
+        },
         performanceScore: {
           $add: ['$totalLeads', '$wonLeads', '$profileStrength']
+        },
+        responseTime: {
+          $let: {
+            vars: {
+              diffs: {
+                $filter: {
+                  input: {
+                    $map: {
+                      input: '$quotes',
+                      as: 'q',
+                      in: {
+                        $let: {
+                          vars: {
+                            req: {
+                              $arrayElemAt: [
+                                { $filter: { input: '$requests', as: 'r', cond: { $eq: ['$$r._id', '$$q.eventRequest'] } } },
+                                0
+                              ]
+                            }
+                          },
+                          in: {
+                            $cond: {
+                              if: '$$req',
+                              then: { $subtract: ['$$q.createdAt', '$$req.createdAt'] },
+                              else: null
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  as: 'd',
+                  cond: { $ne: ['$$d', null] }
+                }
+              }
+            },
+            in: {
+              $cond: {
+                if: { $gt: [{ $size: '$$diffs' }, 0] },
+                then: {
+                  $round: [{ $divide: [{ $avg: '$$diffs' }, 3600000] }, 1] // Convert ms to hours, 1 decimal place
+                },
+                else: 0
+              }
+            }
+          }
+        },
+        recentActivity: {
+          $slice: [
+            {
+              $sortArray: {
+                input: {
+                  $concatArrays: [
+                    {
+                      $map: {
+                        input: '$clicks',
+                        as: 'c',
+                        in: { title: 'New lead assigned', time: '$$c.createdAt' }
+                      }
+                    },
+                    {
+                      $map: {
+                        input: '$quotes',
+                        as: 'q',
+                        in: { title: 'Proposal sent to customer', time: '$$q.createdAt' }
+                      }
+                    }
+                  ]
+                },
+                sortBy: { time: -1 }
+              }
+            },
+            2 // Get top 2 recent activities
+          ]
         }
       }
     }
@@ -975,11 +1089,16 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
       $project: {
         firstName: 1,
         lastName: 1,
-        profileImage: 1,
+        image: 1,
         totalLeads: 1,
         wonLeads: 1,
         profileStrength: 1,
-        performanceScore: 1
+        performanceScore: 1,
+        conversionRate: 1,
+        customerSatisfaction: 1,
+        activeDeals: 1,
+        responseTime: 1,
+        recentActivity: 1
       }
     }
   ]);
@@ -995,13 +1114,18 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
         lastName: 1,
         email: 1,
         phoneNumber: 1,
-        profileImage: 1,
+        image: 1,
         createdAt: 1,
         isVerifiedBadge: '$vendor.isVerifiedBadge',
         totalLeads: 1,
         wonLeads: 1,
         profileStrength: 1,
-        performanceScore: 1
+        performanceScore: 1,
+        conversionRate: 1,
+        customerSatisfaction: 1,
+        activeDeals: 1,
+        responseTime: 1,
+        recentActivity: 1
       }
     }
   ]);

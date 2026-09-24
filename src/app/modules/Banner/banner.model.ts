@@ -28,7 +28,8 @@ const bannerSchema = new Schema<TBanner>(
   {
     vendor: { type: Schema.Types.ObjectId, ref: 'User', required: false },
     slot: { type: Schema.Types.ObjectId, ref: 'BannerSlot', required: true },
-    title: { type: String, required: true, trim: true },
+    title: { type: String, trim: true },
+    buttonText: { type: String, trim: true },
     image: { type: String, required: true },
     link: { type: String, trim: true },
     startDate: { type: Date },

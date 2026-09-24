@@ -126,14 +126,10 @@ const deletePromotionPlanFromDB = async (id: string) => {
   // Check if any vendor has purchased this specific plan tier
   const promotionCount = await VendorPromotion.countDocuments({ plan: new Types.ObjectId(id) });
   if (promotionCount > 0) {
-    // Soft-deactivate instead of hard-delete
-    const result = await PromotionPlan.findByIdAndUpdate(
-      id,
-      { isActive: false },
-      { new: true },
+    throw new AppError(
+      httpStatus.BAD_REQUEST, 
+      'This plan cannot be deleted because it has already been purchased by vendors.'
     );
-    if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Promotion plan not found');
-    return result;
   }
   const result = await PromotionPlan.findByIdAndDelete(id);
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Promotion plan not found');

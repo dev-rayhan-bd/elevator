@@ -32,7 +32,8 @@ export interface TBannerTracking {
 export interface TBanner {
   vendor?: Types.ObjectId;
   slot: Types.ObjectId;
-  title: string;
+  title?: string;
+  buttonText?: string;
   image: string;
   link?: string;
   startDate: Date;
