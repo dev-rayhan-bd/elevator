@@ -5,7 +5,7 @@ import { Inspiration } from './inspiration.model';
 import { User } from '../User/user.model';
 import { Types } from 'mongoose';
 import { sendNotificationToMultipleUsers } from '../../utils/sendNotification';
-import { ServiceCategory } from '../ServiceCategory/category.model';
+import { InspirationCategory } from '../InspirationCategory/inspirationCategory.model';
 
 // ── Admin: Create ──
 const createInspirationIntoDB = async (payload: Record<string, unknown>) => {
@@ -18,7 +18,7 @@ const createInspirationIntoDB = async (payload: Record<string, unknown>) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Vendor not found');
   }
 
-  const categoryExists = await ServiceCategory.findById(payload.category);
+  const categoryExists = await InspirationCategory.findById(payload.category);
   if (!categoryExists) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Category not found');
   }
@@ -67,7 +67,7 @@ const updateInspirationInDB = async (
 
   // If category is being changed, validate new category exists
   if (payload.category) {
-    const categoryExists = await ServiceCategory.findById(payload.category);
+    const categoryExists = await InspirationCategory.findById(payload.category);
     if (!categoryExists) {
       throw new AppError(httpStatus.BAD_REQUEST, 'Category not found');
     }

@@ -21,6 +21,7 @@ import { EventRequestRoutes } from '../modules/EventRequest/eventRequest.routes'
 import { EventQuoteRoutes } from '../modules/EventQuote/eventQuote.routes';
 import { VendorQuoteRoutes } from '../modules/VendorQuote/vendorQuote.routes';
 import { InspirationRoutes } from '../modules/Inspiration/inspiration.routes';
+import { InspirationCategoryRoutes } from '../modules/InspirationCategory/inspirationCategory.routes';
 import { BlogRoutes } from '../modules/Blog/blog/blog.routes';
 import { BlogCategoryRoutes } from '../modules/Blog/blogCategory/blogCategory.routes';
 import { BannerRoutes } from '../modules/Banner/banner.routes';
@@ -66,6 +67,7 @@ router.use('/event-request', EventRequestRoutes);
 router.use('/event-quote', EventQuoteRoutes);
 router.use('/vendor-quote', VendorQuoteRoutes);
 router.use('/inspiration', InspirationRoutes);
+router.use('/inspiration-category', InspirationCategoryRoutes);
 router.use('/blog', BlogRoutes);
 router.use('/blog-category', BlogCategoryRoutes);
 router.use('/banner', BannerRoutes);

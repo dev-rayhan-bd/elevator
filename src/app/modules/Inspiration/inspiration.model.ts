@@ -34,7 +34,7 @@ const inspirationSchema = new Schema<TInspiration>(
     },
     category: {
       type: Schema.Types.ObjectId,
-      ref: 'ServiceCategory',
+      ref: 'InspirationCategory',
       required: true,
     },
     isActive: {
