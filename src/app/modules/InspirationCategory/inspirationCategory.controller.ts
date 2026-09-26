@@ -3,6 +3,9 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { InspirationCategoryServices } from './inspirationCategory.services';
 import uploadImage from '../../middleware/upload';
+import { verifyToken } from '../Auth/auth.utils';
+import config from '../../config';
+import { Secret } from 'jsonwebtoken';
 
 // ── Create ──
 const createInspirationCategory = catchAsync(async (req, res) => {
@@ -67,7 +70,21 @@ const getSingleInspirationCategory = catchAsync(async (req, res) => {
 
 // ── Get All (Public) ──
 const getAllInspirationCategories = catchAsync(async (req, res) => {
-  const result = await InspirationCategoryServices.getAllInspirationCategoriesFromDB(req.query);
+  let isAdmin = false;
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    try {
+      const decoded = verifyToken(token, config.jwt_access_secret as Secret) as any;
+      if (decoded.role === 'admin' || decoded.role === 'superAdmin') {
+        isAdmin = true;
+      }
+    } catch (error) {
+      // ignore token error for optional auth
+    }
+  }
+
+  const result = await InspirationCategoryServices.getAllInspirationCategoriesFromDB(req.query, isAdmin);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

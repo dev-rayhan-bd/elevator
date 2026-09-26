@@ -37,9 +37,10 @@ const getSingleInspirationCategoryFromDB = async (id: string) => {
 };
 
 // ── Get All (Public — only active) ──
-const getAllInspirationCategoriesFromDB = async (query: Record<string, unknown>) => {
+const getAllInspirationCategoriesFromDB = async (query: Record<string, unknown>, isAdmin: boolean = false) => {
+  const filter = isAdmin ? {} : { isActive: true };
   const categoryQuery = new QueryBuilder(
-    InspirationCategory.find({ isActive: true }),
+    InspirationCategory.find(filter),
     query,
   )
     .search(['name', 'description'])
