@@ -86,6 +86,13 @@ app.get('/api/v1/test-ip', (req: Request, res: Response) => {
   });
 });
 
+// ── CMS Routes: larger body limit for rich text content (admin-only) ──
+const cmsJsonParser = express.json({ limit: '5mb' });
+const CMS_ROUTES = ['/about', '/privacy', '/refund-policy', '/cookie-policy', '/footer', '/terms', '/faq'];
+CMS_ROUTES.forEach((route) => {
+  app.use(`/api/v1${route}`, cmsJsonParser);
+});
+
 app.use('/api/v1', router);
 
 app.get('/', (req: Request, res: Response) => {

@@ -11,10 +11,10 @@ export const createPromotionPlanSchema = z.object({
   durationTitle: z
     .string()
     .min(1, 'Duration title is required')
-    .regex(durationTitleRegex, 'Duration title must be in format like "1 Week", "3 Months", "1 Year" (number + space + unit)'),
+    .regex(durationTitleRegex, 'Duration title must be in format like "1 Week", "2 Week","3 Months", "1 Year" (number + space + unit)'),
   durationDays: z.coerce.number().min(1, 'Duration must be at least 1 day'),
   originalPrice: z.coerce.number().min(0, 'Original price must be 0 or more'),
-  discountPercent: z.coerce.number().min(0).max(100, 'Discount percent must be 0-100'),
+  discountPercent: z.coerce.number().min(0).max(100, 'Discount percent must be 0-100'), 
   isPopular: z.boolean().optional(),
   isActive: z.boolean().optional(),
 });
@@ -24,7 +24,7 @@ export const updatePromotionPlanSchema = z.object({
   durationTitle: z
     .string()
     .min(1)
-    .regex(durationTitleRegex, 'Duration title must be in format like "1 Week", "3 Months", "1 Year" (number + space + unit)')
+    .regex(durationTitleRegex, 'Duration title must be in format like "1 Week","2 Week", "3 Months", "1 Year" (number + space + unit)')
     .optional(),
   durationDays: z.coerce.number().min(1).optional(),
   originalPrice: z.coerce.number().min(0).optional(),
