@@ -210,7 +210,7 @@ const getActiveBannersFromDB = async (query: Record<string, unknown>) => {
       endDate: { $gte: now },
     })
       .populate('slot', 'slotType title dimensions')
-      .select('title image link slot startDate endDate impressions clicks'),
+      .select('title buttonText image link slot startDate endDate impressions clicks'),
     query,
   )
     .filter()
@@ -218,7 +218,16 @@ const getActiveBannersFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .fields();
 
-  const result = await bannerQuery.modelQuery;
+  let result = await bannerQuery.modelQuery.lean();
+  
+  // Ensure optional fields are always present (even as empty strings) so the frontend doesn't crash or miss them
+  result = result.map((banner: any) => ({
+    ...banner,
+    title: banner.title || '',
+    buttonText: banner.buttonText || '',
+    link: banner.link || '',
+  }));
+
   const meta = await bannerQuery.countTotal();
 
   // Group by slotType for easy frontend consumption
