@@ -63,6 +63,7 @@ const globalErrorHandler: ErrorRequestHandler = (err, req, res, next): void => {
       },
     ];
   } else if (err instanceof Error) {
+    statusCode = (err as any)?.statusCode || (err as any)?.status || 500;
     message = err.message;
     errorSources = [
       {
