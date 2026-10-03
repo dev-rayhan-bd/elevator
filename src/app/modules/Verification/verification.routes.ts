@@ -7,7 +7,13 @@ import { VerificationControllers } from './verification.controller';
 import { VerificationValidations } from './verification.validation';
 
 const router = express.Router();
-const uploadDocs = upload.array('documents', 10) as unknown as RequestHandler;
+const uploadDocs = upload.fields([
+  { name: 'cnicFront', maxCount: 1 },
+  { name: 'cnicBack', maxCount: 1 },
+  { name: 'ntn', maxCount: 1 },
+  { name: 'incorporationCertificate', maxCount: 1 },
+  { name: 'documents', maxCount: 10 }
+]) as unknown as RequestHandler;
 
 // ══════════════════════════════════════════════
 //  VENDOR ROUTES

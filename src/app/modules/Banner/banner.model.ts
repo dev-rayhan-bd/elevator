@@ -7,7 +7,6 @@ const bannerSlotSchema = new Schema<TBannerSlot>(
     slotType: {
       type: String,
       required: true,
-      unique: true,
       enum: ['hero_main_week', 'hero_main_month'],
     },
     title: { type: String, required: true, trim: true },
@@ -21,7 +20,8 @@ const bannerSlotSchema = new Schema<TBannerSlot>(
   { timestamps: true },
 );
 
-bannerSlotSchema.index({ slotType: 1 }, { unique: true });
+// We removed the unique index for slotType so multiple slots can have the same type
+// bannerSlotSchema.index({ slotType: 1 }, { unique: true });
 
 // ── Banner Schema (Vendor bookings) ──
 const bannerSchema = new Schema<TBanner>(

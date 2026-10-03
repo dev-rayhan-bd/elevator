@@ -237,7 +237,16 @@ const purchasePromotionIntoDB = async (
 
 const purchaseVerifiedPromotionIntoDB = async (
   vendorId: string,
-  payload: { planId: string; documents: string[] },
+  payload: { 
+    planId: string; 
+    documents: string[];
+    cnicFront?: string;
+    cnicBack?: string;
+    businessName?: string;
+    fullAddress?: string;
+    ownerName?: string;
+    registeredPhone?: string;
+  },
 ) => {
   const plan = await PromotionPlan.findById(payload.planId);
   if (!plan || !plan.isActive) {
@@ -252,13 +261,8 @@ const purchaseVerifiedPromotionIntoDB = async (
     );
   }
 
-  // Documents are mandatory
-  if (!payload.documents || payload.documents.length === 0) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'At least one verification document is required',
-    );
-  }
+  // Note: For 'Paid Individual Verification', documents are optional.
+  // The vendor pays 6000 PKR to be verified individually.
 
   // Duplicate check — also block if there's a pending review
   const existingVerified = await VendorPromotion.findOne({
@@ -297,18 +301,42 @@ const purchaseVerifiedPromotionIntoDB = async (
 
   // ── Create/update Verification record (documents stored in Verification model) ──
   const existingVerification = await Verification.findOne({ vendor: vendorId });
+  const docs = payload.documents || [];
+  const notesText = docs.length > 0 
+    ? 'Submitted via verified promotion purchase with documents' 
+    : 'Paid Individual Verification (No Documents)';
+
   if (existingVerification) {
-    existingVerification.documents = payload.documents;
+    if (docs.length > 0) {
+      existingVerification.documents = docs;
+    }
+    if (payload.cnicFront) existingVerification.cnicFront = payload.cnicFront;
+    if (payload.cnicBack) existingVerification.cnicBack = payload.cnicBack;
+    
+    if (payload.businessName) existingVerification.businessName = payload.businessName;
+    if (payload.fullAddress) existingVerification.fullAddress = payload.fullAddress;
+    if (payload.ownerName) existingVerification.ownerName = payload.ownerName;
+    if (payload.registeredPhone) existingVerification.registeredPhone = payload.registeredPhone;
+
     existingVerification.status = 'pending';
     existingVerification.rejectedReason = undefined;
     existingVerification.verifiedBy = undefined;
     existingVerification.verifiedAt = undefined;
+    if (docs.length === 0 && !payload.cnicFront && !payload.cnicBack) {
+      existingVerification.notes = notesText;
+    }
     await existingVerification.save();
   } else {
     await Verification.create({
       vendor: new Types.ObjectId(vendorId),
-      documents: payload.documents,
-      notes: 'Submitted via verified promotion purchase',
+      documents: docs,
+      cnicFront: payload.cnicFront,
+      cnicBack: payload.cnicBack,
+      businessName: payload.businessName,
+      fullAddress: payload.fullAddress,
+      ownerName: payload.ownerName,
+      registeredPhone: payload.registeredPhone,
+      notes: notesText,
     });
   }
 

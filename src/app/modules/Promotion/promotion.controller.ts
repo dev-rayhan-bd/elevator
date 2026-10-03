@@ -90,21 +90,43 @@ const purchaseVerifiedPromotion = catchAsync(async (req: Request, res: Response)
   const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
 
   // Upload files to Cloudinary if present
-  const files = req.files as Express.Multer.File[] | undefined;
-  const uploadedUrls: string[] = [];
-  if (files && files.length > 0) {
-    for (const file of files) {
-      const url = await uploadImage(req, file);
-      uploadedUrls.push(url);
-    }
-  }
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+  const payload = { ...rawData };
 
-  // Merge uploaded URLs with any provided document URLs
-  const documents = [...(rawData.documents || []), ...uploadedUrls];
+  if (files) {
+    // Process distinct fields
+    if (files.cnicFront && files.cnicFront.length > 0) {
+      payload.cnicFront = await uploadImage(req, files.cnicFront[0]);
+    }
+    if (files.cnicBack && files.cnicBack.length > 0) {
+      payload.cnicBack = await uploadImage(req, files.cnicBack[0]);
+    }
+
+    // Process fallback/extra documents array
+    const uploadedUrls: string[] = [];
+    if (files.documents && files.documents.length > 0) {
+      for (const file of files.documents) {
+        const url = await uploadImage(req, file);
+        uploadedUrls.push(url);
+      }
+    }
+    payload.documents = [...(rawData.documents || []), ...uploadedUrls];
+  } else {
+    payload.documents = rawData.documents || [];
+  }
 
   const result = await PromotionServices.purchaseVerifiedPromotionIntoDB(
     vendorId,
-    { planId: rawData.planId, documents },
+    { 
+      planId: payload.planId, 
+      documents: payload.documents,
+      cnicFront: payload.cnicFront,
+      cnicBack: payload.cnicBack,
+      businessName: rawData.businessName,
+      fullAddress: rawData.fullAddress,
+      ownerName: rawData.ownerName,
+      registeredPhone: rawData.registeredPhone,
+    },
   );
   sendResponse(res, {
     statusCode: httpStatus.CREATED,

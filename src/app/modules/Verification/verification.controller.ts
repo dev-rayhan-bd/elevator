@@ -16,21 +16,36 @@ const submitVerification = catchAsync(async (req: Request, res: Response) => {
   const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
 
   // Upload files to Cloudinary if present
-  const files = req.files as Express.Multer.File[] | undefined;
-  const uploadedUrls: string[] = [];
-  if (files && files.length > 0) {
-    for (const file of files) {
-      const url = await uploadImage(req, file);
-      uploadedUrls.push(url);
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+  const payload = { ...rawData };
+  
+  if (files) {
+    // Process single distinct fields
+    const distinctFields = ['cnicFront', 'cnicBack', 'ntn', 'incorporationCertificate'];
+    for (const field of distinctFields) {
+      if (files[field] && files[field].length > 0) {
+        payload[field] = await uploadImage(req, files[field][0]);
+      }
     }
+
+    // Process fallback/extra documents array
+    const uploadedUrls: string[] = [];
+    if (files.documents && files.documents.length > 0) {
+      for (const file of files.documents) {
+        const url = await uploadImage(req, file);
+        uploadedUrls.push(url);
+      }
+    }
+    payload.documents = [...(rawData.documents || []), ...uploadedUrls];
+  } else {
+    payload.documents = rawData.documents || [];
   }
 
-  const documents = [...(rawData.documents || []), ...uploadedUrls];
-  if (documents.length === 0) {
-    throw new Error('At least one document is required (upload or provide URL)');
+  // Ensure at least some document or specific field was provided
+  const hasSpecificDocs = payload.cnicFront || payload.cnicBack || payload.ntn || payload.incorporationCertificate;
+  if (!hasSpecificDocs && payload.documents.length === 0) {
+    throw new Error('At least one document (or specific document field) is required');
   }
-
-  const payload = { ...rawData, documents };
 
   const result = await VerificationServices.submitVerificationIntoDB(
     vendorId,
