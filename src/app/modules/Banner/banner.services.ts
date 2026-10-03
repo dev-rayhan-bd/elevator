@@ -20,24 +20,13 @@ const expireOverdueBanners = async () => {
 // ══════════════════════════════════════════════
 
 const createSlotIntoDB = async (payload: TBannerSlot) => {
-  const existing = await BannerSlot.findOne({ slotType: payload.slotType });
-  if (existing) {
-    throw new AppError(httpStatus.CONFLICT, 'Slot type already exists');
-  }
+  // Uniqueness check removed: allowing multiple slots per slotType
   const result = await BannerSlot.create(payload);
   return result;
 };
 
 const updateSlotInDB = async (id: string, payload: Partial<TBannerSlot>) => {
-  if (payload.slotType) {
-    const duplicate = await BannerSlot.findOne({
-      slotType: payload.slotType,
-      _id: { $ne: id },
-    });
-    if (duplicate) {
-      throw new AppError(httpStatus.CONFLICT, 'Slot type already taken');
-    }
-  }
+  // Uniqueness check removed: allowing multiple slots per slotType
   const result = await BannerSlot.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,

@@ -2,6 +2,14 @@ import { z } from 'zod';
 
 export const submitVerificationSchema = z.object({
   documents: z.array(z.string()).optional(),
+  cnicFront: z.string().optional(),
+  cnicBack: z.string().optional(),
+  ntn: z.string().optional(),
+  incorporationCertificate: z.string().optional(),
+  businessName: z.string().optional(),
+  fullAddress: z.string().optional(),
+  ownerName: z.string().optional(),
+  registeredPhone: z.string().optional(),
   notes: z.string().optional(),
 });
 

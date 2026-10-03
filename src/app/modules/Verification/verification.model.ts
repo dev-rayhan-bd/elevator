@@ -13,6 +13,15 @@ const verificationSchema = new Schema<TVerification>(
       type: [String],
       default: [],
     },
+    cnicFront: { type: String },
+    cnicBack: { type: String },
+    ntn: { type: String },
+    incorporationCertificate: { type: String },
+    // Text fields for admin review
+    businessName: { type: String },
+    fullAddress: { type: String },
+    ownerName: { type: String },
+    registeredPhone: { type: String },
     status: {
       type: String,
       enum: ['pending', 'verified', 'rejected'],

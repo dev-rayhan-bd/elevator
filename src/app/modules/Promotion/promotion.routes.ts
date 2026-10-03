@@ -7,7 +7,11 @@ import { PromotionControllers } from './promotion.controller';
 import { PromotionValidations } from './promotion.validation';
 
 const router = express.Router();
-const uploadDocs = upload.array('documents', 10) as unknown as RequestHandler;
+const uploadDocs = upload.fields([
+  { name: 'cnicFront', maxCount: 1 },
+  { name: 'cnicBack', maxCount: 1 },
+  { name: 'documents', maxCount: 10 }
+]) as unknown as RequestHandler;
 
 // ══════════════════════════════════════════════
 //  PUBLIC ROUTES
