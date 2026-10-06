@@ -315,4 +315,33 @@ router.patch(
   VendorServiceControllers.adminToggleServiceStatus,
 );
 
+router.patch(
+  '/admin/:id/approval',
+  /*
+    #swagger.tags = ['VendorService']
+    #swagger.summary = 'Approve or reject vendor service (Admin)'
+    #swagger.description = 'Admin can approve or reject a vendor service. If rejected, rejectionReason is required.'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        $status: 'approved',
+        rejectionReason: 'Reason for rejection'
+      }
+    }
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  VendorServiceControllers.adminReviewService,
+);
+
+router.patch(
+  '/admin/:id/review',
+  /*
+    #swagger.tags = ['VendorService']
+    #swagger.summary = 'Approve or reject vendor service alias (Admin)'
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  VendorServiceControllers.adminReviewService,
+);
+
 export const VendorServiceRoutes = router;

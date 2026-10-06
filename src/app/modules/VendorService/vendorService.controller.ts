@@ -223,6 +223,26 @@ const adminToggleServiceStatus = catchAsync(async (req, res) => {
   });
 });
 
+const adminReviewService = catchAsync(async (req, res) => {
+  const adminId = (req.user as any)?.userId;
+  const validated = VendorServiceValidations.adminReviewServiceSchema.parse({
+    body: req.body,
+  });
+
+  const result = await VendorServiceServices.adminReviewServiceInDB(
+    req.params.id,
+    adminId,
+    validated.body,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Service ${validated.body.status === 'approved' ? 'approved' : 'rejected'} successfully`,
+    data: result,
+  });
+});
+
 const deleteServiceImages = catchAsync(async (req, res) => {
   const { images } = req.body;
   if (!images || !Array.isArray(images) || images.length === 0) {
@@ -514,9 +534,15 @@ const getKarachiVenues = catchAsync(async (req, res) => {
 // ══════════════════════════════════════════════
 
 const trackContactClick = catchAsync(async (req, res) => {
-  const { vendorId, type } = req.body;
+  const { vendorId, type, contactType, serviceId, pageSource } = req.body;
   const userId = (req.user as any)?.userId;
-  await VendorServiceServices.trackContactClickInDB(vendorId, type, userId);
+  await VendorServiceServices.trackContactClickInDB(
+    vendorId,
+    type || contactType || 'whatsapp',
+    userId,
+    serviceId,
+    pageSource,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -545,7 +571,7 @@ const getLeadStats = catchAsync(async (req, res) => {
 // ══════════════════════════════════════════════
 
 const trackServiceView = catchAsync(async (req, res) => {
-  const { vendorId, serviceId, type } = req.body;
+  const { vendorId, serviceId, packageId, type } = req.body;
   const userId = (req.user as any)?.userId;
 
   const metadata = {
@@ -560,8 +586,9 @@ const trackServiceView = catchAsync(async (req, res) => {
     vendorId,
     serviceId,
     userId,
-    type || 'service',
+    type || (packageId ? 'package' : 'service'),
     metadata,
+    packageId,
   );
 
   sendResponse(res, {
@@ -613,6 +640,7 @@ export const VendorServiceControllers = {
   updateVendorService,
   deleteVendorService,
   adminToggleServiceStatus,
+  adminReviewService,
   deleteServiceImages,
   getMyServicesList,
   saveDraft,

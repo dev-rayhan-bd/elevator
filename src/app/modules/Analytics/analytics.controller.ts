@@ -42,7 +42,25 @@ const getVendorPerformance = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * GET /analytics/vendor/top-packages
+ * Returns: Top 5 performing packages with views and inquiries
+ */
+const getTopPerformingPackages = catchAsync(async (req, res) => {
+  const vendorId = req.user.userId;
+
+  const result = await AnalyticsServices.getTopPerformingPackages(vendorId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Top performing packages retrieved successfully',
+    data: result,
+  });
+});
+
 export const AnalyticsControllers = {
   getVendorAnalytics,
   getVendorPerformance,
+  getTopPerformingPackages,
 };

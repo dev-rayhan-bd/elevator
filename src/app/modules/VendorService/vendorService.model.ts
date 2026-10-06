@@ -65,8 +65,24 @@ const vendorServiceSchema = new Schema<TVendorService>(
         return !this.isDraft;
       },
     },
-    isActive: { type: Boolean, default: true },
+    isActive: { type: Boolean, default: false },
     isDraft: { type: Boolean, default: false },
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending',
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
+    },
+    approvedAt: {
+      type: Date,
+    },
+    approvedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
     entireCity: { type: Boolean, default: false },
     // ── Venue-only: auto-filled from vendor profile ──
     location: {
@@ -87,6 +103,8 @@ vendorServiceSchema.index({ isActive: 1, isDraft: 1, price: 1 });
 vendorServiceSchema.index({ isActive: 1, isDraft: 1, createdAt: -1 });
 // ── Vendor-specific queries ──
 vendorServiceSchema.index({ vendor: 1, isActive: 1 });
+vendorServiceSchema.index({ status: 1 });
+vendorServiceSchema.index({ vendor: 1, status: 1 });
 // ── Karachi Venue Map — aggregation support indexes ──
 vendorServiceSchema.index({ isActive: 1, isDraft: 1, guestCapacity: 1 });
 vendorServiceSchema.index({ isActive: 1, isDraft: 1, amenities: 1 });

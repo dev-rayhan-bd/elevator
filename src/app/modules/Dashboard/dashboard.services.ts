@@ -16,6 +16,7 @@ import { VendorService } from '../VendorService/vendorService.model';
 import { EventRequest } from '../EventRequest/eventRequest.model';
 import { Dispute } from '../Dispute/dispute.model';
 import { Banner, BannerSlot } from '../Banner/banner.model';
+import { expireOverdueBanners } from '../Banner/banner.services';
 import {
   IDashboardResult,
   IDashboardKPI,
@@ -721,6 +722,8 @@ const getAllUpcomingEventsFromDB = async (vendorId: string, query: Record<string
 };
 
 const getVendorMarketingStatsFromDB = async (vendorId: string) => {
+  await expireOverdueBanners();
+
   const vid = new Types.ObjectId(vendorId);
 
   // Get vendor's banners

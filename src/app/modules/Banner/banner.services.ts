@@ -9,7 +9,11 @@ import { TBanner, TBannerSlot } from './banner.interface';
 const expireOverdueBanners = async () => {
   const now = new Date();
   const result = await Banner.updateMany(
-    { endDate: { $lte: now }, status: 'approved', isActive: true, isDeleted: { $ne: true } },
+    {
+      endDate: { $lte: now },
+      status: { $nin: ['expired', 'rejected'] },
+      isDeleted: { $ne: true },
+    },
     { $set: { status: 'expired', isActive: false } },
   );
   return result;
@@ -54,6 +58,8 @@ const deleteSlotFromDB = async (id: string) => {
 };
 
 const getAllSlotsFromDB = async (query: Record<string, unknown>) => {
+  await expireOverdueBanners();
+
   const slotQuery = new QueryBuilder(BannerSlot.find(), query)
     .filter()
     .sort()
@@ -75,10 +81,14 @@ const getAllSlotsFromDB = async (query: Record<string, unknown>) => {
         endDate: { $gte: now },
       });
 
+      const remaining = Math.max(0, slot.maxActive - activeCount);
+
       return {
         ...slot.toObject(),
         totalActive: activeCount,
-        remaining: Math.max(0, slot.maxActive - activeCount),
+        occupiedSlots: activeCount,
+        remaining,
+        availableSlots: remaining,
       };
     }),
   );
@@ -231,6 +241,8 @@ const getActiveBannersFromDB = async (query: Record<string, unknown>) => {
 };
 
 const getAvailableSlotsFromDB = async () => {
+  await expireOverdueBanners();
+
   const slots = await BannerSlot.find({ isActive: true }).lean();
   const totalSlot = await BannerSlot.countDocuments();
 
@@ -246,10 +258,14 @@ const getAvailableSlotsFromDB = async () => {
         endDate: { $gte: now },
       });
 
+      const remaining = Math.max(0, slot.maxActive - activeCount);
+
       return {
         ...slot,
         totalActive: activeCount,
-        remaining: Math.max(0, slot.maxActive - activeCount),
+        occupiedSlots: activeCount,
+        remaining,
+        availableSlots: remaining,
       };
     }),
   );

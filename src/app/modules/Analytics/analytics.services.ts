@@ -287,63 +287,85 @@ const getVendorPerformance = async (vendorId: string): Promise<IPerformanceResul
   };
 };
 
-// ── Top Packages: find vendor packages → match services → count won quotes ──
+// ── Top Packages: aggregate views + inquiries per package ──
 async function getTopPackages(vendorId: Types.ObjectId): Promise<ITopPackage[]> {
   // Get all active packages for this vendor
   const packages = await ServicePackage.find({ vendor: vendorId, isActive: true }).lean();
 
   if (packages.length === 0) return [];
 
-  // For each package, aggregate won VendorQuotes for its services
+  // For each package, aggregate views and inquiries
   const results = await Promise.all(
     packages.map(async (pkg) => {
       // Package features = service IDs
       const serviceIds = (pkg.features || []).map((f) => new Types.ObjectId(String(f)));
 
-      if (serviceIds.length === 0) {
-        return {
-          rank: 0,
-          packageId: String(pkg._id),
-          packageType: pkg.packageType,
-          title: pkg.title,
-          bookings: 0,
-          revenue: 0,
-        };
+      // Views: direct package views + views of services in this package
+      const viewConditions: Record<string, any>[] = [{ package: pkg._id }];
+      if (serviceIds.length > 0) {
+        viewConditions.push({ service: { $in: serviceIds } });
       }
 
-      // Count won quotes for services in this package
-      const agg = await VendorQuote.aggregate([
-        {
-          $match: {
-            vendor: vendorId,
-            service: { $in: serviceIds },
-            status: 'won',
-            isDeleted: false,
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            bookings: { $sum: 1 },
-            revenue: { $sum: { $ifNull: ['$finalAmount', '$budget'] } },
-          },
-        },
+      const [viewCount, quoteCount, leadCount, wonQuoteAgg] = await Promise.all([
+        ServiceView.countDocuments({
+          $or: viewConditions,
+          user: { $ne: vendorId },
+        }),
+        serviceIds.length > 0
+          ? VendorQuote.countDocuments({
+              vendor: vendorId,
+              service: { $in: serviceIds },
+              isDeleted: false,
+            })
+          : 0,
+        serviceIds.length > 0
+          ? LeadClick.countDocuments({
+              vendor: vendorId,
+              $or: [{ service: { $in: serviceIds } }, { pageSource: 'package_details' }],
+            })
+          : LeadClick.countDocuments({
+              vendor: vendorId,
+              pageSource: 'package_details',
+            }),
+        serviceIds.length > 0
+          ? VendorQuote.aggregate([
+              {
+                $match: {
+                  vendor: vendorId,
+                  service: { $in: serviceIds },
+                  status: 'won',
+                  isDeleted: false,
+                },
+              },
+              {
+                $group: {
+                  _id: null,
+                  bookings: { $sum: 1 },
+                  revenue: { $sum: { $ifNull: ['$finalAmount', '$budget'] } },
+                },
+              },
+            ])
+          : [],
       ]);
+
+      const totalInquiries = quoteCount + leadCount;
 
       return {
         rank: 0, // assigned after sorting
         packageId: String(pkg._id),
         packageType: pkg.packageType,
         title: pkg.title,
-        bookings: agg[0]?.bookings ?? 0,
-        revenue: agg[0]?.revenue ?? 0,
+        views: viewCount,
+        inquiries: totalInquiries,
+        bookings: wonQuoteAgg[0]?.bookings ?? 0,
+        revenue: wonQuoteAgg[0]?.revenue ?? 0,
       };
     }),
   );
 
-  // Sort by bookings DESC, take top 5, assign rank
+  // Sort by views DESC, then inquiries DESC, take top 5, assign rank
   return results
-    .sort((a, b) => b.bookings - a.bookings)
+    .sort((a, b) => b.views - a.views || b.inquiries - a.inquiries)
     .slice(0, 5)
     .map((r, i) => ({ ...r, rank: i + 1 }));
 }
@@ -353,7 +375,7 @@ async function getTopServices(vendorId: Types.ObjectId): Promise<ITopService[]> 
   const results = await VendorService.aggregate([
     { $match: { vendor: vendorId, isActive: true, isDraft: false } },
 
-    // Count unique views
+    // Count all views for this service (excluding vendor self-views)
     {
       $lookup: {
         from: 'serviceviews',
@@ -362,13 +384,13 @@ async function getTopServices(vendorId: Types.ObjectId): Promise<ITopService[]> 
           {
             $match: {
               $expr: { $eq: ['$service', '$$serviceId'] },
-              type: 'service',
+              user: { $ne: vendorId },
             },
           },
           {
             $group: {
               _id: null,
-              views: { $sum: { $cond: ['$isUnique', 1, 0] } },
+              views: { $sum: 1 },
             },
           },
         ],
@@ -376,7 +398,7 @@ async function getTopServices(vendorId: Types.ObjectId): Promise<ITopService[]> 
       },
     },
 
-    // Count inquiries (VendorQuotes)
+    // Count inquiries from VendorQuotes
     {
       $lookup: {
         from: 'vendorquotes',
@@ -390,18 +412,41 @@ async function getTopServices(vendorId: Types.ObjectId): Promise<ITopService[]> 
           },
           { $count: 'count' },
         ],
-        as: 'inquiryData',
+        as: 'quoteData',
+      },
+    },
+
+    // Count inquiries from LeadClicks (WhatsApp/Phone/Message clicks)
+    {
+      $lookup: {
+        from: 'leadclicks',
+        let: { serviceId: '$_id' },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ['$service', '$$serviceId'] },
+            },
+          },
+          { $count: 'count' },
+        ],
+        as: 'leadData',
       },
     },
 
     {
       $addFields: {
         views: { $ifNull: [{ $arrayElemAt: ['$viewData.views', 0] }, 0] },
-        inquiries: { $ifNull: [{ $arrayElemAt: ['$inquiryData.count', 0] }, 0] },
+        quoteCount: { $ifNull: [{ $arrayElemAt: ['$quoteData.count', 0] }, 0] },
+        leadCount: { $ifNull: [{ $arrayElemAt: ['$leadData.count', 0] }, 0] },
+      },
+    },
+    {
+      $addFields: {
+        inquiries: { $add: ['$quoteCount', '$leadCount'] },
       },
     },
 
-    { $sort: { views: -1 } },
+    { $sort: { views: -1, inquiries: -1, createdAt: -1 } },
     { $limit: 5 },
     {
       $project: {
@@ -515,7 +560,13 @@ async function getRecentClicks(vendorId: Types.ObjectId): Promise<IRecentClick[]
   }));
 }
 
+const getTopPerformingPackages = async (vendorId: string): Promise<ITopPackage[]> => {
+  const vid = new Types.ObjectId(vendorId);
+  return getTopPackages(vid);
+};
+
 export const AnalyticsServices = {
   getVendorAnalytics,
   getVendorPerformance,
+  getTopPerformingPackages,
 };

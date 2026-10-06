@@ -5,10 +5,11 @@ const serviceViewSchema = new Schema<TServiceView>(
   {
     vendor: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     service: { type: Schema.Types.ObjectId, ref: 'VendorService' },
+    package: { type: Schema.Types.ObjectId, ref: 'ServicePackage' },
     user: { type: Schema.Types.ObjectId, ref: 'User' },
     type: {
       type: String,
-      enum: ['profile', 'service'],
+      enum: ['profile', 'service', 'package'],
       default: 'service',
     },
     ip: { type: String },
@@ -23,6 +24,7 @@ const serviceViewSchema = new Schema<TServiceView>(
 serviceViewSchema.index({ vendor: 1, createdAt: -1 });
 serviceViewSchema.index({ vendor: 1, type: 1, createdAt: -1 });
 serviceViewSchema.index({ service: 1, createdAt: -1 });
+serviceViewSchema.index({ package: 1, createdAt: -1 });
 serviceViewSchema.index({ vendor: 1, ip: 1, type: 1, createdAt: -1 });
 serviceViewSchema.index({ vendor: 1, type: 1, isUnique: 1, createdAt: -1 });
 

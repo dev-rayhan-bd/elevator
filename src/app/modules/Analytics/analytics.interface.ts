@@ -26,12 +26,14 @@ export interface IAdsPerformanceRow {
 
 // ── Top Performing Packages ──
 export interface ITopPackage {
-  rank: number;           // #1, #2, #3…
+  rank: number; // #1, #2, #3…
   packageId: string;
-  packageType: string;    // 'basic' | 'standard' | 'premium'
-  title: string;          // package title e.g. "Premium Wedding"
-  bookings: number;       // won quotes for services in this package
-  revenue: number;        // sum of finalAmount || budget for won quotes
+  packageType: string; // 'basic' | 'standard' | 'premium'
+  title: string; // package title e.g. "Premium Wedding"
+  views: number; // total views
+  inquiries: number; // total inquiries
+  bookings?: number; // won quotes (optional legacy)
+  revenue?: number; // sum of finalAmount || budget for won quotes (optional legacy)
 }
 
 // ── Top Performing Services ──

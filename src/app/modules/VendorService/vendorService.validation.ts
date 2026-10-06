@@ -162,6 +162,32 @@ export const venueSearchQuerySchema = z.object({
   limit: z.string().optional(),
 });
 
+// ── Admin Service Approval / Rejection ──
+export const adminReviewServiceSchema = z.object({
+  body: z
+    .object({
+      status: z.enum(['approved', 'rejected'], {
+        required_error: 'Status is required (approved or rejected)',
+      }),
+      rejectionReason: z.string().optional(),
+    })
+    .refine(
+      (data) => {
+        if (
+          data.status === 'rejected' &&
+          (!data.rejectionReason || data.rejectionReason.trim().length === 0)
+        ) {
+          return false;
+        }
+        return true;
+      },
+      {
+        message: 'Rejection reason is required when rejecting a service',
+        path: ['rejectionReason'],
+      },
+    ),
+});
+
 export const VendorServiceValidations = {
   createVendorServiceSchema,
   updateVendorServiceSchema,
@@ -170,4 +196,5 @@ export const VendorServiceValidations = {
   draftVendorServiceSchema,
   publishDraftSchema,
   venueSearchQuerySchema,
+  adminReviewServiceSchema,
 };

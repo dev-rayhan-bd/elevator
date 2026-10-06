@@ -1,6 +1,7 @@
 import { Types } from 'mongoose';
 
 export type TPricingType = 'fixed' | 'starting from' | 'per head';
+export type TVendorServiceStatus = 'pending' | 'approved' | 'rejected';
 
 export interface TVendorService {
   vendor: Types.ObjectId;
@@ -20,7 +21,11 @@ export interface TVendorService {
   isActive: boolean;
   isDraft?: boolean;
   entireCity?: boolean;
-    location?: {
+  status?: TVendorServiceStatus;
+  rejectionReason?: string;
+  approvedAt?: Date;
+  approvedBy?: Types.ObjectId;
+  location?: {
     lat: number;
     long: number;
     address?: string;

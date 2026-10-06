@@ -6,7 +6,7 @@ import { VendorService } from './vendorService.model';
 import { User } from '../User/user.model';
 import { ReviewServices } from '../Review/review.services';
 import { VendorPromotion } from '../Promotion/promotion.model';
-import { sendNotification } from '../../utils/sendNotification';
+import { sendNotification, sendNotificationToAdmins } from '../../utils/sendNotification';
 import { LeadClick } from './leadClick.model';
 import { ServiceView } from './serviceView.model';
 import { UserServices } from '../User/user.services';
@@ -130,7 +130,11 @@ const getPublicVendorServicesFromDB = async (
   // ──────────────────────────────────────────────────────
   //  2. Build $match stage (VendorService fields)
   // ──────────────────────────────────────────────────────
-  const $match: Record<string, any> = { isActive: true, isDraft: { $ne: true } };
+  const $match: Record<string, any> = {
+    isActive: true,
+    isDraft: { $ne: true },
+    status: { $nin: ['pending', 'rejected'] },
+  };
 
   if (category) $match.category = new Types.ObjectId(category as string);
   if (subcategory) $match.subcategory = new Types.ObjectId(subcategory as string);
@@ -656,6 +660,8 @@ const createVendorServiceIntoDB = async (
     ...rest,
     vendor: new Types.ObjectId(vendorId),
     isDraft: false,
+    status: 'pending',
+    isActive: false,
   };
 
   const customList: string[] = [];
@@ -677,6 +683,18 @@ const createVendorServiceIntoDB = async (
 
   // Trigger visibility score recalculation for Services Variety task
   void UserServices.calculateAndUpdateVisibilityScore(vendorId);
+
+  // Notify admins of new pending service
+  try {
+    void sendNotificationToAdmins(
+      'New Service Pending Review',
+      `A vendor has submitted service "${result.title || 'Untitled'}" for admin review.`,
+      'service',
+      { serviceId: result._id.toString() },
+    );
+  } catch (err) {
+    console.error('Failed to notify admins of new service:', err);
+  }
 
   return result;
 };
@@ -724,6 +742,31 @@ const updateVendorServiceInDB = async (
 
   if (updateCustom) {
     updateData.customAmenities = [...new Set(customList)];
+  }
+
+  // Prevent vendor from forging approval status
+  delete updateData.status;
+  delete updateData.approvedBy;
+  delete updateData.approvedAt;
+
+  // If service was rejected and vendor updates it, automatically re-submit for review
+  if (service.status === 'rejected') {
+    updateData.status = 'pending';
+    updateData.rejectionReason = '';
+    updateData.isActive = false;
+    try {
+      void sendNotificationToAdmins(
+        'Rejected Service Updated for Re-review',
+        `Vendor updated rejected service "${service.title || 'Service'}" and re-submitted it for review.`,
+        'service',
+        { serviceId: service._id.toString() },
+      );
+    } catch (err) {
+      console.error('Failed to notify admins of resubmitted service:', err);
+    }
+  } else if (service.status !== 'approved') {
+    // If pending or draft, vendor cannot force active
+    updateData.isActive = false;
   }
 
   // If images are provided, append them to existing images instead of replacing
@@ -852,6 +895,74 @@ const adminToggleServiceStatusInDB = async (
   return result;
 };
 
+const adminReviewServiceInDB = async (
+  serviceId: string,
+  adminId: string,
+  payload: {
+    status: 'approved' | 'rejected';
+    rejectionReason?: string;
+  },
+) => {
+  const service = await VendorService.findById(serviceId);
+  if (!service) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
+  }
+
+  if (service.isDraft) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Cannot review a draft service. It must be published first.',
+    );
+  }
+
+  if (payload.status === 'approved') {
+    service.status = 'approved';
+    service.isActive = true;
+    service.rejectionReason = undefined;
+    service.approvedAt = new Date();
+    service.approvedBy = new Types.ObjectId(adminId);
+  } else if (payload.status === 'rejected') {
+    service.status = 'rejected';
+    service.isActive = false;
+    service.rejectionReason = payload.rejectionReason;
+    service.approvedAt = undefined;
+    service.approvedBy = undefined;
+  }
+
+  await service.save();
+
+  // Trigger visibility score recalculation for vendor
+  void UserServices.calculateAndUpdateVisibilityScore(service.vendor.toString());
+
+  // Notify vendor of approval or rejection
+  try {
+    if (payload.status === 'approved') {
+      void sendNotification(
+        service.vendor.toString(),
+        'Service Approved! 🎉',
+        `Your service "${service.title || 'Service'}" has been approved by admin and is now live.`,
+        'service',
+        { serviceId: service._id.toString() },
+      );
+    } else {
+      void sendNotification(
+        service.vendor.toString(),
+        'Service Rejected',
+        `Your service "${service.title || 'Service'}" was rejected. Reason: ${payload.rejectionReason || 'Does not meet listing guidelines.'}`,
+        'service',
+        {
+          serviceId: service._id.toString(),
+          rejectionReason: payload.rejectionReason || '',
+        },
+      );
+    }
+  } catch (err) {
+    console.error('Failed to send review notification to vendor:', err);
+  }
+
+  return service;
+};
+
 const getMyServicesListFromDB = async (vendorId: string) => {
   const result = await VendorService.find({
     vendor: new Types.ObjectId(vendorId),
@@ -918,7 +1029,13 @@ const publishDraftFromDB = async (
 
   // Split amenities into ObjectId refs and custom text
   const { amenities: am, customAmenities: customAm, ...rest } = payload;
-  const updateData: any = { ...rest, isDraft: false };
+  const updateData: any = {
+    ...rest,
+    isDraft: false,
+    status: 'pending',
+    isActive: false,
+    rejectionReason: undefined,
+  };
   if (customAm !== undefined || am !== undefined) {
     const customList: string[] = [];
     if (customAm && Array.isArray(customAm)) {
@@ -938,8 +1055,20 @@ const publishDraftFromDB = async (
     { new: true, runValidators: true },
   );
 
-  // Trigger visibility score recalculation when draft goes live
+  // Trigger visibility score recalculation
   void UserServices.calculateAndUpdateVisibilityScore(vendorId);
+
+  // Notify admins of published service pending review
+  try {
+    void sendNotificationToAdmins(
+      'Service Published for Review',
+      `A vendor has published service "${result?.title || 'Service'}" and it is pending review.`,
+      'service',
+      { serviceId: draftId },
+    );
+  } catch (err) {
+    console.error('Failed to notify admins of published draft:', err);
+  }
 
   return result;
 };
@@ -956,7 +1085,11 @@ const deleteDraftFromDB = async (vendorId: string, draftId: string) => {
 
 const getAllPublishedServicesFromDB = async (query: Record<string, unknown>) => {
   const serviceQuery = new QueryBuilder(
-    VendorService.find({ isDraft: { $ne: true } })
+    VendorService.find({
+      isDraft: { $ne: true },
+      isActive: true,
+      status: { $nin: ['pending', 'rejected'] },
+    })
       .populate(
         'vendor',
         'firstName lastName fullName image lat long vendor.businessName vendor.location vendor.profileScore vendor.isVerifiedBadge',
@@ -1070,7 +1203,14 @@ const getRecentVendorsFromDB = async (query: Record<string, unknown>) => {
   // Enrich each vendor with their active service count
   const vendorIds = vendors.map((v) => v._id);
   const serviceCounts = await VendorService.aggregate([
-    { $match: { vendor: { $in: vendorIds }, isActive: true, isDraft: { $ne: true } } },
+    {
+      $match: {
+        vendor: { $in: vendorIds },
+        isActive: true,
+        isDraft: { $ne: true },
+        status: { $nin: ['pending', 'rejected'] },
+      },
+    },
     { $group: { _id: '$vendor', count: { $sum: 1 } } },
   ]);
 
@@ -1172,6 +1312,7 @@ const getFeaturedVendorServicesFromDB = async (
       vendor: { $in: vendorIds.map((id) => new Types.ObjectId(id)) },
       isActive: true,
       isDraft: { $ne: true },
+      status: { $nin: ['pending', 'rejected'] },
     })
       .populate(
         'vendor',
@@ -1190,6 +1331,7 @@ const getFeaturedVendorServicesFromDB = async (
       vendor: { $in: vendorIds.map((id) => new Types.ObjectId(id)) },
       isActive: true,
       isDraft: { $ne: true },
+      status: { $nin: ['pending', 'rejected'] },
     }),
   ]);
 
@@ -1276,6 +1418,7 @@ const getActiveServicesByVendorFromDB = async (
     vendor: new Types.ObjectId(vendorId),
     isActive: true,
     isDraft: { $ne: true },
+    status: { $nin: ['pending', 'rejected'] },
   };
 
   // Build favSet if user is logged in
@@ -1348,28 +1491,52 @@ const getActiveServicesByVendorFromDB = async (
 
 // ── Lead Tracking: WhatsApp / Phone Call / Message Click ──
 const trackContactClickInDB = async (
-  vendorId: string,
-  type: 'whatsapp' | 'phone' | 'message',
+  vendorId?: string,
+  type: 'whatsapp' | 'phone' | 'message' = 'whatsapp',
   userId?: string,
+  serviceId?: string,
+  pageSource?: string,
 ) => {
+  let vid: Types.ObjectId | undefined;
+  if (vendorId && Types.ObjectId.isValid(vendorId)) {
+    vid = new Types.ObjectId(vendorId);
+  } else if (serviceId && Types.ObjectId.isValid(serviceId)) {
+    const sDoc = await VendorService.findById(serviceId).select('vendor');
+    if (sDoc?.vendor) vid = sDoc.vendor as Types.ObjectId;
+  }
+
+  if (!vid) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Valid vendorId or serviceId is required');
+  }
+
   // Persist the click event
   const clickData: Record<string, unknown> = {
-    vendor: new Types.ObjectId(vendorId),
+    vendor: vid,
     type,
   };
-  if (userId) {
+  if (userId && Types.ObjectId.isValid(userId)) {
     clickData.user = new Types.ObjectId(userId);
+  }
+  if (serviceId && Types.ObjectId.isValid(serviceId)) {
+    clickData.service = new Types.ObjectId(serviceId);
+  }
+  if (pageSource) {
+    clickData.pageSource = pageSource;
   }
   await LeadClick.create(clickData);
 
   // Notify vendor
-  sendNotification(
-    vendorId,
-    '📞 Lead Alert!',
-    'A potential client just viewed your contact information.',
-    'lead_alert',
-    { type, userId: userId || 'anonymous', action: 'lead_alert' },
-  );
+  try {
+    sendNotification(
+      vid.toString(),
+      '📞 Lead Alert!',
+      'A potential client just viewed your contact information.',
+      'lead_alert',
+      { type, userId: userId || 'anonymous', action: 'lead_alert' },
+    );
+  } catch (err) {
+    console.error('Failed to send lead alert notification:', err);
+  }
 };
 
 // ── Lead Stats: Get click counts grouped by type for a vendor ──
@@ -1392,64 +1559,122 @@ const getLeadStatsFromDB = async (vendorId: string) => {
 
 // ══════════════════════════════════════════════
 //  VENDOR PROFILE VIEW TRACKING
-//  Industry-standard: IP-based 24h cooldown,
+//  Industry-standard: IP-based 15m cooldown per item,
 //  metadata capture, unique/repeat tracking
 // ══════════════════════════════════════════════
 
-const VIEW_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
+const VIEW_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes session cooldown
 
 const trackServiceViewInDB = async (
-  vendorId: string,
+  vendorId?: string,
   serviceId?: string,
   userId?: string,
-  type: 'profile' | 'service' = 'service',
+  type: 'profile' | 'service' | 'package' = 'service',
   metadata?: { ip?: string; userAgent?: string; referrer?: string },
+  packageId?: string,
 ) => {
   const now = new Date();
-  const vid = new Types.ObjectId(vendorId);
 
-  // ── IP-based 24h cooldown for deduplication ──
-  let isUnique = true;
+  // 1. Resolve & verify the entity and its real vendor
+  let vid: Types.ObjectId | undefined;
+  let targetServiceId: Types.ObjectId | undefined;
+  let targetPackageId: Types.ObjectId | undefined;
+
+  if (serviceId && Types.ObjectId.isValid(serviceId)) {
+    const sDoc = await VendorService.findById(serviceId).select('vendor');
+    if (!sDoc) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
+    }
+    vid = sDoc.vendor as Types.ObjectId;
+    targetServiceId = new Types.ObjectId(serviceId);
+    type = 'service';
+  } else if (packageId && Types.ObjectId.isValid(packageId)) {
+    const pDoc = await ServicePackage.findById(packageId).select('vendor');
+    if (!pDoc) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Package not found');
+    }
+    vid = pDoc.vendor as Types.ObjectId;
+    targetPackageId = new Types.ObjectId(packageId);
+    type = 'package';
+  } else if (vendorId && Types.ObjectId.isValid(vendorId)) {
+    const vDoc = await User.findById(vendorId).select('_id role');
+    if (!vDoc || vDoc.role !== 'vendor') {
+      throw new AppError(httpStatus.NOT_FOUND, 'Vendor not found');
+    }
+    vid = vDoc._id as Types.ObjectId;
+    type = 'profile';
+  } else {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Valid serviceId, packageId, or vendorId is required');
+  }
+
+  // 2. SECURITY: Ignore vendor self-views (vendor viewing their own service/package/profile)
+  if (userId && vid.toString() === userId) {
+    return { tracked: false, isUnique: false, reason: 'Vendor self-views are ignored' };
+  }
+
+  // 3. SECURITY & ANTI-ABUSE: Per-item deduplication cooldown
+  // A visitor viewing Service A will NEVER block Service B or Package X
+  const cooldownStart = new Date(now.getTime() - VIEW_COOLDOWN_MS);
+  const cooldownConditions: Record<string, any>[] = [];
+
   if (metadata?.ip) {
-    const cooldownStart = new Date(now.getTime() - VIEW_COOLDOWN_MS);
-    const recentView = await ServiceView.findOne({
+    cooldownConditions.push({ ip: metadata.ip });
+  }
+  if (userId && Types.ObjectId.isValid(userId)) {
+    cooldownConditions.push({ user: new Types.ObjectId(userId) });
+  }
+
+  if (cooldownConditions.length > 0) {
+    const antiSpamQuery: Record<string, any> = {
       vendor: vid,
       type,
-      ip: metadata.ip,
       createdAt: { $gte: cooldownStart },
-    }).select('_id');
+      $or: cooldownConditions,
+    };
+
+    if (targetServiceId) {
+      antiSpamQuery.service = targetServiceId;
+    } else if (targetPackageId) {
+      antiSpamQuery.package = targetPackageId;
+    }
+
+    const recentView = await ServiceView.findOne(antiSpamQuery).select('_id');
     if (recentView) {
-      isUnique = false;
+      // Already viewed this specific item recently — throttle duplicate spam
+      return { tracked: false, isUnique: false, reason: 'Cooldown active for this item' };
     }
   }
 
-  // ── Build view record ──
+  // 4. Create legitimate view record
   const viewData: Record<string, unknown> = {
     vendor: vid,
     type,
-    isUnique,
+    isUnique: true,
   };
-  if (serviceId) viewData.service = new Types.ObjectId(serviceId);
-  if (userId) viewData.user = new Types.ObjectId(userId);
+  if (targetServiceId) viewData.service = targetServiceId;
+  if (targetPackageId) viewData.package = targetPackageId;
+  if (userId && Types.ObjectId.isValid(userId)) viewData.user = new Types.ObjectId(userId);
   if (metadata?.ip) viewData.ip = metadata.ip;
   if (metadata?.userAgent) viewData.userAgent = metadata.userAgent;
   if (metadata?.referrer) viewData.referrer = metadata.referrer;
 
   await ServiceView.create(viewData);
 
-  // ── Notify vendor only on unique views ──
-  if (isUnique) {
-    const label = type === 'profile' ? 'Profile' : 'Service';
+  // 5. Notify vendor
+  try {
+    const label = type === 'profile' ? 'Profile' : type === 'package' ? 'Package' : 'Service';
     sendNotification(
-      vendorId,
+      vid.toString(),
       `👁️ New ${label} View!`,
       `Someone just viewed your ${label.toLowerCase()}.`,
       'view_alert',
       { type, userId: userId || 'anonymous', action: 'view_alert' },
     );
+  } catch (err) {
+    console.error('Failed to send view notification:', err);
   }
 
-  return { tracked: true, isUnique };
+  return { tracked: true, isUnique: true };
 };
 
 // ══════════════════════════════════════════════
@@ -1646,6 +1871,7 @@ const getSimilarServicesFromDB = async (serviceId: string) => {
     _id: new Types.ObjectId(serviceId),
     isActive: true,
     isDraft: { $ne: true },
+    status: { $nin: ['pending', 'rejected'] },
   }).lean();
 
   if (!source) {
@@ -1672,6 +1898,7 @@ const getSimilarServicesFromDB = async (serviceId: string) => {
         category: new Types.ObjectId(sourceCategory.toString()),
         isActive: true,
         isDraft: { $ne: true },
+        status: { $nin: ['pending', 'rejected'] },
       },
     },
 
@@ -1920,6 +2147,7 @@ export const VendorServiceServices = {
   updateVendorServiceInDB,
   deleteVendorServiceFromDB,
   adminToggleServiceStatusInDB,
+  adminReviewServiceInDB,
   deleteServiceImagesFromDB,
   getMyServicesListFromDB,
   saveDraftInDB,

@@ -21,4 +21,12 @@ router.get(
   AnalyticsControllers.getVendorPerformance,
 );
 
+// ── Top Performing Packages (Views + Inquiries) ──
+// GET /analytics/vendor/top-packages
+router.get(
+  '/vendor/top-packages',
+  auth(USER_ROLE.vendor),
+  AnalyticsControllers.getTopPerformingPackages,
+);
+
 export const AnalyticsRoutes = router;
