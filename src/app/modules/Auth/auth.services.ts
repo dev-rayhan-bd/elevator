@@ -43,17 +43,6 @@ export const sendOtpToUser = async (user: any, plainOtp: string, title: string, 
 
 
 const registerUser = async (payload: TUser) => {
-  const isExist = await User.findOne({ $or: [{ email: payload.email }, { phone: payload.phone }] });
-  if (isExist) throw new AppError(409, 'Email or Phone already registered');
-
-  const plainOtp = Math.floor(100000 + Math.random() * 900000).toString();
-  
-  payload.otp = plainOtp;
-  payload.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-  payload.role = payload.role || 'user'; 
-  payload.status = payload.role === 'vendor' ? 'pending' : 'active'; 
-  payload.isOtpVerified = false;
-
   // ── Security: Strip restricted fields that users must not set ──
   delete (payload as any).isSponsored;
   delete (payload as any).isFeatured;
@@ -66,10 +55,63 @@ const registerUser = async (payload: TUser) => {
     delete (payload.vendor as any).passwordChangedAt;
   }
 
+  const existingUser = await User.findOne({ $or: [{ email: payload.email }, { phone: payload.phone }] });
+
+  if (existingUser) {
+    if (existingUser.isOtpVerified) {
+      throw new AppError(409, 'Email already registered');
+    }
+    
+    // User exists but not verified -> Update info and resend OTP
+    const plainOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    existingUser.set(payload);
+    existingUser.otp = plainOtp;
+    existingUser.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+    existingUser.role = payload.role || existingUser.role || 'user';
+    existingUser.status = existingUser.role === 'vendor' ? 'pending' : 'active';
+    existingUser.isOtpVerified = false;
+
+    await existingUser.save();
+
+    try {
+      const emailHtml = getEmailTemplate({
+        userName: existingUser.firstName,
+        title: 'Verify Your Account',
+        body: 'Welcome to WePlan! Use the verification code below to activate your account.',
+        otpCode: plainOtp,
+      });
+      await sendEmail({
+        to: existingUser.email,
+        subject: 'Your WePlan Verification Code',
+        html: emailHtml,
+      });
+      console.log('✅ OTP resent via Email to:', existingUser.email);
+
+      if (config.sms_enabled && existingUser.phone) {
+        sendOTP(existingUser.phone, plainOtp)
+          .then(() => console.log('✅ OTP also resent via SMS to:', existingUser.phone))
+          .catch((err: any) => console.warn('⚠️ SMS OTP skipped:', err?.message || err));
+      }
+    } catch (emailError: any) {
+      console.error('❌ Email OTP failed:', emailError?.message || emailError);
+      throw new AppError(502, 'Failed to send OTP via Email. Please try again.');
+    }
+
+    return existingUser;
+  }
+
+  const plainOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  payload.otp = plainOtp;
+  payload.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+  payload.role = payload.role || 'user'; 
+  payload.status = payload.role === 'vendor' ? 'pending' : 'active'; 
+  payload.isOtpVerified = false;
+
   const newUser = await User.create(payload);
 
   // --- Send OTP via Email (primary channel) ---
-  // v2: To also send SMS, set SMS_ENABLED=true in .env — sendOtpToUser handles it
   try {
     const emailHtml = getEmailTemplate({
       userName: payload.firstName,
@@ -84,7 +126,6 @@ const registerUser = async (payload: TUser) => {
     });
     console.log('✅ OTP sent via Email to:', payload.email);
 
-    // v2: SMS OTP (parallel, non-blocking)
     if (config.sms_enabled && payload.phone) {
       sendOTP(payload.phone, plainOtp)
         .then(() => console.log('✅ OTP also sent via SMS to:', payload.phone))
