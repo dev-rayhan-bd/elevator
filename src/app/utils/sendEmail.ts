@@ -15,29 +15,13 @@ interface IMailOptions {
 
 const sendEmail = async (params: IMailOptions): Promise<boolean> => {
   try {
-    const host = config.SMTP_HOST;
-    const port = Number(config.SMTP_PORT || 465);
-
-    let transporter;
-    if (host) {
-      transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465,
-        auth: {
-          user: config.SMTP_USER,
-          pass: config.SMTP_PASS,
-        },
-      });
-    } else {
-      transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: config.SMTP_USER,
-          pass: config.SMTP_PASS,
-        },
-      });
-    }
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: config.SMTP_USER,
+        pass: config.SMTP_PASS,
+      },
+    });
 
     const fromEmail = params.fromEmail || process.env.NODE_APP_EMAIL || config.SMTP_USER || '';
     const fromName = params.fromName || process.env.SITE_NAME || 'WePlan';
