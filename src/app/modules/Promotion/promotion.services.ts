@@ -7,6 +7,7 @@ import { TPromotionPlanConfig, TVendorPromotion } from './promotion.interface';
 import { User } from '../User/user.model';
 import { UserServices } from '../User/user.services';
 import { Verification } from '../Verification/verification.model';
+import { sendNotificationToAdmins } from '../../utils/sendNotification';
 
 // ── Utility: Mark expired promotions & revert user flags ──
 const expireOverduePromotions = async () => {
@@ -338,6 +339,18 @@ const purchaseVerifiedPromotionIntoDB = async (
       registeredPhone: payload.registeredPhone,
       notes: notesText,
     });
+  }
+
+  // Notify admins of new verified promotion request pending approval
+  try {
+    void sendNotificationToAdmins(
+      'New Verified Promotion Request 🛡️',
+      `A vendor has submitted a Verified Promotion request pending admin review.`,
+      'promotion_pending',
+      { promotionId: vendorPromotion._id.toString(), vendorId },
+    );
+  } catch (err) {
+    console.error('Failed to notify admins of verified promotion request:', err);
   }
 
   return vendorPromotion;

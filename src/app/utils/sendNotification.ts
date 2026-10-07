@@ -158,18 +158,31 @@ export const sendNotificationToAdmins = async (
   data: Record<string, string> = {}
 ) => {
   try {
-    const admins = await Admin.find({
+    const adminsFromAdminModel = await Admin.find({
       role: { $in: ['admin', 'superAdmin'] },
       status: 'active',
       isDeleted: false,
-    });
+    }).select('_id');
 
-    if (admins.length > 0) {
-      const notificationPromises = admins.map((admin) =>
-        sendNotification(admin._id.toString(), title, message, type, data)
+    const adminsFromUserModel = await User.find({
+      role: { $in: ['admin', 'superAdmin'] },
+      status: 'active',
+      isDeleted: false,
+    }).select('_id');
+
+    const adminIds = Array.from(
+      new Set([
+        ...adminsFromAdminModel.map((a) => a._id.toString()),
+        ...adminsFromUserModel.map((u) => u._id.toString()),
+      ])
+    );
+
+    if (adminIds.length > 0) {
+      const notificationPromises = adminIds.map((adminId) =>
+        sendNotification(adminId, title, message, type, data)
       );
       await Promise.all(notificationPromises);
-      console.log(`🚀 Bulk notifications sent to ${admins.length} admins.`);
+      console.log(`🚀 Bulk notifications sent to ${adminIds.length} admins.`);
     }
   } catch (error) {
     console.error('❌ Error sending notification to admins:', error);

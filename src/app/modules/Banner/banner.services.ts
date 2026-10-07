@@ -4,6 +4,7 @@ import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { Banner, BannerSlot, BannerTracking } from './banner.model';
 import { TBanner, TBannerSlot } from './banner.interface';
+import { sendNotificationToAdmins } from '../../utils/sendNotification';
 
 // ── Utility: Mark expired banners ──
 const expireOverdueBanners = async () => {
@@ -133,6 +134,19 @@ const bookBannerIntoDB = async (
   };
 
   const result = await Banner.create(bannerData);
+
+  // Notify admins of new pending banner submission
+  try {
+    void sendNotificationToAdmins(
+      'New Banner Pending Review 🎨',
+      `A vendor has submitted banner "${result.title || 'Untitled Banner'}" for admin review.`,
+      'banner_submission',
+      { bannerId: result._id.toString(), vendorId },
+    );
+  } catch (err) {
+    console.error('Failed to notify admins of banner submission:', err);
+  }
+
   return result;
 };
 
