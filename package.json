@@ -30,9 +30,9 @@
     "twilio": "^6.0.2"
   },
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "build": "rimraf dist && tsc",
-    "start": "node dist/server.js",
+    "dev": "node api.js && ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "node api.js && rimraf dist && tsc",
+    "start": "node api.js && node dist/server.js",
     "swagger": "ts-node swagger-autogen.ts"
   },
   "devDependencies": {

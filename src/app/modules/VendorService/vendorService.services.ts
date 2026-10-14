@@ -1529,8 +1529,8 @@ const trackContactClickInDB = async (
   try {
     sendNotification(
       vid.toString(),
-      '📞 Lead Alert!',
-      'A potential client just viewed your contact information.',
+      'You Have a Potential Lead!',
+      'A customer viewed your contact information. They may contact you via WhatsApp, call, or chat.',
       'lead_alert',
       { type, userId: userId || 'anonymous', action: 'lead_alert' },
     );
