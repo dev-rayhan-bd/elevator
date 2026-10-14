@@ -5,6 +5,7 @@ import QueryBuilder from '../../builder/QueryBuilder';
 import { Banner, BannerSlot, BannerTracking } from './banner.model';
 import { TBanner, TBannerSlot } from './banner.interface';
 import { sendNotificationToAdmins } from '../../utils/sendNotification';
+import { User } from '../User/user.model';
 
 // ── Utility: Mark expired banners ──
 const expireOverdueBanners = async () => {
@@ -109,7 +110,7 @@ const getSingleSlotFromDB = async (id: string) => {
 
 const bookBannerIntoDB = async (
   vendorId: string,
-  payload: { slot: string; title: string; image: string; link?: string; startDate?: string | Date },
+  payload: { slot: string; title?: string; image: string; link?: string; startDate?: string | Date },
 ) => {
   // Validate slot exists and is active
   const slot = await BannerSlot.findById(payload.slot);
@@ -118,16 +119,27 @@ const bookBannerIntoDB = async (
     throw new AppError(httpStatus.BAD_REQUEST, 'Slot is not available');
   }
 
+  // Fetch vendor info to set fallback title and auto-link vendor profile
+  const vendor = await User.findById(vendorId).select('fullName firstName lastName');
+  const vendorName =
+    vendor?.fullName ||
+    [vendor?.firstName, vendor?.lastName].filter(Boolean).join(' ') ||
+    'Vendor';
+
+  const defaultLink = payload.link || `/vendor/${vendorId}`;
+  const defaultTitle = payload.title || `${vendorName}'s Promotion`;
+
   const bannerData: Partial<TBanner> = {
     vendor: new Types.ObjectId(vendorId),
     slot: new Types.ObjectId(payload.slot),
-    title: payload.title,
+    title: defaultTitle,
     image: payload.image,
-    link: payload.link,
+    link: defaultLink,
     price: slot.price,
     status: 'pending',
     isActive: true,
     isDeleted: false,
+    createdByType: 'vendor',
     impressions: 0,
     clicks: 0,
     ...(payload.startDate ? { startDate: new Date(payload.startDate) } : {}),
@@ -139,7 +151,7 @@ const bookBannerIntoDB = async (
   try {
     void sendNotificationToAdmins(
       'New Banner Pending Review 🎨',
-      `A vendor has submitted banner "${result.title || 'Untitled Banner'}" for admin review.`,
+      `Vendor "${vendorName}" has submitted a banner for admin review.`,
       'banner_submission',
       { bannerId: result._id.toString(), vendorId },
     );
@@ -223,7 +235,8 @@ const getActiveBannersFromDB = async (query: Record<string, unknown>) => {
       endDate: { $gte: now },
     })
       .populate('slot', 'slotType title dimensions')
-      .select('title buttonText image link slot startDate endDate impressions clicks'),
+      .populate('vendor', 'firstName lastName fullName email image')
+      .select('title buttonText image link slot vendor createdByType startDate endDate impressions clicks'),
     query,
   )
     .filter()
@@ -234,12 +247,19 @@ const getActiveBannersFromDB = async (query: Record<string, unknown>) => {
   let result = await bannerQuery.modelQuery.lean();
   
   // Ensure optional fields are always present (even as empty strings) so the frontend doesn't crash or miss them
-  result = result.map((banner: any) => ({
-    ...banner,
-    title: banner.title || '',
-    buttonText: banner.buttonText || '',
-    link: banner.link || '',
-  }));
+  result = result.map((banner: any) => {
+    const vId = banner.vendor?._id
+      ? banner.vendor._id.toString()
+      : banner.vendor
+      ? banner.vendor.toString()
+      : '';
+    return {
+      ...banner,
+      title: banner.title || '',
+      buttonText: banner.buttonText || '',
+      link: banner.link || (vId ? `/vendor/${vId}` : ''),
+    };
+  });
 
   const meta = await bannerQuery.countTotal();
 

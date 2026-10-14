@@ -71,7 +71,7 @@ const bookBanner = catchAsync(async (req: Request, res: Response) => {
   }
 
   const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const payload = { ...rawData, image: imageUrl };
+  const payload = { ...rawData, ...(imageUrl ? { image: imageUrl } : {}) };
   const vendorId = (req as any).user.userId;
 
   const result = await BannerServices.bookBannerIntoDB(vendorId, payload);
