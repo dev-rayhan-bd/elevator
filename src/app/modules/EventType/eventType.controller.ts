@@ -76,6 +76,17 @@ const deleteEventType = catchAsync(async (req, res) => {
   });
 });
 
+const reorderEventTypes = catchAsync(async (req, res) => {
+  const { orders } = req.body;
+  const result = await EventTypeServices.reorderEventTypesInDB(orders);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Event types reordered successfully',
+    data: result,
+  });
+});
+
 export const EventTypeControllers = {
   getAllEventTypes,
   getAllEventTypesList,
@@ -83,4 +94,5 @@ export const EventTypeControllers = {
   createEventType,
   updateEventType,
   deleteEventType,
+  reorderEventTypes,
 };

@@ -3,6 +3,8 @@ import auth from '../../middleware/auth';
 import { USER_ROLE } from '../Auth/auth.constant';
 import { EventTypeControllers } from './eventType.controller';
 import { upload } from '../../middleware/multer';
+import validateRequest from '../../middleware/validateRequest';
+import { EventTypeValidations } from './eventType.validation';
 
 const router = express.Router();
 
@@ -47,6 +49,27 @@ router.post(
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   upload.single('image') as any,
   EventTypeControllers.createEventType,
+);
+
+router.patch(
+  '/reorder',
+  /*
+    #swagger.tags = ['EventType']
+    #swagger.summary = 'Reorder event types'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        orders: [
+          { id: '60d0fe4f5311236168a109ca', order: 1 },
+          { id: '60d0fe4f5311236168a109cb', order: 2 }
+        ]
+      }
+    }
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  validateRequest(EventTypeValidations.reorderEventTypesSchema),
+  EventTypeControllers.reorderEventTypes,
 );
 
 router.patch(

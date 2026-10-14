@@ -1265,6 +1265,20 @@
         }
       }
     },
+    "/api/v1/notification/unread-count": {
+      "get": {
+        "tags": [
+          "Notification"
+        ],
+        "summary": "Get unread notification count",
+        "description": "Endpoint to fetch unread count notification.",
+        "responses": {
+          "200": {
+            "description": "Notification retrieved successfully"
+          }
+        }
+      }
+    },
     "/api/v1/notification/mark-all-read": {
       "patch": {
         "tags": [
@@ -3164,6 +3178,77 @@
         }
       }
     },
+    "/api/v1/vendor-service/admin/{id}/approval": {
+      "patch": {
+        "tags": [
+          "VendorService"
+        ],
+        "summary": "Approve or reject vendor service (Admin)",
+        "description": "Admin can approve or reject a vendor service. If rejected, rejectionReason is required.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vendor Service updated successfully"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "example": "approved"
+                  },
+                  "rejectionReason": {
+                    "type": "string",
+                    "example": "Reason for rejection"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/vendor-service/admin/{id}/review": {
+      "patch": {
+        "tags": [
+          "VendorService"
+        ],
+        "summary": "Approve or reject vendor service alias (Admin)",
+        "description": "Endpoint to update admin review vendor service by ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Vendor Service updated successfully"
+          }
+        }
+      }
+    },
     "/api/v1/event-type/": {
       "get": {
         "tags": [
@@ -3297,6 +3382,35 @@
         "responses": {
           "200": {
             "description": "Event Type deleted successfully"
+          }
+        }
+      }
+    },
+    "/api/v1/event-type/reorder": {
+      "patch": {
+        "tags": [
+          "EventType"
+        ],
+        "summary": "Reorder event types",
+        "description": "Endpoint to update reorder event type.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Event Type updated successfully"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "orders": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -4465,6 +4579,165 @@
         "responses": {
           "200": {
             "description": "Inspiration deleted successfully"
+          }
+        }
+      }
+    },
+    "/api/v1/inspiration-category/": {
+      "get": {
+        "tags": [
+          "InspirationCategory"
+        ],
+        "summary": "Get all inspiration categories (public)",
+        "description": "Endpoint to fetch inspiration category.",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inspiration Category retrieved successfully"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "InspirationCategory"
+        ],
+        "summary": "Create inspiration category (Admin)",
+        "description": "Endpoint to create inspiration category.",
+        "responses": {
+          "201": {
+            "description": "Inspiration Category created successfully"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/inspiration-category/all": {
+      "get": {
+        "tags": [
+          "InspirationCategory"
+        ],
+        "summary": "Get all inspiration categories list (for dropdowns)",
+        "description": "Endpoint to fetch all inspiration category.",
+        "responses": {
+          "200": {
+            "description": "Inspiration Category retrieved successfully"
+          }
+        }
+      }
+    },
+    "/api/v1/inspiration-category/{id}": {
+      "get": {
+        "tags": [
+          "InspirationCategory"
+        ],
+        "summary": "Get single inspiration category",
+        "description": "Endpoint to fetch inspiration category by ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inspiration Category retrieved successfully"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "InspirationCategory"
+        ],
+        "summary": "Update inspiration category (Admin)",
+        "description": "Endpoint to update inspiration category by ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inspiration Category updated successfully"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "data": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "InspirationCategory"
+        ],
+        "summary": "Delete inspiration category (Admin)",
+        "description": "Endpoint to delete inspiration category by ID.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Inspiration Category deleted successfully"
+          }
+        }
+      }
+    },
+    "/api/v1/inspiration-category/admin/all": {
+      "get": {
+        "tags": [
+          "InspirationCategory"
+        ],
+        "summary": "Get all inspiration categories (Admin)",
+        "description": "Endpoint to fetch admin all inspiration category.",
+        "responses": {
+          "200": {
+            "description": "Inspiration Category retrieved successfully"
           }
         }
       }
@@ -6604,6 +6877,20 @@
           "Analytics"
         ],
         "summary": "Fetch Vendor Performance Analytics"
+      }
+    },
+    "/api/v1/analytics/vendor/top-packages": {
+      "get": {
+        "description": "Endpoint to fetch vendor top packages analytics.",
+        "responses": {
+          "200": {
+            "description": "Analytics retrieved successfully"
+          }
+        },
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Fetch Vendor Top Packages Analytics"
       }
     },
     "/api/v1/chat/conversations": {
