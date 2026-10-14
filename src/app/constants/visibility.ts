@@ -26,7 +26,7 @@ export interface IVisibilityTask {
 export const VISIBILITY_TASKS: IVisibilityTask[] = [
   {
     key: 'PROFILE_COMPLETION',
-    label: 'Profile Setup & Registration',
+    label: 'Profile Completion',
     description: 'Complete basic profile setup during registration',
     points: 20,
     icon: '📝',
@@ -40,14 +40,14 @@ export const VISIBILITY_TASKS: IVisibilityTask[] = [
   },
   {
     key: 'SERVICES_VARIETY',
-    label: 'Services Variety',
+    label: 'Add Services Variety',
     description: 'Create active service listings',
     points: 15,
     icon: '🛠️',
   },
   {
     key: 'PACKAGES_PRICING',
-    label: 'Packages & Pricing',
+    label: 'Add Packages & Pricing',
     description: 'Set up detailed service packages',
     points: 15,
     icon: '📦',
@@ -68,11 +68,45 @@ export const VISIBILITY_TASKS: IVisibilityTask[] = [
   },
   {
     key: 'ADS_PROMOTION',
-    label: 'Get More Leads with Ads',
+    label: 'Ads',
     description: 'Launch first ad/promotion',
     points: 5,
     icon: '📢',
   },
 ];
+
+export const PROFILE_SCORE_NOTIFICATIONS: Record<
+  VisibilityTaskKey,
+  { title: string; message: string }
+> = {
+  PROFILE_COMPLETION: {
+    title: 'Your Profile Score Increased by 20%!',
+    message: 'Great job! You’ve completed your business profile and earned 20% toward your Profile Score.',
+  },
+  BUSINESS_VERIFICATION: {
+    title: 'Your Profile Score Increased by 25%!',
+    message: 'Congratulations! Your business has been verified and you’ve earned 25% toward your Profile Score.',
+  },
+  SERVICES_VARIETY: {
+    title: 'Your Profile Score Increased by 15%!',
+    message: 'Great job! You’ve added a variety of services and earned 15% toward your Profile Score.',
+  },
+  PACKAGES_PRICING: {
+    title: 'Your Profile Score Increased by 15%!',
+    message: 'Excellent! You’ve added packages and pricing and earned 15% toward your Profile Score.',
+  },
+  ACTIVITY_ENGAGEMENT: {
+    title: 'Your Profile Score Increased by 10%!',
+    message: 'Great work! Your activity and engagement have earned you 10% toward your Profile Score.',
+  },
+  QUICK_QUOTES: {
+    title: 'Your Profile Score Increased by 10%!',
+    message: 'Great job! You’ve completed Quick Quote submissions and earned 10% toward your Profile Score.',
+  },
+  ADS_PROMOTION: {
+    title: 'Your Profile Score Increased by 5%!',
+    message: 'Great job! You’ve promoted your service with Ads and earned 5% toward your Profile Score.',
+  },
+};
 
 export const MAX_VISIBILITY_SCORE = 100;

@@ -14,6 +14,7 @@ import {
   VISIBILITY_TASKS,
   MAX_VISIBILITY_SCORE,
   VisibilityTaskKey,
+  PROFILE_SCORE_NOTIFICATIONS,
 } from '../../constants/visibility';
 
 const getAllUsersFromDB = async (query: Record<string, unknown>) => {
@@ -295,7 +296,7 @@ const sendProfileNudgeNotifications = async () => {
         sendNotification(
           vendor._id.toString(),
           '🛠️ Add More Services!',
-          'Gain +20% visibility score.',
+          'Gain +15% toward your Profile Score.',
           'profile_score_nudge',
           { action: 'service_variety_nudge' },
         );
@@ -338,18 +339,24 @@ const _notifyVisibilityTask = async (
   if (!task) return;
 
   if (completed) {
+    const config = PROFILE_SCORE_NOTIFICATIONS[taskKey];
+    const title = config?.title || `Your Profile Score Increased by ${task.points}%!`;
+    const message =
+      config?.message ||
+      `Great job! You’ve completed ${task.label} and earned ${task.points}% toward your Profile Score.`;
+
     sendNotification(
       vendorId,
-      `🎯 Visibility Score +${task.points}%!`,
-      `${task.icon} ${task.label} completed! (+${task.points}% Score)`,
+      title,
+      message,
       'profile_score_changed',
       { task: taskKey, points: String(task.points), action: 'visibility_task_completed' },
     );
   } else {
     sendNotification(
       vendorId,
-      `📉 Visibility Score -${task.points}%`,
-      `${task.icon} ${task.label} no longer active. (${task.points}% Score deducted)`,
+      `Your Profile Score Decreased by ${task.points}%`,
+      `${task.label} is no longer active. (${task.points}% deducted from your Profile Score)`,
       'profile_score_changed',
       { task: taskKey, points: String(task.points), action: 'visibility_task_reverted' },
     );
