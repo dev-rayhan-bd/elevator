@@ -11,16 +11,36 @@ import { sendNotification, sendNotificationToMultipleUsers } from '../../utils/s
  * User: Create a new event request (post requirement)
  */
 const createEventRequestIntoDB = async (userId: string, payload: Record<string, unknown>) => {
+  const estimatedBudget =
+    payload.estimatedBudget !== undefined && payload.estimatedBudget !== null
+      ? Number(payload.estimatedBudget)
+      : payload.budget !== undefined && payload.budget !== null
+      ? Number(payload.budget)
+      : undefined;
+
+  const budgetMin =
+    payload.budgetMin !== undefined && payload.budgetMin !== null
+      ? Number(payload.budgetMin)
+      : estimatedBudget ?? 0;
+
+  const budgetMax =
+    payload.budgetMax !== undefined && payload.budgetMax !== null
+      ? Number(payload.budgetMax)
+      : estimatedBudget ?? budgetMin;
+
+  const details =
+    ((payload.requirementDetails as string) || (payload.additionalDetails as string) || '').trim();
+
   const requestData = {
     user: new Types.ObjectId(userId),
-    eventType: new Types.ObjectId(payload.eventType as string),
+    eventType: payload.eventType ? new Types.ObjectId(payload.eventType as string) : undefined,
     eventDate: new Date(payload.eventDate as string),
-    guestCount: payload.guestCount,
-    budgetMin: payload.budgetMin,
-    budgetMax: payload.budgetMax,
+    guestCount: payload.guestCount ? Number(payload.guestCount) : undefined,
+    budgetMin,
+    budgetMax,
     area: new Types.ObjectId(payload.area as string),
     serviceCategory: new Types.ObjectId(payload.serviceCategory as string),
-    additionalDetails: payload.additionalDetails,
+    additionalDetails: details,
     referenceImages: payload.referenceImages,
   };
 

@@ -4,9 +4,9 @@ import { TEventRequest } from './eventRequest.interface';
 const eventRequestSchema = new Schema<TEventRequest>(
   {
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    eventType: { type: Schema.Types.ObjectId, ref: 'EventType', required: true },
+    eventType: { type: Schema.Types.ObjectId, ref: 'EventType' },
     eventDate: { type: Date, required: true },
-    guestCount: { type: Number, required: true, min: 1 },
+    guestCount: { type: Number, min: 1 },
     budgetMin: { type: Number, required: true, min: 0 },
     budgetMax: { type: Number, required: true, min: 0 },
     area: { type: Schema.Types.ObjectId, ref: 'ServiceArea', required: true },
