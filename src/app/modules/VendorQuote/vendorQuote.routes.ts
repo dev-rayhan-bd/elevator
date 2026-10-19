@@ -16,11 +16,12 @@ router.post(
       in: 'body',
       required: true,
       schema: {
-        $vendorId: '60d5ecb8b5c9c123456789ab',
-        $serviceId: '60d5ecb8b5c9c123456789ac',
+        $service: '6ab8262b7fa98ab506d2559e',
+        eventType: '6aba20972a500f85044ad9b2',
         $eventDate: '2026-11-15',
-        $budget: 3500,
-        message: 'Requesting quote for corporate anniversary event'
+        guestCount: 100,
+        budget: 3500,
+        $message: 'Requesting quote for corporate anniversary event'
       }
     }
   */

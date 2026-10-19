@@ -404,18 +404,28 @@ const getPublicVendorServicesFromDB = async (
   pipeline.push({
     $lookup: {
       from: 'vendorpromotions',
-      let: { vendorId: '$vendor._id' },
+      let: { vendorId: '$vendor._id', serviceId: '$_id' },
       pipeline: [
         {
           $match: {
             $expr: {
               $and: [
-                { $eq: ['$vendor', '$$vendorId'] },
                 { $eq: ['$promotionCategory', 'sponsored'] },
                 { $eq: ['$isActive', true] },
                 { $eq: ['$status', 'active'] },
                 { $lte: ['$startDate', now] },
                 { $gte: ['$endDate', now] },
+                {
+                  $or: [
+                    { $eq: ['$service', '$$serviceId'] },
+                    {
+                      $and: [
+                        { $eq: ['$vendor', '$$vendorId'] },
+                        { $eq: [{ $ifNull: ['$service', null] }, null] },
+                      ],
+                    },
+                  ],
+                },
               ],
             },
           },
@@ -427,12 +437,7 @@ const getPublicVendorServicesFromDB = async (
   });
   pipeline.push({
     $addFields: {
-      isSponsored: {
-        $and: [
-          { $gt: [{ $size: '$activePromotion' }, 0] },
-          { $eq: ['$vendor.isSponsored', true] },
-        ],
-      },
+      isSponsored: { $gt: [{ $size: '$activePromotion' }, 0] },
     },
   });
 
@@ -1257,63 +1262,72 @@ const getFeaturedVendorServicesFromDB = async (
   const skip = (page - 1) * limit;
   const now = new Date();
 
-  // 1a. Vendor IDs with active 'featured' VendorPromotion
+  // 1. Find active, unexpired 'featured' promotions
   const featuredPromos = await VendorPromotion.find({
     promotionCategory: 'featured',
     status: 'active',
     isActive: true,
-    paymentStatus: 'paid',
     endDate: { $gt: now },
   })
-    .select('vendor')
+    .select('vendor service')
     .lean();
 
-  // 1b. Vendor IDs whose User.isFeatured flag is true
-  const featuredVendors = await User.find({
-    role: 'vendor',
-    isFeatured: true,
-    isDeleted: false,
-    status: 'active',
-  })
-    .select('_id')
-    .lean();
-
-  const promoVendorIds = new Set(featuredPromos.map((p) => p.vendor.toString()));
-  const userFlaggedIds = new Set(featuredVendors.map((u) => u._id.toString()));
-
-  // AND logic: only include vendors present in BOTH sets
-  const vendorIds = [...promoVendorIds].filter((id) => userFlaggedIds.has(id));
-  if (vendorIds.length === 0) {
+  if (featuredPromos.length === 0) {
     return {
       meta: { page: 1, limit, total: 0, totalPage: 0 },
       result: [],
     };
   }
 
-  // 2. Find vendor IDs with an active 'sponsored' promotion
+  // Collect specific service IDs and vendor IDs for legacy vendor-level promos
+  const specificServiceIds: Types.ObjectId[] = [];
+  const vendorLevelPromoVendorIds: Types.ObjectId[] = [];
+
+  for (const p of featuredPromos) {
+    if (p.service) {
+      specificServiceIds.push(new Types.ObjectId(p.service));
+    } else if (p.vendor) {
+      vendorLevelPromoVendorIds.push(new Types.ObjectId(p.vendor));
+    }
+  }
+
+  const serviceFilter: any = {
+    $or: [
+      ...(specificServiceIds.length > 0 ? [{ _id: { $in: specificServiceIds } }] : []),
+      ...(vendorLevelPromoVendorIds.length > 0 ? [{ vendor: { $in: vendorLevelPromoVendorIds } }] : []),
+    ],
+    isActive: true,
+    isDraft: { $ne: true },
+    status: { $nin: ['pending', 'rejected'] },
+  };
+
+  if (serviceFilter.$or.length === 0) {
+    return {
+      meta: { page: 1, limit, total: 0, totalPage: 0 },
+      result: [],
+    };
+  }
+
+  // 2. Find active 'sponsored' promotions to tag isSponsored on the featured cards
   const sponsoredPromos = await VendorPromotion.find({
-    vendor: { $in: vendorIds },
     promotionCategory: 'sponsored',
     status: 'active',
     isActive: true,
-    paymentStatus: 'paid',
     endDate: { $gt: now },
   })
-    .select('vendor')
+    .select('vendor service')
     .lean();
 
-  const sponsoredSet = new Set(
-    sponsoredPromos.map((p) => p.vendor.toString()),
+  const sponsoredSpecificServiceIds = new Set(
+    sponsoredPromos.filter((p) => p.service).map((p) => p.service!.toString()),
+  );
+  const sponsoredVendorIds = new Set(
+    sponsoredPromos.filter((p) => !p.service && p.vendor).map((p) => p.vendor.toString()),
   );
 
-  // 3. Fetch active services from featured vendors
+  // 3. Fetch active services matching featured filter
   const [result, total] = await Promise.all([
-    VendorService.find({
-      vendor: { $in: vendorIds.map((id) => new Types.ObjectId(id)) },
-      isActive: true,
-      isDraft: { $ne: true },
-      status: { $nin: ['pending', 'rejected'] },
-    })
+    VendorService.find(serviceFilter)
       .populate(
         'vendor',
         'firstName lastName fullName image lat long vendor.businessName vendor.location vendor.profileScore vendor.isVerifiedBadge',
@@ -1327,22 +1341,17 @@ const getFeaturedVendorServicesFromDB = async (
       .skip(skip)
       .limit(limit)
       .lean(),
-    VendorService.countDocuments({
-      vendor: { $in: vendorIds.map((id) => new Types.ObjectId(id)) },
-      isActive: true,
-      isDraft: { $ne: true },
-      status: { $nin: ['pending', 'rejected'] },
-    }),
+    VendorService.countDocuments(serviceFilter),
   ]);
 
-  // 4. Enrich each service with isSponsored tag (check both VendorPromotion + User.isSponsored)
+  // 4. Enrich each service with isSponsored tag (checks specific service first, then vendor fallback)
   let enrichedResult = result.map((service: any) => {
-    const vendorId = service.vendor?._id?.toString() || service.vendor?.toString();
-    const hasPromo = sponsoredSet.has(vendorId);
-    const userFlagged = service.vendor?.vendor?.isSponsored === true || service.vendor?.isSponsored === true;
+    const sId = service._id.toString();
+    const vId = service.vendor?._id?.toString() || service.vendor?.toString();
+    const isSponsored = sponsoredSpecificServiceIds.has(sId) || sponsoredVendorIds.has(vId);
     return {
       ...service,
-      isSponsored: hasPromo && userFlagged,
+      isSponsored,
     };
   });
 

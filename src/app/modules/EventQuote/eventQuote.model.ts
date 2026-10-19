@@ -30,8 +30,20 @@ const eventQuoteSchema = new Schema<TEventQuote>(
     offers: [quoteOfferSchema],
     validUntil: { type: Date },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
+
+// Virtual field to map internal status to simple user-friendly displayStatus ('active' | 'closed')
+eventQuoteSchema.virtual('displayStatus').get(function (this: TEventQuote) {
+  if (['pending', 'countered'].includes(this.status)) {
+    return 'active';
+  }
+  return 'closed';
+});
 
 // Prevent duplicate quotes from same vendor on same request
 eventQuoteSchema.index({ eventRequest: 1, vendor: 1 }, { unique: true });

@@ -8,6 +8,7 @@ import { User } from '../User/user.model';
 import { UserServices } from '../User/user.services';
 import { Verification } from '../Verification/verification.model';
 import { sendNotificationToAdmins } from '../../utils/sendNotification';
+import { VendorService } from '../VendorService/vendorService.model';
 
 // ── Utility: Mark expired promotions & revert user flags ──
 const expireOverduePromotions = async () => {
@@ -177,22 +178,56 @@ const purchasePromotionIntoDB = async (
     );
   }
 
-  // ── Duplicate prevention: vendor cannot buy same promotion category if already active ──
-  const existingActive = await VendorPromotion.findOne({
-    vendor: new Types.ObjectId(vendorId),
-    promotionCategory: plan.promotionCategory,
-    status: 'active',
-    isActive: true,
-    endDate: { $gte: new Date() },
-  });
-  if (existingActive) {
+  // ── For sponsored and featured listings, service selection is mandatory ──
+  if (['sponsored', 'featured'].includes(plan.promotionCategory) && !payload.service) {
     throw new AppError(
-      httpStatus.CONFLICT,
-      `You already have an active ${plan.promotionCategory} promotion`,
+      httpStatus.BAD_REQUEST,
+      `Service selection is required. Please select which service you want to promote for ${plan.promotionCategory} listing.`,
     );
   }
 
+  // ── Duplicate prevention: check if this service (or vendor) already has active unexpired promotion ──
   const now = new Date();
+  if (payload.service) {
+    const serviceDoc = await VendorService.findById(payload.service);
+    if (!serviceDoc) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
+    }
+    if (serviceDoc.vendor.toString() !== vendorId) {
+      throw new AppError(httpStatus.FORBIDDEN, 'You can only promote your own services');
+    }
+
+    const existingActive = await VendorPromotion.findOne({
+      vendor: new Types.ObjectId(vendorId),
+      service: new Types.ObjectId(payload.service),
+      promotionCategory: plan.promotionCategory,
+      status: 'active',
+      isActive: true,
+      endDate: { $gte: now },
+    });
+    if (existingActive) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        `This service already has an active ${plan.promotionCategory} promotion`,
+      );
+    }
+  } else {
+    const existingActive = await VendorPromotion.findOne({
+      vendor: new Types.ObjectId(vendorId),
+      service: null,
+      promotionCategory: plan.promotionCategory,
+      status: 'active',
+      isActive: true,
+      endDate: { $gte: now },
+    });
+    if (existingActive) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        `You already have an active ${plan.promotionCategory} promotion`,
+      );
+    }
+  }
+
   const endDate = new Date(now);
   endDate.setDate(endDate.getDate() + plan.durationDays);
 
@@ -209,7 +244,7 @@ const purchasePromotionIntoDB = async (
       : undefined,
     status: 'active',
     isActive: true,
-    paymentStatus: 'pending',
+    paymentStatus: 'paid',
     isPostCreated: false,
   };
 
@@ -218,6 +253,10 @@ const purchasePromotionIntoDB = async (
   }
 
   const result = await VendorPromotion.create(promotionData);
+
+  // Populate service and plan for clear API response
+  await result.populate('service', 'title images price pricingType');
+  await result.populate('plan', 'promotionCategory durationTitle durationDays price');
 
   // ── Sync User flags immediately (sponsored/featured start right away) ──
   if (plan.promotionCategory === 'sponsored') {

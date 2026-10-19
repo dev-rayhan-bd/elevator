@@ -7,6 +7,16 @@ import { User } from '../User/user.model';
 import { VendorService } from '../VendorService/vendorService.model';
 import { sendNotification } from '../../utils/sendNotification';
 
+// Helper to sort offers descending so newest activity is at index 0 (latest activity at the top)
+const sortOffersDescending = <T extends { offers?: any[] }>(quote: T): T => {
+  if (quote && quote.offers && quote.offers.length > 1) {
+    quote.offers.sort(
+      (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }
+  return quote;
+};
+
 // ── User: Send quote request to vendor ──
 const sendQuoteInDB = async (userId: string, payload: Partial<TVendorQuote>) => {
   // Verify service exists and get vendor ID + pricingType
@@ -26,22 +36,34 @@ const sendQuoteInDB = async (userId: string, payload: Partial<TVendorQuote>) => 
     throw new AppError(httpStatus.CONFLICT, 'You already have an active quote for this service.');
   }
 
+  const message = (payload.message || (payload as any).description || '').trim();
+  const eventTypeId = payload.eventType ? new Types.ObjectId(payload.eventType as any) : undefined;
+
+  const initialOffers: any[] = [];
+  if (typeof payload.budget === 'number' && payload.budget > 0) {
+    initialOffers.push({
+      amount: payload.budget,
+      message,
+      sender: new Types.ObjectId(userId),
+      pricingType,
+      createdAt: new Date(),
+    });
+  }
+
   const quote = await VendorQuote.create({
     ...payload,
     user: userId,
     vendor: vendorId,
+    eventType: eventTypeId,
+    message,
     pricingType,
+    guestCount: payload.guestCount ? Number(payload.guestCount) : undefined,
+    budget: payload.budget !== undefined && payload.budget !== null ? Number(payload.budget) : undefined,
     status: 'pending',
-    offers: [
-      {
-        amount: payload.budget!,
-        message: payload.message,
-        sender: new Types.ObjectId(userId),
-        pricingType,
-        createdAt: new Date(),
-      },
-    ],
+    offers: initialOffers,
   });
+
+  await quote.populate('eventType', 'name');
 
   // Notify vendor
   const user = await User.findById(userId).select('firstName lastName');
@@ -63,21 +85,32 @@ const getMyQuotesFromDB = async (userId: string, query: Record<string, unknown>)
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
   const sort = (query.sort as string) || '-createdAt';
-  const status = query.status as string;
+  const requestedStatus = ((query.displayStatus || query.status) as string)?.toLowerCase();
 
   const filter: any = { user: userId, isDeleted: false };
-  if (status) filter.status = status;
+  if (requestedStatus) {
+    if (requestedStatus === 'active') {
+      filter.status = { $in: ['pending', 'countered'] };
+    } else if (requestedStatus === 'closed') {
+      filter.status = { $in: ['won', 'lost', 'declined', 'accepted'] };
+    } else {
+      filter.status = requestedStatus;
+    }
+  }
 
   const [quotes, total] = await Promise.all([
     VendorQuote.find(filter)
       .populate('vendor', 'firstName lastName image vendor.businessName')
       .populate('service', 'title images description pricingType price guestCapacity')
+      .populate('eventType', 'name')
       .populate('offers.sender', 'firstName lastName image')
       .sort(sort)
       .skip(skip)
       .limit(limit),
     VendorQuote.countDocuments(filter),
   ]);
+
+  quotes.forEach((q) => sortOffersDescending(q));
 
   return {
     meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
@@ -91,6 +124,7 @@ const getQuoteDetailsFromDB = async (userId: string, role: string, quoteId: stri
     .populate('user', 'firstName lastName image email phone')
     .populate('vendor', 'firstName lastName image email phone vendor.businessName')
     .populate('service', 'title images description pricingType price')
+    .populate('eventType', 'name')
     .populate('offers.sender', 'firstName lastName image');
 
   if (!quote) throw new AppError(httpStatus.NOT_FOUND, 'Quote not found!');
@@ -104,7 +138,7 @@ const getQuoteDetailsFromDB = async (userId: string, role: string, quoteId: stri
     throw new AppError(httpStatus.FORBIDDEN, 'Unauthorized to view this quote!');
   }
 
-  return quote;
+  return sortOffersDescending(quote);
 };
 
 // ── User: Accept quote → auto-won (both sides see "won") ──
@@ -117,9 +151,10 @@ const acceptQuoteInDB = async (userId: string, quoteId: string) => {
   }
 
   quote.status = 'won';
-  quote.finalAmount = quote.offers.length > 0
-    ? quote.offers[quote.offers.length - 1].amount
-    : quote.budget;
+  const latestOffer = [...quote.offers].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )[0];
+  quote.finalAmount = latestOffer ? latestOffer.amount : (quote.budget ?? 0);
   await quote.save();
 
   // Notify vendor
@@ -131,7 +166,7 @@ const acceptQuoteInDB = async (userId: string, quoteId: string) => {
     { quoteId: quote._id.toString(), action: 'quote_won' },
   );
 
-  return quote;
+  return sortOffersDescending(quote);
 };
 
 // ── User: Decline a quote ──
@@ -172,6 +207,7 @@ const getVendorQuotesFromDB = async (vendorId: string, query: Record<string, unk
     VendorQuote.find(filter)
       .populate('user', 'firstName lastName image email phone')
       .populate('service', 'title images pricingType')
+      .populate('eventType', 'name')
       .populate('offers.sender', 'firstName lastName image')
       .sort(sort)
       .skip(skip)
@@ -202,6 +238,8 @@ const getVendorQuotesFromDB = async (vendorId: string, query: Record<string, unk
     statsMap[s._id] = s.count;
     statsMap.total += s.count;
   }
+
+  quotes.forEach((q) => sortOffersDescending(q));
 
   return {
     meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
@@ -238,7 +276,7 @@ const counterQuoteInDB = async (vendorId: string, quoteId: string, amount: numbe
     { quoteId: quote._id.toString(), action: 'counter_offer' },
   );
 
-  return quote;
+  return sortOffersDescending(quote);
 };
 
 // ── User: Send counter offer back to vendor ──
@@ -269,7 +307,7 @@ const userCounterQuoteInDB = async (userId: string, quoteId: string, amount: num
     { quoteId: quote._id.toString(), action: 'counter_offer' },
   );
 
-  return quote;
+  return sortOffersDescending(quote);
 };
 
 // ── Vendor: Accept quote → auto-won (both sides see "won") ──
@@ -286,9 +324,10 @@ const winQuoteInDB = async (vendorId: string, quoteId: string) => {
   }
 
   quote.status = 'won';
-  quote.finalAmount = quote.offers.length > 0
-    ? quote.offers[quote.offers.length - 1].amount
-    : quote.budget;
+  const latestOffer = [...quote.offers].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )[0];
+  quote.finalAmount = latestOffer ? latestOffer.amount : (quote.budget ?? 0);
   await quote.save();
 
   sendNotification(
@@ -299,7 +338,7 @@ const winQuoteInDB = async (vendorId: string, quoteId: string) => {
     { quoteId: quote._id.toString(), action: 'quote_won' },
   );
 
-  return quote;
+  return sortOffersDescending(quote);
 };
 
 // ── Vendor: Lose/Close a deal → auto-declined (both sides see "declined") ──

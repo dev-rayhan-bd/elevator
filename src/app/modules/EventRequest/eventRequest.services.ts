@@ -70,7 +70,27 @@ const getMyEventRequestsFromDB = async (userId: string, query: Record<string, un
 
   const result = await serviceQuery.modelQuery;
   const meta = await serviceQuery.countTotal();
-  return { meta, result };
+
+  // Attach quotesCount to each event request
+  const requestIds = result.map((r: any) => r._id);
+  const quoteCounts = await EventQuote.aggregate([
+    { $match: { eventRequest: { $in: requestIds } } },
+    { $group: { _id: '$eventRequest', count: { $sum: 1 } } },
+  ]);
+
+  const countMap = new Map<string, number>(
+    quoteCounts.map((c: any) => [c._id.toString(), c.count]),
+  );
+
+  const enrichedResult = result.map((r: any) => {
+    const doc = typeof r.toObject === 'function' ? r.toObject() : r;
+    return {
+      ...doc,
+      quotesCount: countMap.get(r._id.toString()) || 0,
+    };
+  });
+
+  return { meta, result: enrichedResult };
 };
 
 /**
@@ -85,7 +105,12 @@ const getSingleEventRequestFromDB = async (userId: string, requestId: string) =>
     .populate('area', 'name region')
     .populate('serviceCategory', 'name image');
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Event request not found');
-  return result;
+
+  const quotesCount = await EventQuote.countDocuments({
+    eventRequest: new Types.ObjectId(requestId),
+  });
+  const doc = typeof result.toObject === 'function' ? result.toObject() : result;
+  return { ...doc, quotesCount };
 };
 
 /**

@@ -4174,17 +4174,21 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "vendorId": {
+                  "service": {
                     "type": "string",
-                    "example": "60d5ecb8b5c9c123456789ab"
+                    "example": "6ab8262b7fa98ab506d2559e"
                   },
-                  "serviceId": {
+                  "eventType": {
                     "type": "string",
-                    "example": "60d5ecb8b5c9c123456789ac"
+                    "example": "6aba20972a500f85044ad9b2"
                   },
                   "eventDate": {
                     "type": "string",
                     "example": "2026-11-15"
+                  },
+                  "guestCount": {
+                    "type": "number",
+                    "example": 100
                   },
                   "budget": {
                     "type": "number",
@@ -4196,10 +4200,11 @@
                   }
                 },
                 "required": [
-                  "vendorId",
-                  "serviceId",
+                  "service",
                   "eventDate",
-                  "budget"
+                  "guestCount",
+                  "budget",
+                  "message"
                 ]
               }
             }

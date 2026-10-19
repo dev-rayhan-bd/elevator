@@ -6,6 +6,16 @@ import { EventQuote } from './eventQuote.model';
 import { EventRequest } from '../EventRequest/eventRequest.model';
 import { sendNotification } from '../../utils/sendNotification';
 
+// Helper to sort offers descending so latest negotiation activity appears first
+const sortOffersDescending = <T extends { offers?: any[] }>(quote: T): T => {
+  if (quote && quote.offers && quote.offers.length > 1) {
+    quote.offers.sort(
+      (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    );
+  }
+  return quote;
+};
+
 /**
  * Vendor: Send a quote to an event request
  */
@@ -137,7 +147,7 @@ const getSingleBidFromDB = async (vendorId: string, quoteId: string) => {
       ],
     });
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Bid not found');
-  return result;
+  return sortOffersDescending(result);
 };
 
 /**
@@ -148,9 +158,24 @@ const getQuotesForMyRequestsFromDB = async (userId: string, query: Record<string
   const myRequests = await EventRequest.find({ user: new Types.ObjectId(userId) }).select('_id');
   const requestIds = myRequests.map((r) => r._id);
 
+  const queryObj = { ...query };
+  const requestedStatus = ((queryObj.displayStatus || queryObj.status) as string)?.toLowerCase();
+  delete queryObj.displayStatus;
+
+  const filter: any = { eventRequest: { $in: requestIds } };
+  if (requestedStatus) {
+    if (requestedStatus === 'active') {
+      filter.status = { $in: ['pending', 'countered'] };
+      delete queryObj.status;
+    } else if (requestedStatus === 'closed') {
+      filter.status = { $in: ['won', 'lost', 'declined', 'accepted'] };
+      delete queryObj.status;
+    }
+  }
+
   const serviceQuery = new QueryBuilder(
-    EventQuote.find({ eventRequest: { $in: requestIds } })
-      .populate('vendor', 'firstName lastName image vendor.businessName vendor.isVerifiedBadge vendor.profileScore')
+    EventQuote.find(filter)
+      .populate('vendor', 'firstName lastName image email phone vendor.businessName vendor.isVerifiedBadge vendor.profileScore')
       .populate({
         path: 'eventRequest',
         select: 'eventType eventDate guestCount budgetMin budgetMax area serviceCategory status',
@@ -161,13 +186,14 @@ const getQuotesForMyRequestsFromDB = async (userId: string, query: Record<string
         ],
       })
       .sort('-createdAt'),
-    query,
+    queryObj,
   )
     .filter()
     .paginate()
     .fields();
 
   const result = await serviceQuery.modelQuery;
+  result.forEach((q: any) => sortOffersDescending(q));
   const meta = await serviceQuery.countTotal();
   return { meta, result };
 };
@@ -194,7 +220,7 @@ const getQuoteDetailForUserFromDB = async (userId: string, quoteId: string) => {
     throw new AppError(httpStatus.FORBIDDEN, 'Unauthorized access');
   }
 
-  return quote;
+  return sortOffersDescending(quote);
 };
 
 /**
@@ -268,7 +294,7 @@ const sendCounterOfferFromDB = async (
     );
   }
 
-  return quote;
+  return sortOffersDescending(quote);
 };
 
 /**

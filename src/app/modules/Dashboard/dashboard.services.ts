@@ -307,6 +307,7 @@ const getUpcomingEvents = async (
     .limit(5)
     .populate('service', 'title')
     .populate('user', 'firstName lastName')
+    .populate('eventType', 'name')
     .lean();
 
   return events.map((ev: any) => {
@@ -324,7 +325,7 @@ const getUpcomingEvents = async (
 
     return {
       _id: ev._id?.toString() ?? '',
-      eventTitle: userName || 'Upcoming Event',
+      eventTitle: ev.eventType?.name || userName || 'Upcoming Event',
       eventDate: evDate,
       eventTime,
       guestCount: ev.guestCount ?? 0,

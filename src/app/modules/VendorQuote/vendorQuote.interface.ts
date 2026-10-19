@@ -15,12 +15,14 @@ export interface TVendorQuote {
   user: Types.ObjectId;
   vendor: Types.ObjectId;
   service: Types.ObjectId;
+  eventType?: Types.ObjectId;
   pricingType: TQuotePricingType;
   eventDate: Date;
-  guestCount: number;
+  guestCount?: number;
   message: string;
-  budget: number;
+  budget?: number;
   status: TVendorQuoteStatus;
+  displayStatus?: 'active' | 'closed';
   offers: TVendorQuoteOffer[];
   finalAmount?: number;
   isDeleted: boolean;

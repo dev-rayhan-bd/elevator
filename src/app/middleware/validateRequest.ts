@@ -1,10 +1,8 @@
-import { ZodObject, ZodRawShape } from 'zod';
+import { AnyZodObject, ZodEffects } from 'zod';
 import { NextFunction, Request, Response } from 'express';
 import catchAsync from '../utils/catchAsync';
 
-
-
-const validateRequest = (schema: ZodObject<ZodRawShape>) => {
+const validateRequest = (schema: AnyZodObject | ZodEffects<any>) => {
   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     // validation
  

@@ -15,6 +15,7 @@ export interface TEventQuote {
   quoteAmount: number;
   message?: string;
   status: TQuoteStatus;
+  displayStatus?: 'active' | 'closed';
   // Latest counter-offer (when status is 'countered')
   counterOffer?: {
     amount: number;
