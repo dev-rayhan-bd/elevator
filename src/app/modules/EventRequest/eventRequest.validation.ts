@@ -25,20 +25,6 @@ export const createEventRequestSchema = z.object({
         message: 'Requirement details are required',
         path: ['requirementDetails'],
       },
-    )
-    .refine(
-      (data) => {
-        return (
-          (data.budgetMin !== undefined && data.budgetMin !== null) ||
-          (data.budgetMax !== undefined && data.budgetMax !== null) ||
-          (data.estimatedBudget !== undefined && data.estimatedBudget !== null) ||
-          (data.budget !== undefined && data.budget !== null)
-        );
-      },
-      {
-        message: 'Estimated budget is required',
-        path: ['estimatedBudget'],
-      },
     ),
 });
 

@@ -7,8 +7,8 @@ export interface TEventRequest {
   eventType?: Types.ObjectId;
   eventDate: Date;
   guestCount?: number;
-  budgetMin: number;
-  budgetMax: number;
+  budgetMin?: number;
+  budgetMax?: number;
   area: Types.ObjectId;
   serviceCategory: Types.ObjectId;
   additionalDetails?: string;

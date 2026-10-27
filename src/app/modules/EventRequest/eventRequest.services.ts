@@ -21,7 +21,7 @@ const createEventRequestIntoDB = async (userId: string, payload: Record<string, 
   const budgetMin =
     payload.budgetMin !== undefined && payload.budgetMin !== null
       ? Number(payload.budgetMin)
-      : estimatedBudget ?? 0;
+      : estimatedBudget;
 
   const budgetMax =
     payload.budgetMax !== undefined && payload.budgetMax !== null

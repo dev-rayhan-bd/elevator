@@ -25,7 +25,7 @@ router.post(
         $eventTypeId: '60d5ecb8b5c9c123456789ab',
         $eventDate: '2026-12-25',
         $location: 'New York, NY',
-        $budget: 5000,
+        budget: 5000,
         guestCount: 150,
         description: 'Wedding reception planning and decoration'
       }
