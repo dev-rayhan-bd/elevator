@@ -208,28 +208,34 @@ const loginUser = async (payload: { identifier: string; password: string; fcmTok
   const isMatch = await user.isPasswordMatched(payload.password, user.password!);
   if (!isMatch) throw new AppError(httpStatus.UNAUTHORIZED, 'Incorrect password');
 
-  // If OTP is not verified yet, send a fresh OTP and return response with isOtpVerified: false (no tokens)
+  // If OTP is not verified yet, check if the account is already active. If active, auto-verify.
+  // Otherwise send a fresh OTP and return response with isOtpVerified: false (no tokens)
   if (!user.isOtpVerified) {
-    const plainOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    user.otp = plainOtp;
-    user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
-    await user.save();
+    if (user.status === 'active') {
+      user.isOtpVerified = true;
+      await user.save();
+    } else {
+      const plainOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      user.otp = plainOtp;
+      user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+      await user.save();
 
-    await sendOtpToUser(user, plainOtp, 'Verify Your Account', payload.identifier);
+      await sendOtpToUser(user, plainOtp, 'Verify Your Account', payload.identifier);
 
-    return {
-      isOtpVerified: false,
-      message: 'Account not verified. A new verification OTP has been sent.',
-      user: {
-        _id: user._id,
-        email: user.email,
-        phone: user.phone,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role,
+      return {
         isOtpVerified: false,
-      },
-    };
+        message: 'Account not verified. A new verification OTP has been sent.',
+        user: {
+          _id: user._id,
+          email: user.email,
+          phone: user.phone,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isOtpVerified: false,
+        },
+      };
+    }
   }
 
   // Update FCM token for push notifications (latest device)
@@ -305,6 +311,7 @@ const resetPassword = async (payload: TResetPassword) => {
   }
 
   user.password = newPassword;
+  user.isOtpVerified = true;
   user.otp = null;
   user.otpExpires = null;
   await user.save();
