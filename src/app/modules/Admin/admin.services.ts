@@ -120,6 +120,7 @@ const manageVendorApplication = async (
       {
         role: 'vendor',
         status: 'active',
+        isOtpVerified: true,
         'vendor.isProfileCompleted': true,
       },
       { new: true }

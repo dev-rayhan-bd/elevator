@@ -14,7 +14,7 @@ const userLogin = catchAsync(async (req, res) => {
   if (!result.isOtpVerified) {
     return sendResponse(res, {
       statusCode: 200,
-      success: true,
+      success: false,
       message: result.message || 'Account not verified. A new verification OTP has been sent.',
       data: result,
     });
