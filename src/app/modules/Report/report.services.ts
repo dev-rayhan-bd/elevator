@@ -60,8 +60,8 @@ const getReportsData = async (type: string = 'vendor', year: number = new Date()
     VendorService.countDocuments({ isActive: true, isDraft: { $ne: true } }),
     User.countDocuments({ role: 'user', status: 'active' }),
     EventRequest.countDocuments({ isDeleted: { $ne: true } }),
-    Dispute.countDocuments({ status: 'pending' }),
-    Dispute.countDocuments({ status: 'resolved' }),
+    Dispute.countDocuments({ status: { $in: ['submitted', 'pending', 'open'] } }),
+    Dispute.countDocuments({ status: { $in: ['closed', 'resolved'] } }),
     Dispute.countDocuments({ status: 'rejected' }),
     EventQuote.countDocuments({ status: { $in: ['accepted', 'won'] } }),
     EventQuote.countDocuments({ status: 'pending' }),
@@ -76,7 +76,7 @@ const getReportsData = async (type: string = 'vendor', year: number = new Date()
       VendorService.countDocuments({ isActive: true, createdAt: { $gte: m.start, $lte: m.end } }),
       EventRequest.countDocuments({ isDeleted: { $ne: true }, createdAt: { $gte: m.start, $lte: m.end } }),
       Dispute.countDocuments({ createdAt: { $gte: m.start, $lte: m.end } }),
-      Dispute.countDocuments({ status: 'resolved', createdAt: { $gte: m.start, $lte: m.end } }),
+      Dispute.countDocuments({ status: { $in: ['closed', 'resolved'] }, createdAt: { $gte: m.start, $lte: m.end } }),
     ]),
   ]);
 

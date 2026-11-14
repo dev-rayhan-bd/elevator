@@ -17,20 +17,72 @@ const getAllSubcategoriesFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .fields();
 
-  const result = await subcategoryQuery.modelQuery;
+  const result = (await subcategoryQuery.modelQuery.lean()) as any[];
   const meta = await subcategoryQuery.countTotal();
+
+  if (result.length > 0) {
+    const subcatIds = result.map((s: any) => s._id);
+    const serviceCounts = await VendorService.aggregate([
+      { $match: { subcategory: { $in: subcatIds }, isDraft: { $ne: true } } },
+      { $group: { _id: '$subcategory', count: { $sum: 1 } } },
+    ]);
+    const countMap = new Map(
+      serviceCounts.map((s: any) => [String(s._id), s.count]),
+    );
+
+    const enriched = result.map((sub: any) => ({
+      ...sub,
+      serviceCount: countMap.get(String(sub._id)) || 0,
+      totalListings: countMap.get(String(sub._id)) || 0,
+    }));
+
+    return { meta, result: enriched };
+  }
+
   return { meta, result };
 };
 
 const getSubcategoriesByCategoryFromDB = async (categoryId: string) => {
-  const result = await ServiceSubcategory.find({ category: categoryId, isActive: true }).populate('category', 'name image');
+  const result = (await ServiceSubcategory.find({ category: categoryId })
+    .populate('category', 'name image')
+    .lean()) as any[];
+
+  if (result.length > 0) {
+    const subcatIds = result.map((s: any) => s._id);
+    const serviceCounts = await VendorService.aggregate([
+      { $match: { subcategory: { $in: subcatIds }, isDraft: { $ne: true } } },
+      { $group: { _id: '$subcategory', count: { $sum: 1 } } },
+    ]);
+    const countMap = new Map(
+      serviceCounts.map((s: any) => [String(s._id), s.count]),
+    );
+
+    return result.map((sub: any) => ({
+      ...sub,
+      serviceCount: countMap.get(String(sub._id)) || 0,
+      totalListings: countMap.get(String(sub._id)) || 0,
+    }));
+  }
+
   return result;
 };
 
 const getSingleSubcategoryFromDB = async (id: string) => {
-  const result = await ServiceSubcategory.findById(id).populate('category', 'name image');
+  const result = await ServiceSubcategory.findById(id)
+    .populate('category', 'name image')
+    .lean();
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Subcategory not found');
-  return result;
+
+  const serviceCount = await VendorService.countDocuments({
+    subcategory: id,
+    isDraft: { $ne: true },
+  });
+
+  return {
+    ...result,
+    serviceCount,
+    totalListings: serviceCount,
+  };
 };
 
 const createSubcategoryIntoDB = async (payload: TServiceSubcategory) => {
@@ -38,7 +90,10 @@ const createSubcategoryIntoDB = async (payload: TServiceSubcategory) => {
   return result;
 };
 
-const updateSubcategoryInDB = async (id: string, payload: Partial<TServiceSubcategory>) => {
+const updateSubcategoryInDB = async (
+  id: string,
+  payload: Partial<TServiceSubcategory>,
+) => {
   const result = await ServiceSubcategory.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
@@ -70,7 +125,9 @@ const deleteSubcategoryFromDB = async (id: string) => {
   return result;
 };
 
-const getAllSubcategoriesWithQueryFromDB = async (query: Record<string, unknown>) => {
+const getAllSubcategoriesWithQueryFromDB = async (
+  query: Record<string, unknown>,
+) => {
   const subcategoryQuery = new QueryBuilder(
     ServiceSubcategory.find().populate('category', 'name image'),
     query,
@@ -79,15 +136,54 @@ const getAllSubcategoriesWithQueryFromDB = async (query: Record<string, unknown>
     .filter()
     .sort();
 
-  const result = await subcategoryQuery.modelQuery;
+  const result = (await subcategoryQuery.modelQuery.lean()) as any[];
   const meta = await subcategoryQuery.countTotal();
+
+  if (result.length > 0) {
+    const subcatIds = result.map((s: any) => s._id);
+    const serviceCounts = await VendorService.aggregate([
+      { $match: { subcategory: { $in: subcatIds }, isDraft: { $ne: true } } },
+      { $group: { _id: '$subcategory', count: { $sum: 1 } } },
+    ]);
+    const countMap = new Map(
+      serviceCounts.map((s: any) => [String(s._id), s.count]),
+    );
+
+    const enriched = result.map((sub: any) => ({
+      ...sub,
+      serviceCount: countMap.get(String(sub._id)) || 0,
+      totalListings: countMap.get(String(sub._id)) || 0,
+    }));
+
+    return { meta, result: enriched };
+  }
+
   return { meta, result };
 };
 
 const getAllSubcategoriesListFromDB = async () => {
-  const result = await ServiceSubcategory.find({ isActive: true })
+  const result = (await ServiceSubcategory.find({ isActive: true })
     .populate('category', 'name image')
-    .sort('name');
+    .sort('name')
+    .lean()) as any[];
+
+  if (result.length > 0) {
+    const subcatIds = result.map((s: any) => s._id);
+    const serviceCounts = await VendorService.aggregate([
+      { $match: { subcategory: { $in: subcatIds }, isDraft: { $ne: true } } },
+      { $group: { _id: '$subcategory', count: { $sum: 1 } } },
+    ]);
+    const countMap = new Map(
+      serviceCounts.map((s: any) => [String(s._id), s.count]),
+    );
+
+    return result.map((sub: any) => ({
+      ...sub,
+      serviceCount: countMap.get(String(sub._id)) || 0,
+      totalListings: countMap.get(String(sub._id)) || 0,
+    }));
+  }
+
   return result;
 };
 

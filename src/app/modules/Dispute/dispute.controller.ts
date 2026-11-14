@@ -18,12 +18,14 @@ const createDispute = catchAsync(async (req, res) => {
   }
 
   // Parse form-data `data` string or use raw body
-  const rawBody = req.body?.data && typeof req.body.data === 'string'
-    ? JSON.parse(req.body.data)
-    : req.body;
+  const rawBody =
+    req.body?.data && typeof req.body.data === 'string'
+      ? JSON.parse(req.body.data)
+      : req.body;
 
   // Validate with Zod
-  const validated = DisputeValidations.createDisputeValidationSchema.parse(rawBody);
+  const validated =
+    DisputeValidations.createDisputeValidationSchema.parse(rawBody);
 
   const result = await DisputeServices.createDisputeInDB(
     req.user.userId,
@@ -35,6 +37,18 @@ const createDispute = catchAsync(async (req, res) => {
     statusCode: httpStatus.CREATED,
     success: true,
     message: 'Dispute filed successfully',
+    data: result,
+  });
+});
+
+// ── Admin: Summary stats for cards ──
+const getDisputeSummaryStats = catchAsync(async (req, res) => {
+  const result = await DisputeServices.getDisputeSummaryStatsFromDB();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Dispute summary statistics retrieved successfully',
     data: result,
   });
 });
@@ -66,10 +80,13 @@ const getAllDisputes = catchAsync(async (req, res) => {
   });
 });
 
-// ── Admin: Get dispute details ──
+// ── Admin / Submitter: Get dispute details ──
 const getDisputeDetails = catchAsync(async (req, res) => {
   const { id } = req.params;
-  const result = await DisputeServices.getDisputeDetailsFromDB(id);
+  const result = await DisputeServices.getDisputeDetailsFromDB(
+    id,
+    req.user as any,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -82,9 +99,13 @@ const getDisputeDetails = catchAsync(async (req, res) => {
 // ── Admin: Update dispute status ──
 const updateDisputeStatus = catchAsync(async (req, res) => {
   const { id } = req.params;
+  const validated =
+    DisputeValidations.updateDisputeStatusValidationSchema.parse(req.body);
+
   const result = await DisputeServices.updateDisputeStatusInDB(
     id,
-    req.body,
+    req.user.userId,
+    validated,
   );
 
   sendResponse(res, {
@@ -95,13 +116,51 @@ const updateDisputeStatus = catchAsync(async (req, res) => {
   });
 });
 
+// ── Admin & Submitter: Add Response / Reply ──
+const addDisputeResponse = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  let attachmentUrls: string[] = [];
+
+  const files = req.files as Express.Multer.File[] | undefined;
+  if (files && files.length > 0) {
+    attachmentUrls = await Promise.all(
+      files.map((file) => uploadImage(req, file)),
+    );
+  }
+
+  const rawBody =
+    req.body?.data && typeof req.body.data === 'string'
+      ? JSON.parse(req.body.data)
+      : req.body;
+
+  const validated =
+    DisputeValidations.addDisputeResponseValidationSchema.parse(rawBody);
+
+  const result = await DisputeServices.addDisputeResponseInDB(
+    id,
+    req.user as any,
+    validated,
+    attachmentUrls,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Response posted successfully',
+    data: result,
+  });
+});
+
 // ── Admin: Add internal note ──
 const addAdminNote = catchAsync(async (req, res) => {
   const { id } = req.params;
+  const validated =
+    DisputeValidations.addAdminNoteValidationSchema.parse(req.body);
+
   const result = await DisputeServices.addAdminNoteInDB(
     id,
     req.user.userId,
-    req.body.note,
+    validated.note,
   );
 
   sendResponse(res, {
@@ -128,10 +187,12 @@ const exportDisputeReport = catchAsync(async (req, res) => {
 
 export const DisputeControllers = {
   createDispute,
+  getDisputeSummaryStats,
   getMyDisputes,
   getAllDisputes,
   getDisputeDetails,
   updateDisputeStatus,
+  addDisputeResponse,
   addAdminNote,
   exportDisputeReport,
 };
