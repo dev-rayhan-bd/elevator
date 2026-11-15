@@ -66,7 +66,7 @@ router.get(
     #swagger.tags = ['Verification']
     #swagger.summary = 'Get all verification requests (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   VerificationControllers.adminGetAllVerifications,
 );
 
@@ -77,7 +77,7 @@ router.get(
     #swagger.tags = ['Verification']
     #swagger.summary = 'Get single verification request (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   VerificationControllers.getSingleVerification,
 );
 
@@ -96,7 +96,7 @@ router.patch(
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   validateRequest(VerificationValidations.updateVerificationStatusSchema),
   VerificationControllers.adminUpdateVerificationStatus,
 );

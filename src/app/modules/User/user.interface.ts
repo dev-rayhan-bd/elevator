@@ -1,12 +1,6 @@
 import { Model, Types } from 'mongoose';
 
-export type TUserRole =
-  | 'user'
-  | 'vendor'
-  | 'admin'
-  | 'superAdmin'
-  | 'operationsAdmin'
-  | 'contentModerator';
+export type TUserRole = 'user' | 'vendor' | 'admin' | 'superAdmin';
 
 export interface TVendorAvailability {
   day: string; // e.g., 'Monday'

@@ -5,36 +5,51 @@ import { ContactUs } from './contact.model';
 import { TContactUs } from './contact.interface';
 import sendEmail from '../../utils/sendEmail';
 import { sendNotificationToAdmins } from '../../utils/sendNotification';
+import {
+  renderContactUsAutoReplyEmail,
+  renderContactUsAdminReplyEmail,
+} from '../../utils/emailTemplate';
 
-const saveMessageIntoDB = async (payload: Pick<TContactUs, 'email' | 'subject' | 'message'>) => {
-  // Save to database
-  const result = await ContactUs.create(payload);
+const saveMessageIntoDB = async (payload: {
+  name?: string;
+  email: string;
+  subject: string;
+  message: string;
+}) => {
+  // Save to database (including user name)
+  const result = await ContactUs.create({
+    name: payload.name,
+    email: payload.email,
+    subject: payload.subject,
+    message: payload.message,
+    status: 'pending',
+  });
 
-  // Send auto-reply to user
-  const autoReplyHtml = `
-    <div style="font-family: Arial, sans-serif; padding: 20px;">
-      <h2>Thank You for Contacting Us</h2>
-      <p>Hi,</p>
-      <p>We have received your message regarding "<strong>${payload.subject}</strong>".</p>
-      <p>Our team will review your inquiry and get back to you as soon as possible.</p>
-      <p>Best Regards,<br/>WePlan Team</p>
-    </div>
-  `;
-  
+  // Render branded HTML auto-reply email with WePlan logo & submitted details
+  const autoReplyHtml = renderContactUsAutoReplyEmail({
+    name: payload.name,
+    subject: payload.subject,
+    message: payload.message,
+    email: payload.email,
+  });
+
   await sendEmail({
     to: payload.email,
-    subject: 'We have received your message!',
-    html: autoReplyHtml
+    subject: 'We have received your message! — WePlan',
+    html: autoReplyHtml,
+    fromName: 'WePlan',
   });
 
   // Send notification to admins
   await sendNotificationToAdmins(
     'New Contact Inquiry 📧',
-    `You have a new message from ${payload.email} regarding "${payload.subject}".`,
+    `You have a new message from ${payload.name || payload.email} regarding "${payload.subject}".`,
     'contact_inquiry',
-    { 
-      contactId: result._id.toString()
-    }
+    {
+      contactId: result._id.toString(),
+      senderName: payload.name || 'Visitor',
+      senderEmail: payload.email,
+    },
   );
 
   return result;
@@ -42,7 +57,7 @@ const saveMessageIntoDB = async (payload: Pick<TContactUs, 'email' | 'subject' |
 
 const getAllMessagesFromDB = async (query: Record<string, unknown>) => {
   const messageQuery = new QueryBuilder(ContactUs.find(), query)
-    .search(['email', 'subject', 'message'])
+    .search(['name', 'email', 'subject', 'message'])
     .filter()
     .sort()
     .paginate()
@@ -76,26 +91,19 @@ const replyToMessageInDB = async (
     throw new AppError(httpStatus.BAD_REQUEST, 'Message has already been replied to');
   }
 
-  // Send email to user
-  const replyHtml = `
-    <div style="font-family: Arial, sans-serif; padding: 20px;">
-      <h2>Re: ${message.subject}</h2>
-      <p>Hi,</p>
-      <p>${replyText.replace(/\n/g, '<br/>')}</p>
-      <hr/>
-      <p><em>Your original message:</em></p>
-      <blockquote style="border-left: 3px solid #ccc; padding-left: 10px; color: #555;">
-        ${message.message.replace(/\n/g, '<br/>')}
-      </blockquote>
-      <br/>
-      <p>Best Regards,<br/>WePlan Support Team</p>
-    </div>
-  `;
+  // Send branded reply email to user
+  const replyHtml = renderContactUsAdminReplyEmail({
+    name: message.name,
+    subject: message.subject,
+    replyMessage: replyText,
+    originalMessage: message.message,
+  });
 
   await sendEmail({
     to: message.email,
-    subject: `Re: ${message.subject}`,
-    html: replyHtml
+    subject: `Re: ${message.subject} — WePlan Support`,
+    html: replyHtml,
+    fromName: 'WePlan Support',
   });
 
   // Update DB

@@ -294,7 +294,7 @@ router.get(
     #swagger.tags = ['VendorService']
     #swagger.summary = 'Get all vendor services (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   VendorServiceControllers.getAllVendorServices,
 );
 
@@ -304,7 +304,7 @@ router.get(
     #swagger.tags = ['VendorService']
     #swagger.summary = 'Get single vendor service details (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   VendorServiceControllers.getSingleServiceForAdmin,
 );
 
@@ -321,7 +321,7 @@ router.patch(
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   VendorServiceControllers.adminToggleServiceStatus,
 );
 
@@ -340,7 +340,7 @@ router.patch(
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   VendorServiceControllers.adminReviewService,
 );
 
@@ -350,7 +350,7 @@ router.patch(
     #swagger.tags = ['VendorService']
     #swagger.summary = 'Approve or reject vendor service alias (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   VendorServiceControllers.adminReviewService,
 );
 

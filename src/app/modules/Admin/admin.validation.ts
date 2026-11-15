@@ -2,13 +2,12 @@ import { z } from 'zod';
 
 export const AdminValidation = {
   createAdminSchema: z.object({
-      firstName: z.string().optional(),
-      lastName: z.string().optional(),
-      fullName: z.string().optional(),
+      firstName: z.string(),
+      lastName: z.string(),
       email: z.string().email(),
       phone: z.string(),
       password: z.string().min(8),
-      role: z.enum(['superAdmin', 'operationsAdmin', 'contentModerator', 'admin']).optional(),
+      // role intentionally omitted — always defaults to 'admin'; superAdmin is auto-created
   }),
 
   loginSchema: z.object({

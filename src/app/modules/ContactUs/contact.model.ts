@@ -3,6 +3,10 @@ import { TContactUs, TContactStatus } from './contact.interface';
 
 const contactSchema = new Schema<TContactUs>(
   {
+    name: {
+      type: String,
+      trim: true,
+    },
     email: {
       type: String,
       required: true,

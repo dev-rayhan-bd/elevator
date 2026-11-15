@@ -23,7 +23,7 @@ router.get(
     #swagger.tags = ['BlogCategory']
     #swagger.summary = 'Get blog categories (Admin view)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.contentModerator),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   BlogCategoryControllers.getAdminBlogCategories,
 );
 
