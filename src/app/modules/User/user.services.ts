@@ -98,11 +98,18 @@ const applyToBecomeVendor = async (userId: string, vendorData: any) => {
   );
 
   // Fire-and-forget: notify admins + applicant
+  const businessName =
+    vendorData?.businessName ||
+    user.vendor?.businessName ||
+    user.fullName ||
+    `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+    'Vendor';
+
   sendNotificationToAdmins(
     'New Vendor Application',
-    `${user.firstName} ${user.lastName} (${user.email}) has applied to become a vendor.`,
+    `${businessName} (${user.email}) has applied to become a vendor.`,
     'vendor_application',
-    { userId: user._id.toString() }
+    { userId: user._id.toString(), vendorId: user._id.toString(), businessName }
   );
   sendNotification(
     userId,

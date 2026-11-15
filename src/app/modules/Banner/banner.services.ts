@@ -145,14 +145,15 @@ const bookBannerIntoDB = async (
   }
 
   // Fetch vendor info to set fallback title and auto-link vendor profile
-  const vendor = await User.findById(vendorId).select('fullName firstName lastName');
-  const vendorName =
+  const vendor = await User.findById(vendorId).select('fullName firstName lastName vendor');
+  const businessName =
+    vendor?.vendor?.businessName ||
     vendor?.fullName ||
     [vendor?.firstName, vendor?.lastName].filter(Boolean).join(' ') ||
     'Vendor';
 
   const defaultLink = payload.link ? normalizeBannerLink(payload.link) : `/vendor/${vendorId}`;
-  const defaultTitle = payload.title || `${vendorName}'s Promotion`;
+  const defaultTitle = payload.title || `${businessName}'s Promotion`;
 
   const bannerData: Partial<TBanner> = {
     vendor: new Types.ObjectId(vendorId),
@@ -176,9 +177,9 @@ const bookBannerIntoDB = async (
   try {
     void sendNotificationToAdmins(
       'New Banner Pending Review 🎨',
-      `Vendor "${vendorName}" has submitted a banner for admin review.`,
+      `Vendor "${businessName}" has submitted a banner for admin review.`,
       'banner_submission',
-      { bannerId: result._id.toString(), vendorId },
+      { bannerId: result._id.toString(), vendorId, businessName },
     );
   } catch (err) {
     console.error('Failed to notify admins of banner submission:', err);

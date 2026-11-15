@@ -284,7 +284,15 @@ const addDisputeResponseInDB = async (
   } else {
     const regularUser = await User.findById(sender.userId).lean();
     if (regularUser) {
-      senderName = `${regularUser.firstName} ${regularUser.lastName}`.trim() || 'Submitter';
+      if (regularUser.role === 'vendor') {
+        senderName =
+          regularUser.vendor?.businessName ||
+          regularUser.fullName ||
+          `${regularUser.firstName || ''} ${regularUser.lastName || ''}`.trim() ||
+          'Vendor';
+      } else {
+        senderName = `${regularUser.firstName} ${regularUser.lastName}`.trim() || 'Submitter';
+      }
     }
   }
 

@@ -167,11 +167,17 @@ const verifyOTPForRegistration = async (identifier: string, otp: string) => {
   await user.save();
 
   if (user.role === 'vendor' && user.status === 'pending') {
+    const businessName =
+      user.vendor?.businessName ||
+      user.fullName ||
+      `${user.firstName || ''} ${user.lastName || ''}`.trim() ||
+      'New Vendor';
+
     sendNotificationToAdmins(
       'New Vendor Registration',
-      `${user.firstName} ${user.lastName} (${user.email}) has registered as a vendor.`,
+      `${businessName} (${user.email}) has registered as a vendor.`,
       'new_vendor_registered',
-      { vendorId: user._id.toString() }
+      { vendorId: user._id.toString(), businessName }
     );
     sendNotification(
       user._id.toString(),

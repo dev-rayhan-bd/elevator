@@ -382,11 +382,19 @@ const purchaseVerifiedPromotionIntoDB = async (
 
   // Notify admins of new verified promotion request pending approval
   try {
+    const vendorUser = await User.findById(vendorId).select('vendor fullName firstName lastName');
+    const businessName =
+      payload.businessName ||
+      vendorUser?.vendor?.businessName ||
+      vendorUser?.fullName ||
+      `${vendorUser?.firstName || ''} ${vendorUser?.lastName || ''}`.trim() ||
+      'Vendor';
+
     void sendNotificationToAdmins(
       'New Verified Promotion Request 🛡️',
-      `A vendor has submitted a Verified Promotion request pending admin review.`,
+      `Vendor "${businessName}" has submitted a Verified Promotion request pending admin review.`,
       'promotion_pending',
-      { promotionId: vendorPromotion._id.toString(), vendorId },
+      { promotionId: vendorPromotion._id.toString(), vendorId, businessName },
     );
   } catch (err) {
     console.error('Failed to notify admins of verified promotion request:', err);

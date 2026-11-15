@@ -815,11 +815,18 @@ const createVendorServiceIntoDB = async (
 
   // Notify admins of new pending service
   try {
+    const vendorUser = await User.findById(vendorId).select('vendor fullName firstName lastName');
+    const businessName =
+      vendorUser?.vendor?.businessName ||
+      vendorUser?.fullName ||
+      `${vendorUser?.firstName || ''} ${vendorUser?.lastName || ''}`.trim() ||
+      'Vendor';
+
     void sendNotificationToAdmins(
       'New Service Pending Review',
-      `A vendor has submitted service "${result.title || 'Untitled'}" for admin review.`,
+      `Vendor "${businessName}" has submitted service "${result.title || 'Untitled'}" for admin review.`,
       'service',
-      { serviceId: result._id.toString() },
+      { serviceId: result._id.toString(), vendorId: vendorId.toString(), businessName },
     );
   } catch (err) {
     console.error('Failed to notify admins of new service:', err);
@@ -911,11 +918,18 @@ const updateVendorServiceInDB = async (
     updateData.rejectionReason = '';
     updateData.isActive = false;
     try {
+      const vendorUser = await User.findById(service.vendor).select('vendor fullName firstName lastName');
+      const businessName =
+        vendorUser?.vendor?.businessName ||
+        vendorUser?.fullName ||
+        `${vendorUser?.firstName || ''} ${vendorUser?.lastName || ''}`.trim() ||
+        'Vendor';
+
       void sendNotificationToAdmins(
         'Rejected Service Updated for Re-review',
-        `Vendor updated rejected service "${service.title || 'Service'}" and re-submitted it for review.`,
+        `Vendor "${businessName}" updated rejected service "${service.title || 'Service'}" and re-submitted it for review.`,
         'service',
-        { serviceId: service._id.toString() },
+        { serviceId: service._id.toString(), vendorId: service.vendor?.toString(), businessName },
       );
     } catch (err) {
       console.error('Failed to notify admins of resubmitted service:', err);
@@ -1216,11 +1230,18 @@ const publishDraftFromDB = async (
 
   // Notify admins of published service pending review
   try {
+    const vendorUser = await User.findById(vendorId).select('vendor fullName firstName lastName');
+    const businessName =
+      vendorUser?.vendor?.businessName ||
+      vendorUser?.fullName ||
+      `${vendorUser?.firstName || ''} ${vendorUser?.lastName || ''}`.trim() ||
+      'Vendor';
+
     void sendNotificationToAdmins(
       'Service Published for Review',
-      `A vendor has published service "${result?.title || 'Service'}" and it is pending review.`,
+      `Vendor "${businessName}" has published service "${result?.title || 'Service'}" and it is pending review.`,
       'service',
-      { serviceId: draftId },
+      { serviceId: draftId, vendorId: vendorId.toString(), businessName },
     );
   } catch (err) {
     console.error('Failed to notify admins of published draft:', err);

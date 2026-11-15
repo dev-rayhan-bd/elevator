@@ -51,11 +51,17 @@ const submitVerificationIntoDB = async (
       existing.rejectedReason = undefined;
       await existing.save();
 
+      const businessName =
+        vendor.vendor?.businessName ||
+        vendor.fullName ||
+        `${vendor.firstName || ''} ${vendor.lastName || ''}`.trim() ||
+        'Vendor';
+
       sendNotificationToAdmins(
         'Vendor Verification Resubmitted 🛡️',
-        `${vendor.firstName} ${vendor.lastName} has resubmitted verification documents.`,
+        `${businessName} has resubmitted verification documents.`,
         'vendor_verification',
-        { verificationId: existing._id.toString(), vendorId }
+        { verificationId: existing._id.toString(), vendorId, businessName }
       );
 
       return existing;
@@ -69,11 +75,17 @@ const submitVerificationIntoDB = async (
     notes: payload.notes,
   });
 
+  const businessName =
+    vendor.vendor?.businessName ||
+    vendor.fullName ||
+    `${vendor.firstName || ''} ${vendor.lastName || ''}`.trim() ||
+    'Vendor';
+
   sendNotificationToAdmins(
     'New Vendor Verification Request 🛡️',
-    `${vendor.firstName} ${vendor.lastName} has submitted verification documents.`,
+    `${businessName} has submitted verification documents.`,
     'vendor_verification',
-    { verificationId: result._id.toString(), vendorId }
+    { verificationId: result._id.toString(), vendorId, businessName }
   );
 
   return result;

@@ -139,6 +139,22 @@ const createBookingIntoDB = async (userId: string, payload: any) => {
   ]);
 };
 
+// ── Utility: Format assigned associate vendor details ──
+const formatAssignedAssociate = (assoc: any) => {
+  if (!assoc || typeof assoc !== 'object') return assoc;
+  const obj = assoc.toObject ? assoc.toObject() : { ...assoc };
+  const bName =
+    obj.vendor?.businessName ||
+    obj.businessName ||
+    obj.fullName ||
+    `${obj.firstName || ''} ${obj.lastName || ''}`.trim();
+  obj.businessName = bName;
+  if (!obj.email && obj.vendor?.email) {
+    obj.email = obj.vendor.email;
+  }
+  return obj;
+};
+
 // ══════════════════════════════════════════════
 //  USER: GET MY BOOKINGS
 // ══════════════════════════════════════════════
@@ -147,7 +163,7 @@ const getMyBookingsFromDB = async (userId: string, query: Record<string, unknown
   const bookingQuery = new QueryBuilder(
     AdvisorBooking.find({ user: new Types.ObjectId(userId) })
       .populate('advisorService', 'name description price')
-      .populate('assignedAssociate', 'firstName lastName image phone')
+      .populate('assignedAssociate', 'firstName lastName fullName image phone email vendor')
       .sort('-createdAt'),
     query,
   )
@@ -186,6 +202,7 @@ const getMyBookingsFromDB = async (userId: string, query: Record<string, unknown
 
     return {
       ...docObj,
+      assignedAssociate: docObj.assignedAssociate ? formatAssignedAssociate(docObj.assignedAssociate) : undefined,
       isReviewed,
       hasReviewed: isReviewed,
       review: review || null,
@@ -205,11 +222,14 @@ const getMySingleBookingFromDB = async (userId: string, bookingId: string) => {
     user: new Types.ObjectId(userId),
   })
     .populate('advisorService', 'name description price')
-    .populate('assignedAssociate', 'firstName lastName image phone email');
+    .populate('assignedAssociate', 'firstName lastName fullName image phone email vendor');
 
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Booking not found');
 
   const docObj = result.toObject();
+  if (docObj.assignedAssociate) {
+    docObj.assignedAssociate = formatAssignedAssociate(docObj.assignedAssociate);
+  }
   const serviceId = docObj.advisorService?._id?.toString() || docObj.advisorService?.toString();
 
   const review = await AdvisorReview.findOne({
@@ -312,7 +332,7 @@ const adminGetAllBookingsFromDB = async (query: Record<string, unknown>) => {
     AdvisorBooking.find(filterCondition)
       .populate('user', 'firstName lastName email image phone')
       .populate('advisorService', 'name description price')
-      .populate('assignedAssociate', 'firstName lastName image phone'),
+      .populate('assignedAssociate', 'firstName lastName fullName image phone email vendor'),
     queryObj,
   )
     .search(['fullName', 'email', 'phone', 'adminNotes'])
@@ -321,8 +341,16 @@ const adminGetAllBookingsFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .fields();
 
-  const result = await bookingQuery.modelQuery;
+  const rawResult = await bookingQuery.modelQuery;
   const meta = await bookingQuery.countTotal();
+
+  const result = rawResult.map((booking: any) => {
+    const b = booking.toObject ? booking.toObject() : { ...booking };
+    if (b.assignedAssociate) {
+      b.assignedAssociate = formatAssignedAssociate(b.assignedAssociate);
+    }
+    return b;
+  });
 
   // ── Stats ──
   const totalBookings = await AdvisorBooking.countDocuments();
@@ -383,11 +411,17 @@ const assignAssociateToBookingInDB = async (
   if (adminNotes) booking.adminNotes = adminNotes;
   await booking.save();
 
-  return booking.populate([
-    { path: 'assignedAssociate', select: 'firstName lastName image phone email' },
+  const updatedBooking = await booking.populate([
+    { path: 'assignedAssociate', select: 'firstName lastName fullName image phone email vendor' },
     { path: 'advisorService', select: 'name description price' },
     { path: 'user', select: 'firstName lastName email image' },
   ]);
+
+  const b = (updatedBooking.toObject ? updatedBooking.toObject() : { ...updatedBooking }) as any;
+  if (b.assignedAssociate) {
+    b.assignedAssociate = formatAssignedAssociate(b.assignedAssociate);
+  }
+  return b;
 };
 
 // ══════════════════════════════════════════════
@@ -431,11 +465,17 @@ const adminUpdateBookingStatusInDB = async (
 
   await booking.save();
 
-  return booking.populate([
+  const updatedBooking = await booking.populate([
     { path: 'user', select: 'firstName lastName email image' },
-    { path: 'assignedAssociate', select: 'firstName lastName image phone' },
+    { path: 'assignedAssociate', select: 'firstName lastName fullName image phone email vendor' },
     { path: 'advisorService', select: 'name description price' },
   ]);
+
+  const b = (updatedBooking.toObject ? updatedBooking.toObject() : { ...updatedBooking }) as any;
+  if (b.assignedAssociate) {
+    b.assignedAssociate = formatAssignedAssociate(b.assignedAssociate);
+  }
+  return b;
 };
 
 // ══════════════════════════════════════════════
@@ -520,7 +560,7 @@ const exportAllDataFromDB = async () => {
   const bookings = await AdvisorBooking.find()
     .populate('user', 'firstName lastName email phone')
     .populate('advisorService', 'name description price')
-    .populate('assignedAssociate', 'firstName lastName email phone')
+    .populate('assignedAssociate', 'firstName lastName fullName email phone vendor')
     .lean();
 
   // Fetch logo buffer
@@ -635,7 +675,10 @@ const exportAllDataFromDB = async () => {
         doc.moveDown(0.2);
         const yRow4 = doc.y;
         doc.font('Helvetica-Bold').text('Assigned:', 50, yRow4, { width: 60 });
-        doc.font('Helvetica').text(b.assignedAssociate ? `${b.assignedAssociate.firstName} ${b.assignedAssociate.lastName}` : 'Unassigned', 110, yRow4, { width: 400 });
+        const assocName = b.assignedAssociate
+          ? (b.assignedAssociate.vendor?.businessName || b.assignedAssociate.businessName || `${b.assignedAssociate.firstName || ''} ${b.assignedAssociate.lastName || ''}`.trim() || 'Assigned')
+          : 'Unassigned';
+        doc.font('Helvetica').text(assocName, 110, yRow4, { width: 400 });
 
         // Reset X to default margin after custom positions
         doc.x = 50;
