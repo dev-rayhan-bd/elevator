@@ -70,8 +70,16 @@ const userSchema = new Schema<TUser, UserModel, IUserMethods>(
     },
     lastActiveAt: { type: Date },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
+
+userSchema.virtual('businessName').get(function () {
+  return this.vendor?.businessName || this.fullName || `${this.firstName || ''} ${this.lastName || ''}`.trim();
+});
 
 // Pre-save hook
 userSchema.pre("save", async function (next) {

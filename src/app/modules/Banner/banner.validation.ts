@@ -50,6 +50,17 @@ export const createAdminBannerSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const updateAdminBannerSchema = z.object({
+  slot: z.string().optional(),
+  title: z.string().optional(),
+  buttonText: z.string().optional(),
+  link: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  price: z.number().min(0).optional(),
+  isActive: z.boolean().optional(),
+});
+
 export const updateBannerStatusSchema = z.object({
   status: z.enum(['approved', 'rejected']),
 });
@@ -59,5 +70,6 @@ export const BannerValidations = {
   updateSlotSchema,
   bookBannerSchema,
   createAdminBannerSchema,
+  updateAdminBannerSchema,
   updateBannerStatusSchema,
 };

@@ -15,6 +15,7 @@ import { User } from '../User/user.model';
 import { VendorService } from '../VendorService/vendorService.model';
 import { EventRequest } from '../EventRequest/eventRequest.model';
 import { Dispute } from '../Dispute/dispute.model';
+import { AdvisorBooking } from '../Advisor/advisor.model';
 import { Banner, BannerSlot } from '../Banner/banner.model';
 import { expireOverdueBanners } from '../Banner/banner.services';
 import {
@@ -393,11 +394,11 @@ function getTimeAgo(date: Date): string {
   const seconds = Math.floor((new Date().getTime() - new Date(date).getTime()) / 1000);
   if (seconds < 60) return `${Math.max(1, seconds)} seconds ago`;
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minutes ago`;
+  if (minutes < 60) return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hours ago`;
+  if (hours < 24) return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
   const days = Math.floor(hours / 24);
-  return `${days} days ago`;
+  return `${days} ${days === 1 ? 'day' : 'days'} ago`;
 }
 
 const getAdminDashboard = async (
@@ -438,19 +439,29 @@ const getAdminDashboard = async (
     postedRequirementsCount,
     quoteRequestedCount,
     savedListingsCountResult,
-    bookingsWonDealsCount,
+    bookingsWonDealsCountRaw,
+    advisorBookingsCountRaw,
     recentServices,
     recentVendors,
     recentRequests,
     recentDisputes,
+    recentBookings,
   ] = await Promise.all([
     User.countDocuments({
-      role: 'vendor',
-      $or: [{ status: 'pending' }, { 'vendor.isProfileCompleted': false }],
+      isDeleted: { $ne: true },
+      $or: [
+        { role: 'vendor', status: 'pending' },
+        { role: 'vendor', 'vendor.isProfileCompleted': false },
+        { role: 'user', status: 'pending' },
+      ],
     }),
     User.countDocuments({
-      role: 'vendor',
-      $or: [{ status: 'pending' }, { 'vendor.isProfileCompleted': false }],
+      isDeleted: { $ne: true },
+      $or: [
+        { role: 'vendor', status: 'pending' },
+        { role: 'vendor', 'vendor.isProfileCompleted': false },
+        { role: 'user', status: 'pending' },
+      ],
       createdAt: { $lt: startOfThisMonth },
     }),
     VendorService.countDocuments({
@@ -487,17 +498,21 @@ const getAdminDashboard = async (
     }),
     ServiceView.countDocuments(),
     EventRequest.countDocuments({ isDeleted: { $ne: true } }),
-    EventQuote.countDocuments(),
+    EventQuote.countDocuments({ isDeleted: { $ne: true } }),
     User.aggregate([
       { $project: { favCount: { $size: { $ifNull: ['$favoriteServices', []] } } } },
       { $group: { _id: null, total: { $sum: '$favCount' } } },
     ]),
-    EventQuote.countDocuments({ status: { $in: ['accepted', 'won'] } }),
-    VendorService.find().sort({ createdAt: -1 }).limit(3).select('title createdAt').lean(),
-    User.find({ role: 'vendor' }).sort({ createdAt: -1 }).limit(3).select('firstName lastName createdAt').lean(),
-    EventRequest.find().sort({ createdAt: -1 }).limit(3).select('title createdAt').lean(),
-    Dispute.find().sort({ createdAt: -1 }).limit(3).select('disputeReason status createdAt').lean(),
+    EventQuote.countDocuments({ status: { $in: ['accepted', 'won'] }, isDeleted: { $ne: true } }),
+    AdvisorBooking.countDocuments(),
+    VendorService.find().sort({ createdAt: -1 }).limit(10).select('title createdAt').lean(),
+    User.find({ role: 'vendor' }).sort({ updatedAt: -1, createdAt: -1 }).limit(10).select('firstName lastName createdAt updatedAt').lean(),
+    EventRequest.find({ isDeleted: { $ne: true } }).sort({ createdAt: -1 }).limit(10).select('title createdAt').lean(),
+    Dispute.find().sort({ createdAt: -1 }).limit(10).select('disputeReason status createdAt').lean(),
+    AdvisorBooking.find().sort({ createdAt: -1 }).limit(10).select('fullName weddingLocation createdAt').lean(),
   ]);
+
+  const bookingsWonDealsCount = advisorBookingsCountRaw > 0 ? advisorBookingsCountRaw : bookingsWonDealsCountRaw;
 
   const activities: Array<{ id: string; title: string; description: string; timeAgo: string; type: string; createdAt: Date }> = [];
 
@@ -514,7 +529,7 @@ const getAdminDashboard = async (
   });
 
   recentVendors.forEach((v: any) => {
-    const cDate = v.createdAt ? new Date(v.createdAt) : new Date();
+    const cDate = v.updatedAt ? new Date(v.updatedAt) : (v.createdAt ? new Date(v.createdAt) : new Date());
     activities.push({
       id: v._id.toString(),
       title: `${v.firstName || 'Vendor'} ${v.lastName || ''}`.trim(),
@@ -537,6 +552,18 @@ const getAdminDashboard = async (
     });
   });
 
+  recentBookings.forEach((b: any) => {
+    const cDate = b.createdAt ? new Date(b.createdAt) : new Date();
+    activities.push({
+      id: b._id.toString(),
+      title: b.fullName || 'Advisor Booking',
+      description: 'Booked event planning',
+      timeAgo: getTimeAgo(cDate),
+      type: 'booking',
+      createdAt: cDate,
+    });
+  });
+
   recentDisputes.forEach((d: any) => {
     const cDate = d.createdAt ? new Date(d.createdAt) : new Date();
     activities.push({
@@ -551,22 +578,20 @@ const getAdminDashboard = async (
 
   activities.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
-  // Simulate year filtering by adjusting static values slightly based on year
-  const yearlyRevenueTrendOffset = (yearlyRevenueTrendYear - new Date().getFullYear()) * 150;
-
+  // Revenue trend will be populated when payment gateway is connected. Default to 0 instead of mock amounts.
   const yearlyRevenueTrend = [
-    { month: 'Jan', amount: Math.max(0, 1200 + yearlyRevenueTrendOffset) },
-    { month: 'Feb', amount: Math.max(0, 1400 + yearlyRevenueTrendOffset) },
-    { month: 'Mar', amount: Math.max(0, 1100 + yearlyRevenueTrendOffset) },
-    { month: 'Apr', amount: Math.max(0, 1600 + yearlyRevenueTrendOffset) },
-    { month: 'May', amount: Math.max(0, 1800 + yearlyRevenueTrendOffset) },
-    { month: 'Jun', amount: Math.max(0, 2150 + yearlyRevenueTrendOffset) },
-    { month: 'Jul', amount: Math.max(0, 1900 + yearlyRevenueTrendOffset) },
-    { month: 'Aug', amount: Math.max(0, 2350 + yearlyRevenueTrendOffset) },
-    { month: 'Sep', amount: Math.max(0, 2100 + yearlyRevenueTrendOffset) },
-    { month: 'Oct', amount: Math.max(0, 2500 + yearlyRevenueTrendOffset) },
-    { month: 'Nov', amount: Math.max(0, 2800 + yearlyRevenueTrendOffset) },
-    { month: 'Dec', amount: Math.max(0, 3100 + yearlyRevenueTrendOffset) },
+    { month: 'Jan', amount: 0 },
+    { month: 'Feb', amount: 0 },
+    { month: 'Mar', amount: 0 },
+    { month: 'Apr', amount: 0 },
+    { month: 'May', amount: 0 },
+    { month: 'Jun', amount: 0 },
+    { month: 'Jul', amount: 0 },
+    { month: 'Aug', amount: 0 },
+    { month: 'Sep', amount: 0 },
+    { month: 'Oct', amount: 0 },
+    { month: 'Nov', amount: 0 },
+    { month: 'Dec', amount: 0 },
   ];
 
   const savedListingsTotal = savedListingsCountResult[0]?.total || 0;
@@ -595,41 +620,41 @@ const getAdminDashboard = async (
         change: formatChange(hiredAssociates, hiredAssociatesLastMonth),
       },
       associateRevenue: {
-        value: '$234,567',
-        change: '+22.1% from last month',
+        value: '0',
+        change: '+0% from last month',
       },
       buyerRequests: {
         value: buyerRequests,
         change: formatPercentChange(buyerRequests, buyerRequestsLastMonth),
       },
       featuredAdsRevenue: {
-        value: '$156,432',
-        change: '+15.3% from last month',
+        value: '0',
+        change: '+0% from last month',
       },
       sponsoredListingAdsRevenue: {
-        value: '$89,234',
-        change: '+5.4% from last month',
+        value: '0',
+        change: '+0% from last month',
       },
       insAndIdeasAdRevenue: {
-        value: '$45,678',
-        change: '+8.9% from last month',
+        value: '0',
+        change: '+0% from last month',
       },
       activeVerifiedSubscription: {
         value: activeVerifiedSubscription,
         change: formatChange(activeVerifiedSubscription, activeVerifiedSubscriptionLastMonth),
       },
       verifiedSubscriptionRevenue: {
-        value: '$243,500',
-        change: '+11.2% from last month',
+        value: '0',
+        change: '+0% from last month',
       },
     },
     yearlyRevenueTrend,
     revenueBreakdownByCategory: [
-      { category: 'Featured Ads', amount: Math.max(0, 156432 + (revenueBreakdownYear - new Date().getFullYear()) * 1000) },
-      { category: 'Sponsored Listing', amount: Math.max(0, 89234 + (revenueBreakdownYear - new Date().getFullYear()) * 800) },
-      { category: 'Ins & Ideas Ads', amount: Math.max(0, 45678 + (revenueBreakdownYear - new Date().getFullYear()) * 500) },
-      { category: 'Verified Subs', amount: Math.max(0, 243500 + (revenueBreakdownYear - new Date().getFullYear()) * 2000) },
-      { category: 'Associate', amount: Math.max(0, 234567 + (revenueBreakdownYear - new Date().getFullYear()) * 1500) },
+      { category: 'Featured Ads', amount: 0 },
+      { category: 'Sponsored Listing', amount: 0 },
+      { category: 'Ins & Ideas Ads', amount: 0 },
+      { category: 'Verified Subs', amount: 0 },
+      { category: 'Associate', amount: 0 },
     ],
     conversionFunnel: {
       visits: {
@@ -642,7 +667,7 @@ const getAdminDashboard = async (
       },
       quoteRequested: {
         count: quoteRequestedCount,
-        percentage: postedRequirementsCount > 0 ? Math.min(100, Math.round((quoteRequestedCount / postedRequirementsCount) * 100)) : 0,
+        percentage: visitsTotal > 0 ? Math.min(100, Math.round((quoteRequestedCount / visitsTotal) * 100)) : 0,
       },
       savedListing: {
         count: savedListingsTotal,
@@ -650,10 +675,10 @@ const getAdminDashboard = async (
       },
       bookingsWonDeals: {
         count: bookingsWonDealsCount,
-        percentage: quoteRequestedCount > 0 ? Math.min(100, Math.round((bookingsWonDealsCount / quoteRequestedCount) * 100)) : 0,
+        percentage: visitsTotal > 0 ? Math.min(100, Math.round((bookingsWonDealsCount / visitsTotal) * 100)) : 0,
       },
     },
-    recentActivityLog: activities.slice(0, 8),
+    recentActivityLog: activities.slice(0, 15),
   };
 };
 

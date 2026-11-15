@@ -61,6 +61,27 @@ router.post(
   },
   CategoryControllers.createCategory,
 );
+
+router.patch(
+  '/reorder',
+  /*
+    #swagger.tags = ['ServiceCategory']
+    #swagger.summary = 'Reorder categories'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        items: [
+          { id: '60d5ecb8b5c9c123456789ab', order: 1 }
+        ]
+      }
+    }
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  validateRequest(CategoryValidations.reorderCategorySchema),
+  CategoryControllers.reorderCategories,
+);
+
 router.patch(
   '/:id',
   /*
@@ -78,10 +99,19 @@ router.patch(
   upload.single('image') as any,
   (req: any, res: any, next: any) => {
     if (req.body.data) req.body = JSON.parse(req.body.data);
+    if (typeof req.body.isActive === 'string') {
+      req.body.isActive = req.body.isActive === 'true';
+    }
     next();
   },
   validateRequest(CategoryValidations.updateCategorySchema),
   CategoryControllers.updateCategory,
+);
+
+router.patch(
+  '/:id/status',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  CategoryControllers.toggleCategoryStatus,
 );
 
 router.delete(

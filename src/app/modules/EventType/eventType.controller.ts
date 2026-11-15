@@ -87,12 +87,34 @@ const reorderEventTypes = catchAsync(async (req, res) => {
   });
 });
 
+const toggleEventTypeStatus = catchAsync(async (req, res) => {
+  const eventType = await EventTypeServices.getSingleEventTypeFromDB(req.params.id);
+  const newStatus =
+    typeof req.body.isActive === 'boolean'
+      ? req.body.isActive
+      : typeof req.body.isActive === 'string'
+      ? req.body.isActive === 'true'
+      : !eventType.isActive;
+
+  const result = await EventTypeServices.updateEventTypeInDB(req.params.id, {
+    isActive: newStatus,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Event type ${newStatus ? 'activated' : 'disabled'} successfully`,
+    data: result,
+  });
+});
+
 export const EventTypeControllers = {
   getAllEventTypes,
   getAllEventTypesList,
   getSingleEventType,
   createEventType,
   updateEventType,
+  toggleEventTypeStatus,
   deleteEventType,
   reorderEventTypes,
 };

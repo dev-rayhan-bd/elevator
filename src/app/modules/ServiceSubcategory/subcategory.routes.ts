@@ -72,6 +72,26 @@ router.post(
 );
 
 router.patch(
+  '/reorder',
+  /*
+    #swagger.tags = ['ServiceSubcategory']
+    #swagger.summary = 'Reorder subcategories'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        items: [
+          { id: '60d5ecb8b5c9c123456789ab', order: 1 }
+        ]
+      }
+    }
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  validateRequest(SubcategoryValidations.reorderSubcategorySchema),
+  SubcategoryControllers.reorderSubcategories,
+);
+
+router.patch(
   '/:id',
   /*
     #swagger.tags = ['ServiceSubcategory']
@@ -88,10 +108,19 @@ router.patch(
   upload.single('image') as any,
   (req: any, res: any, next: any) => {
     if (req.body.data) req.body = JSON.parse(req.body.data);
+    if (typeof req.body.isActive === 'string') {
+      req.body.isActive = req.body.isActive === 'true';
+    }
     next();
   },
   validateRequest(SubcategoryValidations.updateSubcategorySchema),
   SubcategoryControllers.updateSubcategory,
+);
+
+router.patch(
+  '/:id/status',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  SubcategoryControllers.toggleSubcategoryStatus,
 );
 
 router.delete(

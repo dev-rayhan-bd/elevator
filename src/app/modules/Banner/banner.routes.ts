@@ -208,6 +208,32 @@ router.get(
   BannerControllers.adminGetAllBanners,
 );
 
+router.get(
+  '/admin/:id',
+  /*
+    #swagger.tags = ['Banner']
+    #swagger.summary = 'Get banner details by ID (Admin)'
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  BannerControllers.adminGetSingleBanner,
+);
+
+router.patch(
+  '/admin/:id',
+  /*
+    #swagger.tags = ['Banner']
+    #swagger.summary = 'Update banner details (Admin)'
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  uploadImage,
+  (req: any, res: any, next: any) => {
+    if (req.body.data) req.body = JSON.parse(req.body.data);
+    next();
+  },
+  validateRequest(BannerValidations.updateAdminBannerSchema),
+  BannerControllers.adminUpdateBanner,
+);
+
 router.patch(
   '/admin/:id/status',
   /*

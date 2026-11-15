@@ -7,8 +7,11 @@ const categorySchema = new Schema<TServiceCategory>(
     description: { type: String, trim: true },
     image: { type: String },
     isActive: { type: Boolean, default: true },
+    order: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
+
+categorySchema.index({ order: 1 });
 
 export const ServiceCategory = model<TServiceCategory>('ServiceCategory', categorySchema);

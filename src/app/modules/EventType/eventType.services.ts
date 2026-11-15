@@ -3,6 +3,7 @@ import AppError from '../../errors/AppError';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { EventType } from './eventType.model';
 import { TEventType } from './eventType.interface';
+import { VendorService } from '../VendorService/vendorService.model';
 
 const getAllEventTypesFromDB = async (query: Record<string, unknown>) => {
   const queryObj = { ...query };
@@ -17,15 +18,48 @@ const getAllEventTypesFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .fields();
 
-  const result = await eventTypeQuery.modelQuery;
+  const result = (await eventTypeQuery.modelQuery.lean()) as any[];
   const meta = await eventTypeQuery.countTotal();
+
+  if (result.length > 0) {
+    const eventTypeIds = result.map((e: any) => e._id);
+    const serviceCounts = await VendorService.aggregate([
+      { $match: { isDraft: { $ne: true }, eventTypes: { $in: eventTypeIds } } },
+      { $unwind: '$eventTypes' },
+      { $match: { eventTypes: { $in: eventTypeIds } } },
+      { $group: { _id: '$eventTypes', count: { $sum: 1 } } },
+    ]);
+
+    const countMap = new Map(
+      serviceCounts.map((s: any) => [String(s._id), s.count]),
+    );
+
+    const enrichedResult = result.map((item: any) => ({
+      ...item,
+      listingCount: countMap.get(String(item._id)) || 0,
+      serviceCount: countMap.get(String(item._id)) || 0,
+    }));
+
+    return { meta, result: enrichedResult };
+  }
+
   return { meta, result };
 };
 
 const getSingleEventTypeFromDB = async (id: string) => {
-  const result = await EventType.findById(id);
+  const result = await EventType.findById(id).lean();
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Event type not found');
-  return result;
+
+  const serviceCount = await VendorService.countDocuments({
+    eventTypes: id,
+    isDraft: { $ne: true },
+  });
+
+  return {
+    ...result,
+    listingCount: serviceCount,
+    serviceCount,
+  };
 };
 
 const createEventTypeIntoDB = async (payload: TEventType) => {
@@ -54,6 +88,24 @@ const updateEventTypeInDB = async (id: string, payload: Partial<TEventType>) => 
     runValidators: true,
   });
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Event type not found');
+
+  // Cascade disable/enable logic
+  if (payload.isActive !== undefined) {
+    if (payload.isActive === false) {
+      // 1. Disable vendor services referencing this event type
+      await VendorService.updateMany(
+        { eventTypes: id, isActive: true },
+        { isActive: false, isEventTypeDisabled: true },
+      );
+    } else if (payload.isActive === true) {
+      // 2. Restore vendor services referencing this event type that were approved
+      await VendorService.updateMany(
+        { eventTypes: id, isEventTypeDisabled: true, status: 'approved' },
+        { isActive: true, isEventTypeDisabled: false },
+      );
+    }
+  }
+
   return result;
 };
 
@@ -80,7 +132,30 @@ const reorderEventTypesInDB = async (orders: { id: string; order: number }[]) =>
 };
 
 const getAllEventTypesListFromDB = async () => {
-  const result = await EventType.find({ isActive: true }).sort({ order: 1, createdAt: -1 });
+  const result = (await EventType.find({ isActive: true })
+    .sort({ order: 1, createdAt: -1 })
+    .lean()) as any[];
+
+  if (result.length > 0) {
+    const eventTypeIds = result.map((e: any) => e._id);
+    const serviceCounts = await VendorService.aggregate([
+      { $match: { isDraft: { $ne: true }, eventTypes: { $in: eventTypeIds } } },
+      { $unwind: '$eventTypes' },
+      { $match: { eventTypes: { $in: eventTypeIds } } },
+      { $group: { _id: '$eventTypes', count: { $sum: 1 } } },
+    ]);
+
+    const countMap = new Map(
+      serviceCounts.map((s: any) => [String(s._id), s.count]),
+    );
+
+    return result.map((item: any) => ({
+      ...item,
+      listingCount: countMap.get(String(item._id)) || 0,
+      serviceCount: countMap.get(String(item._id)) || 0,
+    }));
+  }
+
   return result;
 };
 

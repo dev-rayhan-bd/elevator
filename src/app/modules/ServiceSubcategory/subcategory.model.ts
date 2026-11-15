@@ -8,11 +8,13 @@ const subcategorySchema = new Schema<TServiceSubcategory>(
     description: { type: String, trim: true },
     image: { type: String },
     isActive: { type: Boolean, default: true },
+    order: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
 
-// Index for fast lookup by category
-subcategorySchema.index({ category: 1 });
+// Index for fast lookup by category and ordering
+subcategorySchema.index({ category: 1, order: 1 });
+subcategorySchema.index({ order: 1 });
 
 export const ServiceSubcategory = model<TServiceSubcategory>('ServiceSubcategory', subcategorySchema);

@@ -73,12 +73,45 @@ const getAllServiceAreasList = catchAsync(async (req, res) => {
   });
 });
 
+const toggleServiceAreaStatus = catchAsync(async (req, res) => {
+  const area = await ServiceAreaServices.getSingleServiceAreaFromDB(req.params.id);
+  const newStatus =
+    typeof req.body.isActive === 'boolean'
+      ? req.body.isActive
+      : typeof req.body.isActive === 'string'
+      ? req.body.isActive === 'true'
+      : !area.isActive;
+
+  const result = await ServiceAreaServices.updateServiceAreaInDB(req.params.id, {
+    isActive: newStatus,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Service area ${newStatus ? 'activated' : 'disabled'} successfully`,
+    data: result,
+  });
+});
+
+const reorderServiceAreas = catchAsync(async (req, res) => {
+  const result = await ServiceAreaServices.reorderServiceAreasInDB(req.body.items);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Service areas reordered successfully',
+    data: result,
+  });
+});
+
 export const ServiceAreaControllers = {
   getAllServiceAreas,
   getSingleServiceArea,
   createServiceArea,
   updateServiceArea,
+  toggleServiceAreaStatus,
   deleteServiceArea,
   getAllServiceAreasWithQuery,
   getAllServiceAreasList,
+  reorderServiceAreas,
 };

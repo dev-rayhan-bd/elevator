@@ -298,6 +298,16 @@ router.get(
   VendorServiceControllers.getAllVendorServices,
 );
 
+router.get(
+  '/admin/:id',
+  /*
+    #swagger.tags = ['VendorService']
+    #swagger.summary = 'Get single vendor service details (Admin)'
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  VendorServiceControllers.getSingleServiceForAdmin,
+);
+
 router.patch(
   '/admin/:id/status',
   /*

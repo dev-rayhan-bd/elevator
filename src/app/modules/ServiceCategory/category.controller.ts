@@ -84,12 +84,45 @@ const getCategoriesWithSubcategories = catchAsync(async (req, res) => {
   });
 });
 
+const toggleCategoryStatus = catchAsync(async (req, res) => {
+  const category = await CategoryServices.getSingleCategoryFromDB(req.params.id);
+  const newStatus =
+    typeof req.body.isActive === 'boolean'
+      ? req.body.isActive
+      : typeof req.body.isActive === 'string'
+      ? req.body.isActive === 'true'
+      : !category.isActive;
+
+  const result = await CategoryServices.updateCategoryInDB(req.params.id, {
+    isActive: newStatus,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Category ${newStatus ? 'activated' : 'disabled'} successfully`,
+    data: result,
+  });
+});
+
+const reorderCategories = catchAsync(async (req, res) => {
+  const result = await CategoryServices.reorderCategoriesInDB(req.body.items);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Categories reordered successfully',
+    data: result,
+  });
+});
+
 export const CategoryControllers = {
   getAllCategories,
   getAllCategoriesList,
   getSingleCategory,
   createCategory,
   updateCategory,
+  toggleCategoryStatus,
   deleteCategory,
   getCategoriesWithSubcategories,
+  reorderCategories,
 };

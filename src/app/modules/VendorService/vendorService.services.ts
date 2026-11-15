@@ -14,6 +14,9 @@ import { VendorQuote } from '../VendorQuote/vendorQuote.model';
 import { Review } from '../Review/review.model';
 import { ServicePackage } from '../ServicePackage/package.model';
 import { ServiceArea } from '../ServiceArea/serviceArea.model';
+import { ServiceCategory } from '../ServiceCategory/category.model';
+import { ServiceSubcategory } from '../ServiceSubcategory/subcategory.model';
+import { EventType } from '../EventType/eventType.model';
 
 // ── Helper: split amenities into ObjectId refs + custom free-text ──
 const processAmenitiesInput = (amenities: any[]) => {
@@ -36,7 +39,10 @@ const processAmenitiesInput = (amenities: any[]) => {
 const getAllVendorServicesFromDB = async (query: Record<string, unknown>) => {
   const serviceQuery = new QueryBuilder(
     VendorService.find()
-      .populate('vendor', 'firstName lastName fullName image')
+      .populate(
+        'vendor',
+        'firstName lastName fullName image email phone lat long vendor',
+      )
       .populate('category', 'name image')
       .populate('subcategory', 'name image')
       .populate('eventTypes', 'name image')
@@ -50,8 +56,25 @@ const getAllVendorServicesFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .fields();
 
-  const result = await serviceQuery.modelQuery;
+  const rawResult = await serviceQuery.modelQuery;
   const meta = await serviceQuery.countTotal();
+
+  const result = rawResult.map((service: any) => {
+    const s = service.toObject ? service.toObject() : { ...service };
+    if (s.vendor && typeof s.vendor === 'object') {
+      const bName =
+        s.vendor.vendor?.businessName ||
+        s.vendor.businessName ||
+        s.vendor.fullName ||
+        `${s.vendor.firstName || ''} ${s.vendor.lastName || ''}`.trim();
+      s.vendor.businessName = bName;
+      if (!s.vendor.email && s.vendor.vendor?.email) {
+        s.vendor.email = s.vendor.vendor.email;
+      }
+    }
+    return s;
+  });
+
   return { meta, result };
 };
 
@@ -182,7 +205,12 @@ const getPublicVendorServicesFromDB = async (
     const etIds = Array.isArray(eventTypes)
       ? eventTypes.map((id: any) => new Types.ObjectId(String(id)))
       : String(eventTypes).split(',').map((id: string) => new Types.ObjectId(id.trim()));
-    $match.eventTypes = { $in: etIds };
+    const activeEventTypes = await EventType.find({
+      _id: { $in: etIds },
+      isActive: true,
+    }).select('_id');
+    const activeIds = activeEventTypes.map((et) => et._id);
+    $match.eventTypes = { $in: activeIds };
   }
   if (amenities) {
     const amIds = Array.isArray(amenities)
@@ -271,9 +299,10 @@ const getPublicVendorServicesFromDB = async (
     },
   });
 
-  // ── 3a-b3. Filter: only active subcategories ──
+  // ── 3a-b3. Filter: only active categories and subcategories ──
   pipeline.push({
     $match: {
+      'category.isActive': { $ne: false },
       'subcategory.isActive': { $ne: false },
     },
   });
@@ -283,6 +312,7 @@ const getPublicVendorServicesFromDB = async (
       from: 'eventtypes',
       localField: 'eventTypes',
       foreignField: '_id',
+      pipeline: [{ $match: { isActive: { $ne: false } } }],
       as: 'eventTypes',
     },
   });
@@ -608,16 +638,26 @@ const getSingleVendorServiceFromDB = async (
       'vendor',
       'firstName lastName fullName image email phone lat long vendor',
     )
-    .populate('category', 'name image description')
+    .populate('category', 'name image description isActive')
     .populate('subcategory', 'name image isActive')
-    .populate('eventTypes', 'name image')
+    .populate({
+      path: 'eventTypes',
+      match: { isActive: { $ne: false } },
+      select: 'name image',
+    })
     .populate('serviceAreas', 'name region')
     .populate('amenities', 'name icon');
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
 
-  // Filter out if subcategory is disabled
+  // Filter out if category or subcategory or event type is disabled
+  if (result.category && (result.category as any).isActive === false) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Service not found (category is disabled)');
+  }
   if (result.subcategory && (result.subcategory as any).isActive === false) {
     throw new AppError(httpStatus.NOT_FOUND, 'Service not found (subcategory is disabled)');
+  }
+  if ((result as any).isEventTypeDisabled) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Service not found (event type is disabled)');
   }
 
   // Fetch reviews + rating summary for this service
@@ -638,6 +678,17 @@ const getSingleVendorServiceFromDB = async (
   }
 
   const obj = result.toObject();
+  if (obj.vendor && typeof obj.vendor === 'object') {
+    const v = obj.vendor as any;
+    v.businessName =
+      v.vendor?.businessName ||
+      v.businessName ||
+      v.fullName ||
+      `${v.firstName || ''} ${v.lastName || ''}`.trim();
+    if (!v.email && v.vendor?.email) {
+      v.email = v.vendor.email;
+    }
+  }
   if ((!obj.location || (!obj.location.lat && !obj.location.long)) && obj.vendor) {
     const v = obj.vendor as any;
     const vendorLat = v?.lat ?? v?.vendor?.lat;
@@ -656,11 +707,84 @@ const getSingleVendorServiceFromDB = async (
   };
 };
 
+const getSingleServiceForAdminFromDB = async (id: string) => {
+  const result = await VendorService.findById(id)
+    .populate(
+      'vendor',
+      'firstName lastName fullName image email phone lat long vendor',
+    )
+    .populate('category', 'name image description isActive')
+    .populate('subcategory', 'name image isActive')
+    .populate('eventTypes', 'name image isActive')
+    .populate('serviceAreas', 'name region')
+    .populate('amenities', 'name icon');
+
+  if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
+
+  const reviewData = await ReviewServices.getServiceReviewsWithSummary(id, 1, 10);
+
+  const obj = result.toObject ? result.toObject() : { ...result };
+  if (obj.vendor && typeof obj.vendor === 'object') {
+    const v = obj.vendor as any;
+    v.businessName =
+      v.vendor?.businessName ||
+      v.businessName ||
+      v.fullName ||
+      `${v.firstName || ''} ${v.lastName || ''}`.trim();
+    if (!v.email && v.vendor?.email) {
+      v.email = v.vendor.email;
+    }
+  }
+
+  if ((!obj.location || (!obj.location.lat && !obj.location.long)) && obj.vendor) {
+    const v = obj.vendor as any;
+    const vendorLat = v?.lat ?? v?.vendor?.lat;
+    const vendorLong = v?.long ?? v?.vendor?.long;
+    if (vendorLat && vendorLong) {
+      obj.location = { lat: vendorLat, long: vendorLong };
+    }
+  }
+
+  return {
+    ...obj,
+    reviews: reviewData.reviews,
+    ratingSummary: reviewData.summary,
+    reviewPagination: reviewData.meta,
+  };
+};
+
 const createVendorServiceIntoDB = async (
   vendorId: string,
   payload: Record<string, unknown>,
 ) => { 
   const { amenities: am, customAmenities: customAm, ...rest } = payload;
+
+  if (rest.category) {
+    const cat = await ServiceCategory.findById(rest.category);
+    if (cat && cat.isActive === false) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Cannot create service under a disabled category.');
+    }
+  }
+  if (rest.subcategory) {
+    const subcat = await ServiceSubcategory.findById(rest.subcategory);
+    if (subcat && subcat.isActive === false) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Cannot create service under a disabled subcategory.');
+    }
+  }
+  if (rest.eventTypes && Array.isArray(rest.eventTypes) && rest.eventTypes.length > 0) {
+    const disabledEventTypes = await EventType.find({
+      _id: { $in: rest.eventTypes },
+      isActive: false,
+    });
+    if (disabledEventTypes.length > 0) {
+      const disabledNames = disabledEventTypes.map((et) => et.name).join(', ');
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Cannot create service with disabled event type(s): ${disabledNames}`,
+      );
+    }
+  }
+
   const serviceData: any = {
     ...rest,
     vendor: new Types.ObjectId(vendorId),
@@ -725,6 +849,33 @@ const updateVendorServiceInDB = async (
 
   // Split amenities into ObjectId refs and custom text
   const { amenities: am, customAmenities: customAm, images, ...rest } = payload;
+
+  if (rest.category) {
+    const cat = await ServiceCategory.findById(rest.category);
+    if (cat && cat.isActive === false) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Cannot update service with a disabled category.');
+    }
+  }
+  if (rest.subcategory) {
+    const subcat = await ServiceSubcategory.findById(rest.subcategory);
+    if (subcat && subcat.isActive === false) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Cannot update service with a disabled subcategory.');
+    }
+  }
+  if (rest.eventTypes && Array.isArray(rest.eventTypes) && rest.eventTypes.length > 0) {
+    const disabledEventTypes = await EventType.find({
+      _id: { $in: rest.eventTypes },
+      isActive: false,
+    });
+    if (disabledEventTypes.length > 0) {
+      const disabledNames = disabledEventTypes.map((et) => et.name).join(', ');
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Cannot update service with disabled event type(s): ${disabledNames}`,
+      );
+    }
+  }
+
   const updateData: any = { ...rest };
   const customList: string[] = [];
   let updateCustom = false;
@@ -2152,6 +2303,7 @@ export const VendorServiceServices = {
   getPublicVendorServicesFromDB,
   getAllPublishedServicesFromDB,
   getSingleVendorServiceFromDB,
+  getSingleServiceForAdminFromDB,
   createVendorServiceIntoDB,
   updateVendorServiceInDB,
   deleteVendorServiceFromDB,

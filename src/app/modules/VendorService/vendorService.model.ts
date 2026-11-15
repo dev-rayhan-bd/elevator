@@ -66,6 +66,8 @@ const vendorServiceSchema = new Schema<TVendorService>(
       },
     },
     isActive: { type: Boolean, default: false },
+    isCategoryDisabled: { type: Boolean, default: false },
+    isEventTypeDisabled: { type: Boolean, default: false },
     isDraft: { type: Boolean, default: false },
     status: {
       type: String,

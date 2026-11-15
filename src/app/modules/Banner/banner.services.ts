@@ -21,6 +21,31 @@ const expireOverdueBanners = async () => {
   return result;
 };
 
+// ── Utility: Normalize banner links to absolute URL or valid relative route ──
+export const normalizeBannerLink = (link?: string): string => {
+  if (!link || typeof link !== 'string') return '';
+  const trimmed = link.trim();
+  if (!trimmed) return '';
+
+  // Already has protocol (http:// or https://)
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Protocol-relative URL (//drone-secure.com)
+  if (trimmed.startsWith('//')) {
+    return `https:${trimmed}`;
+  }
+
+  // Internal relative route (/vendors/..., /service/...)
+  if (trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  // Missing protocol for external domain (e.g. drone-secure.com -> https://drone-secure.com)
+  return `https://${trimmed}`;
+};
+
 // ══════════════════════════════════════════════
 //  ADMIN: SLOT MANAGEMENT
 // ══════════════════════════════════════════════
@@ -126,7 +151,7 @@ const bookBannerIntoDB = async (
     [vendor?.firstName, vendor?.lastName].filter(Boolean).join(' ') ||
     'Vendor';
 
-  const defaultLink = payload.link || `/vendor/${vendorId}`;
+  const defaultLink = payload.link ? normalizeBannerLink(payload.link) : `/vendor/${vendorId}`;
   const defaultTitle = payload.title || `${vendorName}'s Promotion`;
 
   const bannerData: Partial<TBanner> = {
@@ -235,7 +260,7 @@ const getActiveBannersFromDB = async (query: Record<string, unknown>) => {
       endDate: { $gte: now },
     })
       .populate('slot', 'slotType title dimensions')
-      .populate('vendor', 'firstName lastName fullName email image')
+      .populate('vendor', 'firstName lastName fullName email image lat long vendor')
       .select('title buttonText image link slot vendor createdByType startDate endDate impressions clicks'),
     query,
   )
@@ -253,11 +278,24 @@ const getActiveBannersFromDB = async (query: Record<string, unknown>) => {
       : banner.vendor
       ? banner.vendor.toString()
       : '';
+
+    if (banner.vendor && typeof banner.vendor === 'object') {
+      const bName =
+        banner.vendor.vendor?.businessName ||
+        banner.vendor.businessName ||
+        banner.vendor.fullName ||
+        `${banner.vendor.firstName || ''} ${banner.vendor.lastName || ''}`.trim();
+      banner.vendor.businessName = bName;
+      if (!banner.vendor.email && banner.vendor.vendor?.email) {
+        banner.vendor.email = banner.vendor.vendor.email;
+      }
+    }
+
     return {
       ...banner,
       title: banner.title || '',
       buttonText: banner.buttonText || '',
-      link: banner.link || (vId ? `/vendor/${vId}` : ''),
+      link: normalizeBannerLink(banner.link || (vId ? `/vendor/${vId}` : '')),
     };
   });
 
@@ -337,7 +375,10 @@ const adminGetAllBannersFromDB = async (query: Record<string, unknown>) => {
 
   const bannerQuery = new QueryBuilder(
     Banner.find(filterCondition)
-      .populate('vendor', 'firstName lastName fullName email image')
+      .populate(
+        'vendor',
+        'firstName lastName fullName email image lat long vendor',
+      )
       .populate('slot', 'slotType title price dimensions'),
     queryObj,
   )
@@ -347,9 +388,60 @@ const adminGetAllBannersFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .fields();
 
-  const result = await bannerQuery.modelQuery;
+  const rawResult = await bannerQuery.modelQuery;
   const meta = await bannerQuery.countTotal();
+
+  const result = rawResult.map((banner: any) => {
+    const b = banner.toObject ? banner.toObject() : { ...banner };
+    if (b.vendor && typeof b.vendor === 'object') {
+      const bName =
+        b.vendor.vendor?.businessName ||
+        b.vendor.businessName ||
+        b.vendor.fullName ||
+        `${b.vendor.firstName || ''} ${b.vendor.lastName || ''}`.trim();
+      b.vendor.businessName = bName;
+      if (!b.vendor.email && b.vendor.vendor?.email) {
+        b.vendor.email = b.vendor.vendor.email;
+      }
+    }
+    if (b.link) {
+      b.link = normalizeBannerLink(b.link);
+    }
+    return b;
+  });
+
   return { meta, result };
+};
+
+const adminGetSingleBannerFromDB = async (bannerId: string) => {
+  const banner = await Banner.findOne({ _id: bannerId, isDeleted: { $ne: true } })
+    .populate(
+      'vendor',
+      'firstName lastName fullName email image lat long vendor',
+    )
+    .populate('slot', 'slotType title price dimensions');
+
+  if (!banner) throw new AppError(httpStatus.NOT_FOUND, 'Banner not found');
+
+  const b = (banner.toObject ? banner.toObject() : { ...banner }) as any;
+  if (b.vendor && typeof b.vendor === 'object') {
+    const v = b.vendor as any;
+    const bName =
+      v.vendor?.businessName ||
+      v.businessName ||
+      v.fullName ||
+      `${v.firstName || ''} ${v.lastName || ''}`.trim();
+    v.businessName = bName;
+    if (!v.email && v.vendor?.email) {
+      v.email = v.vendor.email;
+    }
+  }
+
+  if (b.link) {
+    b.link = normalizeBannerLink(b.link);
+  }
+
+  return b;
 };
 
 const adminUpdateBannerStatusInDB = async (
@@ -532,7 +624,7 @@ const createAdminBannerIntoDB = async (payload: {
     slot: new Types.ObjectId(payload.slot),
     title: payload.title,
     image: payload.image,
-    link: payload.link,
+    link: payload.link ? normalizeBannerLink(payload.link) : undefined,
     startDate: start,
     endDate: end,
     price: payload.price !== undefined ? payload.price : slot.price,
@@ -545,6 +637,25 @@ const createAdminBannerIntoDB = async (payload: {
   };
 
   const result = await Banner.create(bannerData);
+  return result;
+};
+
+const adminUpdateBannerInDB = async (
+  bannerId: string,
+  payload: Partial<TBanner>,
+) => {
+  const banner = await Banner.findOne({ _id: bannerId, isDeleted: { $ne: true } });
+  if (!banner) throw new AppError(httpStatus.NOT_FOUND, 'Banner not found');
+
+  const updateData: Record<string, unknown> = { ...payload };
+  if (typeof updateData.link === 'string') {
+    updateData.link = normalizeBannerLink(updateData.link);
+  }
+
+  const result = await Banner.findByIdAndUpdate(bannerId, updateData, {
+    new: true,
+    runValidators: true,
+  });
   return result;
 };
 
@@ -564,7 +675,9 @@ export const BannerServices = {
   getAvailableSlotsFromDB,
   // Admin banner management
   createAdminBannerIntoDB,
+  adminUpdateBannerInDB,
   adminGetAllBannersFromDB,
+  adminGetSingleBannerFromDB,
   adminUpdateBannerStatusInDB,
   adminToggleBannerIsActiveInDB,
   adminDeleteBannerFromDB,

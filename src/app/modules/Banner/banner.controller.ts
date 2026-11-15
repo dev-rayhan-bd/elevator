@@ -146,6 +146,34 @@ const adminGetAllBanners = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const adminGetSingleBanner = catchAsync(async (req: Request, res: Response) => {
+  const result = await BannerServices.adminGetSingleBannerFromDB(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Banner details retrieved successfully',
+    data: result,
+  });
+});
+
+const adminUpdateBanner = catchAsync(async (req: Request, res: Response) => {
+  let imageUrl = '';
+  if (req.file) {
+    imageUrl = await uploadImage(req);
+  }
+
+  const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+  const payload = { ...rawData, ...(imageUrl ? { image: imageUrl } : {}) };
+
+  const result = await BannerServices.adminUpdateBannerInDB(req.params.id, payload);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Banner updated successfully',
+    data: result,
+  });
+});
+
 const adminUpdateBannerStatus = catchAsync(async (req: Request, res: Response) => {
   const { status } = req.body;
   const result = await BannerServices.adminUpdateBannerStatusInDB(
@@ -269,7 +297,9 @@ export const BannerControllers = {
   getAvailableSlots,
   // Admin
   createAdminBanner,
+  adminUpdateBanner,
   adminGetAllBanners,
+  adminGetSingleBanner,
   adminUpdateBannerStatus,
   adminToggleBannerIsActive,
   adminDeleteBanner,

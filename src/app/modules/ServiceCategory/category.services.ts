@@ -9,7 +9,8 @@ import { VendorService } from '../VendorService/vendorService.model';
 import { EventRequest } from '../EventRequest/eventRequest.model';
 
 const getAllCategoriesFromDB = async (query: Record<string, unknown>) => {
-  const categoryQuery = new QueryBuilder(ServiceCategory.find(), query)
+  const sortQuery = { ...query, sort: query.sort || 'order -createdAt' };
+  const categoryQuery = new QueryBuilder(ServiceCategory.find(), sortQuery)
     .search(['name'])
     .filter()
     .sort()
@@ -42,8 +43,8 @@ const getAllCategoriesFromDB = async (query: Record<string, unknown>) => {
 
     const enrichedResult = result.map((cat: any) => ({
       ...cat,
+      listingCount: serviceMap.get(String(cat._id)) || 0,
       serviceCount: serviceMap.get(String(cat._id)) || 0,
-      totalListings: serviceMap.get(String(cat._id)) || 0,
       subcategoryCount: subcatMap.get(String(cat._id)) || 0,
     }));
 
@@ -64,8 +65,8 @@ const getSingleCategoryFromDB = async (id: string) => {
 
   return {
     ...result,
+    listingCount: serviceCount,
     serviceCount,
-    totalListings: serviceCount,
     subcategoryCount,
   };
 };
@@ -73,7 +74,29 @@ const getSingleCategoryFromDB = async (id: string) => {
 const createCategoryIntoDB = async (payload: TServiceCategory) => {
   const existing = await ServiceCategory.findOne({ name: payload.name });
   if (existing) throw new AppError(httpStatus.CONFLICT, 'Category already exists');
+
+  if (payload.order === undefined || payload.order === null) {
+    const highest = await ServiceCategory.findOne().sort('-order').select('order').lean();
+    payload.order = highest && highest.order ? highest.order + 1 : 1;
+  }
+
   const result = await ServiceCategory.create(payload);
+  return result;
+};
+
+const reorderCategoriesInDB = async (items: { id: string; order: number }[]) => {
+  if (!items || items.length === 0) {
+    return { modifiedCount: 0 };
+  }
+
+  const bulkOps = items.map((item) => ({
+    updateOne: {
+      filter: { _id: item.id },
+      update: { $set: { order: item.order } },
+    },
+  }));
+
+  const result = await ServiceCategory.bulkWrite(bulkOps);
   return result;
 };
 
@@ -84,6 +107,30 @@ const updateCategoryInDB = async (id: string, payload: Partial<TServiceCategory>
   }
   const result = await ServiceCategory.findByIdAndUpdate(id, payload, { new: true, runValidators: true });
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Category not found');
+
+  // Cascade disable/enable logic
+  if (payload.isActive !== undefined) {
+    if (payload.isActive === false) {
+      // 1. Disable subcategories under this category
+      await ServiceSubcategory.updateMany({ category: id }, { isActive: false });
+
+      // 2. Disable vendor services under this category, marking them as disabled by category
+      await VendorService.updateMany(
+        { category: id, isActive: true },
+        { isActive: false, isCategoryDisabled: true },
+      );
+    } else if (payload.isActive === true) {
+      // 1. Re-enable subcategories under this category
+      await ServiceSubcategory.updateMany({ category: id }, { isActive: true });
+
+      // 2. Restore vendor services that were disabled by category disable and are approved
+      await VendorService.updateMany(
+        { category: id, isCategoryDisabled: true, status: 'approved' },
+        { isActive: true, isCategoryDisabled: false },
+      );
+    }
+  }
+
   return result;
 };
 
@@ -130,7 +177,9 @@ const deleteCategoryFromDB = async (id: string) => {
 };
 
 const getAllCategoriesListFromDB = async () => {
-  const categories = await ServiceCategory.find({ isActive: true }).sort('name').lean();
+  const categories = await ServiceCategory.find({ isActive: true })
+    .sort({ order: 1, createdAt: -1 })
+    .lean();
 
   if (categories.length > 0) {
     const categoryIds = categories.map((c) => c._id);
@@ -144,8 +193,8 @@ const getAllCategoriesListFromDB = async () => {
 
     return categories.map((cat: any) => ({
       ...cat,
+      listingCount: serviceMap.get(String(cat._id)) || 0,
       serviceCount: serviceMap.get(String(cat._id)) || 0,
-      totalListings: serviceMap.get(String(cat._id)) || 0,
     }));
   }
 
@@ -154,13 +203,13 @@ const getAllCategoriesListFromDB = async () => {
 
 const getCategoriesWithSubcategoriesFromDB = async () => {
   const categories = await ServiceCategory.find({ isActive: true })
-    .select('_id name image description isActive')
-    .sort('-createdAt')
+    .select('_id name image description isActive order')
+    .sort({ order: 1, createdAt: -1 })
     .lean();
 
   const subcategories = await ServiceSubcategory.find({ isActive: true })
-    .select('_id name image category description isActive')
-    .sort('-createdAt')
+    .select('_id name image category description isActive order')
+    .sort({ order: 1, createdAt: -1 })
     .lean();
 
   // Aggregate service counts per subcategory
@@ -190,8 +239,8 @@ const getCategoriesWithSubcategoriesFromDB = async () => {
       name: string;
       image?: string;
       description?: string;
+      listingCount: number;
       serviceCount: number;
-      totalListings: number;
     }>
   > = {};
 
@@ -206,8 +255,8 @@ const getCategoriesWithSubcategoriesFromDB = async () => {
       name: sub.name,
       image: sub.image || '',
       description: sub.description || '',
+      listingCount: count,
       serviceCount: count,
-      totalListings: count,
     });
   }
 
@@ -216,8 +265,8 @@ const getCategoriesWithSubcategoriesFromDB = async () => {
     name: cat.name,
     image: cat.image || '',
     description: cat.description || '',
+    listingCount: catCountMap[String(cat._id)] || 0,
     serviceCount: catCountMap[String(cat._id)] || 0,
-    totalListings: catCountMap[String(cat._id)] || 0,
     subcategories: subcategoryMap[String(cat._id)] || [],
   }));
 
@@ -232,4 +281,5 @@ export const CategoryServices = {
   deleteCategoryFromDB,
   getAllCategoriesListFromDB,
   getCategoriesWithSubcategoriesFromDB,
+  reorderCategoriesInDB,
 };

@@ -7,9 +7,10 @@ import { Amenity } from '../Amenity/amenity.model';
 import { VendorService } from '../VendorService/vendorService.model';
 
 const getAllSubcategoriesFromDB = async (query: Record<string, unknown>) => {
+  const sortQuery = { ...query, sort: query.sort || 'order -createdAt' };
   const subcategoryQuery = new QueryBuilder(
-    ServiceSubcategory.find().populate('category', 'name image'),
-    query,
+    ServiceSubcategory.find().populate('category', 'name image order'),
+    sortQuery,
   )
     .search(['name'])
     .filter()
@@ -32,8 +33,8 @@ const getAllSubcategoriesFromDB = async (query: Record<string, unknown>) => {
 
     const enriched = result.map((sub: any) => ({
       ...sub,
+      listingCount: countMap.get(String(sub._id)) || 0,
       serviceCount: countMap.get(String(sub._id)) || 0,
-      totalListings: countMap.get(String(sub._id)) || 0,
     }));
 
     return { meta, result: enriched };
@@ -44,7 +45,8 @@ const getAllSubcategoriesFromDB = async (query: Record<string, unknown>) => {
 
 const getSubcategoriesByCategoryFromDB = async (categoryId: string) => {
   const result = (await ServiceSubcategory.find({ category: categoryId })
-    .populate('category', 'name image')
+    .populate('category', 'name image order')
+    .sort({ order: 1, createdAt: -1 })
     .lean()) as any[];
 
   if (result.length > 0) {
@@ -59,8 +61,8 @@ const getSubcategoriesByCategoryFromDB = async (categoryId: string) => {
 
     return result.map((sub: any) => ({
       ...sub,
+      listingCount: countMap.get(String(sub._id)) || 0,
       serviceCount: countMap.get(String(sub._id)) || 0,
-      totalListings: countMap.get(String(sub._id)) || 0,
     }));
   }
 
@@ -69,7 +71,7 @@ const getSubcategoriesByCategoryFromDB = async (categoryId: string) => {
 
 const getSingleSubcategoryFromDB = async (id: string) => {
   const result = await ServiceSubcategory.findById(id)
-    .populate('category', 'name image')
+    .populate('category', 'name image order')
     .lean();
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Subcategory not found');
 
@@ -80,13 +82,36 @@ const getSingleSubcategoryFromDB = async (id: string) => {
 
   return {
     ...result,
+    listingCount: serviceCount,
     serviceCount,
-    totalListings: serviceCount,
   };
 };
 
 const createSubcategoryIntoDB = async (payload: TServiceSubcategory) => {
+  if (payload.order === undefined || payload.order === null) {
+    const highest = await ServiceSubcategory.findOne({ category: payload.category })
+      .sort('-order')
+      .select('order')
+      .lean();
+    payload.order = highest && highest.order ? highest.order + 1 : 1;
+  }
   const result = await ServiceSubcategory.create(payload);
+  return result;
+};
+
+const reorderSubcategoriesInDB = async (items: { id: string; order: number }[]) => {
+  if (!items || items.length === 0) {
+    return { modifiedCount: 0 };
+  }
+
+  const bulkOps = items.map((item) => ({
+    updateOne: {
+      filter: { _id: item.id },
+      update: { $set: { order: item.order } },
+    },
+  }));
+
+  const result = await ServiceSubcategory.bulkWrite(bulkOps);
   return result;
 };
 
@@ -99,6 +124,23 @@ const updateSubcategoryInDB = async (
     runValidators: true,
   });
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Subcategory not found');
+
+  if (payload.isActive !== undefined) {
+    if (payload.isActive === false) {
+      // Disable vendor services under this subcategory, marking them as disabled
+      await VendorService.updateMany(
+        { subcategory: id, isActive: true },
+        { isActive: false, isCategoryDisabled: true },
+      );
+    } else if (payload.isActive === true) {
+      // Restore vendor services that were disabled by subcategory disable and are approved
+      await VendorService.updateMany(
+        { subcategory: id, isCategoryDisabled: true, status: 'approved' },
+        { isActive: true, isCategoryDisabled: false },
+      );
+    }
+  }
+
   return result;
 };
 
@@ -128,9 +170,10 @@ const deleteSubcategoryFromDB = async (id: string) => {
 const getAllSubcategoriesWithQueryFromDB = async (
   query: Record<string, unknown>,
 ) => {
+  const sortQuery = { ...query, sort: query.sort || 'order -createdAt' };
   const subcategoryQuery = new QueryBuilder(
-    ServiceSubcategory.find().populate('category', 'name image'),
-    query,
+    ServiceSubcategory.find().populate('category', 'name image order'),
+    sortQuery,
   )
     .search(['name'])
     .filter()
@@ -151,8 +194,8 @@ const getAllSubcategoriesWithQueryFromDB = async (
 
     const enriched = result.map((sub: any) => ({
       ...sub,
+      listingCount: countMap.get(String(sub._id)) || 0,
       serviceCount: countMap.get(String(sub._id)) || 0,
-      totalListings: countMap.get(String(sub._id)) || 0,
     }));
 
     return { meta, result: enriched };
@@ -163,8 +206,8 @@ const getAllSubcategoriesWithQueryFromDB = async (
 
 const getAllSubcategoriesListFromDB = async () => {
   const result = (await ServiceSubcategory.find({ isActive: true })
-    .populate('category', 'name image')
-    .sort('name')
+    .populate('category', 'name image order')
+    .sort({ order: 1, createdAt: -1 })
     .lean()) as any[];
 
   if (result.length > 0) {
@@ -179,8 +222,8 @@ const getAllSubcategoriesListFromDB = async () => {
 
     return result.map((sub: any) => ({
       ...sub,
+      listingCount: countMap.get(String(sub._id)) || 0,
       serviceCount: countMap.get(String(sub._id)) || 0,
-      totalListings: countMap.get(String(sub._id)) || 0,
     }));
   }
 
@@ -196,4 +239,5 @@ export const SubcategoryServices = {
   deleteSubcategoryFromDB,
   getAllSubcategoriesWithQueryFromDB,
   getAllSubcategoriesListFromDB,
+  reorderSubcategoriesInDB,
 };

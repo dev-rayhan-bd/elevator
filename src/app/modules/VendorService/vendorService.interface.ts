@@ -19,6 +19,8 @@ export interface TVendorService {
   images?: string[];
   termsAndCondition?: string;
   isActive: boolean;
+  isCategoryDisabled?: boolean;
+  isEventTypeDisabled?: boolean;
   isDraft?: boolean;
   entireCity?: boolean;
   status?: TVendorServiceStatus;

@@ -89,6 +89,12 @@ router.patch(
   EventTypeControllers.updateEventType,
 );
 
+router.patch(
+  '/:id/status',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  EventTypeControllers.toggleEventTypeStatus,
+);
+
 router.delete(
   '/:id',
   /*

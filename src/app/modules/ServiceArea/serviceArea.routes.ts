@@ -60,6 +60,26 @@ router.post(
 );
 
 router.patch(
+  '/reorder',
+  /*
+    #swagger.tags = ['ServiceArea']
+    #swagger.summary = 'Reorder service areas'
+    #swagger.parameters['body'] = {
+      in: 'body',
+      required: true,
+      schema: {
+        items: [
+          { id: '60d5ecb8b5c9c123456789ab', order: 1 }
+        ]
+      }
+    }
+  */
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  validateRequest(ServiceAreaValidations.reorderServiceAreaSchema),
+  ServiceAreaControllers.reorderServiceAreas,
+);
+
+router.patch(
   '/:id',
   /*
     #swagger.tags = ['ServiceArea']
@@ -74,6 +94,12 @@ router.patch(
   auth(USER_ROLE.admin, USER_ROLE.superAdmin),
   validateRequest(ServiceAreaValidations.updateServiceAreaSchema),
   ServiceAreaControllers.updateServiceArea,
+);
+
+router.patch(
+  '/:id/status',
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  ServiceAreaControllers.toggleServiceAreaStatus,
 );
 
 router.delete(

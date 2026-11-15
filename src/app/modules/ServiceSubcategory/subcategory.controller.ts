@@ -94,6 +94,37 @@ const deleteSubcategory = catchAsync(async (req, res) => {
   });
 });
 
+const toggleSubcategoryStatus = catchAsync(async (req, res) => {
+  const subcategory = await SubcategoryServices.getSingleSubcategoryFromDB(req.params.id);
+  const newStatus =
+    typeof req.body.isActive === 'boolean'
+      ? req.body.isActive
+      : typeof req.body.isActive === 'string'
+      ? req.body.isActive === 'true'
+      : !subcategory.isActive;
+
+  const result = await SubcategoryServices.updateSubcategoryInDB(req.params.id, {
+    isActive: newStatus,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Subcategory ${newStatus ? 'activated' : 'disabled'} successfully`,
+    data: result,
+  });
+});
+
+const reorderSubcategories = catchAsync(async (req, res) => {
+  const result = await SubcategoryServices.reorderSubcategoriesInDB(req.body.items);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Subcategories reordered successfully',
+    data: result,
+  });
+});
+
 export const SubcategoryControllers = {
   getAllSubcategories,
   getAllSubcategoriesWithQuery,
@@ -102,5 +133,7 @@ export const SubcategoryControllers = {
   getSingleSubcategory,
   createSubcategory,
   updateSubcategory,
+  toggleSubcategoryStatus,
   deleteSubcategory,
+  reorderSubcategories,
 };

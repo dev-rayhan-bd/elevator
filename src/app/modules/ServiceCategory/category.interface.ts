@@ -3,4 +3,5 @@ export interface TServiceCategory {
   description?: string;
   image?: string;
   isActive: boolean;
+  order?: number;
 }

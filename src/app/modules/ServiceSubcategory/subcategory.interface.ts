@@ -6,4 +6,5 @@ export interface TServiceSubcategory {
   description?: string;
   image?: string;
   isActive: boolean;
+  order?: number;
 }

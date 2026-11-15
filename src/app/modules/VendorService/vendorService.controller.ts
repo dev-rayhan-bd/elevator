@@ -63,6 +63,16 @@ const getSingleVendorService = catchAsync(async (req, res) => {
   });
 });
 
+const getSingleServiceForAdmin = catchAsync(async (req, res) => {
+  const result = await VendorServiceServices.getSingleServiceForAdminFromDB(req.params.id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Vendor service details retrieved successfully',
+    data: result,
+  });
+});
+
 const createVendorService = catchAsync(async (req, res) => {
   // Upload multiple images to Cloudinary if files are present (multipart/form-data)
   let imageUrls: string[] = [];
@@ -636,6 +646,7 @@ export const VendorServiceControllers = {
   getPublicVendorServices,
   getAllPublishedServices,
   getSingleVendorService,
+  getSingleServiceForAdmin,
   createVendorService,
   updateVendorService,
   deleteVendorService,
