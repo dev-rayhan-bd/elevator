@@ -3,6 +3,8 @@ export const USER_ROLE = {
   vendor: 'vendor',
   admin: 'admin',
   superAdmin: 'superAdmin',
+  operationsAdmin: 'operationsAdmin',
+  contentModerator: 'contentModerator',
 } as const;
 
 export const USER_STATUS = {

@@ -7,17 +7,7 @@ import { VerificationControllers } from './verification.controller';
 import { VerificationValidations } from './verification.validation';
 
 const router = express.Router();
-const uploadDocs = upload.fields([
-  { name: 'cnicFront', maxCount: 1 },
-  { name: 'cnicBack', maxCount: 1 },
-  { name: 'ntn', maxCount: 1 },
-  { name: 'incorporationCertificate', maxCount: 1 },
-  { name: 'documents', maxCount: 10 }
-]) as unknown as RequestHandler;
-
-// ══════════════════════════════════════════════
-//  VENDOR ROUTES
-// ══════════════════════════════════════════════
+const uploadDocs = upload.any() as unknown as RequestHandler;
 
 // ══════════════════════════════════════════════
 //  VENDOR ROUTES
@@ -42,6 +32,14 @@ router.post(
   */
   auth(USER_ROLE.vendor),
   uploadDocs,
+  (req: any, res: any, next: any) => {
+    if (typeof req.body.data === 'string') {
+      try {
+        req.body = { ...req.body, ...JSON.parse(req.body.data) };
+      } catch (e) {}
+    }
+    next();
+  },
   validateRequest(VerificationValidations.submitVerificationSchema),
   VerificationControllers.submitVerification,
 );
@@ -68,7 +66,7 @@ router.get(
     #swagger.tags = ['Verification']
     #swagger.summary = 'Get all verification requests (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   VerificationControllers.adminGetAllVerifications,
 );
 
@@ -79,7 +77,7 @@ router.get(
     #swagger.tags = ['Verification']
     #swagger.summary = 'Get single verification request (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   VerificationControllers.getSingleVerification,
 );
 
@@ -98,7 +96,7 @@ router.patch(
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   validateRequest(VerificationValidations.updateVerificationStatusSchema),
   VerificationControllers.adminUpdateVerificationStatus,
 );

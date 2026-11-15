@@ -26,7 +26,7 @@ router.get(
     #swagger.tags = ['Inspiration']
     #swagger.summary = 'Get all inspirations (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.contentModerator),
   InspirationControllers.getAdminInspirations,
 );
 
@@ -45,7 +45,7 @@ router.post(
     #swagger.tags = ['Inspiration']
     #swagger.summary = 'Create inspiration post (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.contentModerator),
   uploadImagesMiddleware,
   InspirationControllers.createInspiration,
 );
@@ -56,7 +56,7 @@ router.patch(
     #swagger.tags = ['Inspiration']
     #swagger.summary = 'Update inspiration post (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.contentModerator),
   uploadImagesMiddleware,
   InspirationControllers.updateInspiration,
 );
@@ -67,7 +67,7 @@ router.delete(
     #swagger.tags = ['Inspiration']
     #swagger.summary = 'Delete inspiration post (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.contentModerator),
   InspirationControllers.deleteInspiration,
 );
 

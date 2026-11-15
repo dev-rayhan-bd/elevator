@@ -81,6 +81,37 @@ const getDisputeSummaryStatsFromDB = async () => {
   };
 };
 
+// ── Utility: Format dispute users with businessName for vendors ──
+const formatDisputeUser = (user: any) => {
+  if (!user || typeof user !== 'object') return user;
+  const u = user.toObject ? user.toObject() : { ...user };
+  if (u.role === 'vendor' || u.vendor?.businessName) {
+    const bName =
+      u.vendor?.businessName ||
+      u.businessName ||
+      u.fullName ||
+      `${u.firstName || ''} ${u.lastName || ''}`.trim() ||
+      'Vendor';
+    u.businessName = bName;
+    if (u.vendor) {
+      u.vendor.businessName = bName;
+    }
+  }
+  return u;
+};
+
+const formatDispute = (dispute: any) => {
+  if (!dispute) return dispute;
+  const d = dispute.toObject ? dispute.toObject() : { ...dispute };
+  if (d.disputer) d.disputer = formatDisputeUser(d.disputer);
+  if (d.respondent) d.respondent = formatDisputeUser(d.respondent);
+
+  if (d.respondent?.businessName) {
+    d.otherPartyBusinessName = d.respondent.businessName;
+  }
+  return d;
+};
+
 // ── User/Vendor: Get my own disputes ──
 const getMyDisputesFromDB = async (
   userId: string,
@@ -98,11 +129,12 @@ const getMyDisputesFromDB = async (
     .paginate()
     .fields();
 
-  const result = await disputeQuery.modelQuery
-    .populate('disputer', 'firstName lastName email phone image role')
-    .populate('respondent', 'firstName lastName email phone image role');
+  const rawResult = await disputeQuery.modelQuery
+    .populate('disputer', 'firstName lastName fullName email phone image role vendor')
+    .populate('respondent', 'firstName lastName fullName email phone image role vendor');
 
   const meta = await disputeQuery.countTotal();
+  const result = rawResult.map((d: any) => formatDispute(d));
   return { meta, result };
 };
 
@@ -132,6 +164,7 @@ const getAllDisputesFromDB = async (query: Record<string, any>) => {
         { firstName: { $regex: term, $options: 'i' } },
         { lastName: { $regex: term, $options: 'i' } },
         { email: { $regex: term, $options: 'i' } },
+        { 'vendor.businessName': { $regex: term, $options: 'i' } },
       ],
     })
       .select('_id')
@@ -159,11 +192,12 @@ const getAllDisputesFromDB = async (query: Record<string, any>) => {
     .paginate()
     .fields();
 
-  const result = await disputeQuery.modelQuery
-    .populate('disputer', 'firstName lastName email phone image role')
-    .populate('respondent', 'firstName lastName email phone image role');
+  const rawResult = await disputeQuery.modelQuery
+    .populate('disputer', 'firstName lastName fullName email phone image role vendor')
+    .populate('respondent', 'firstName lastName fullName email phone image role vendor');
 
   const meta = await disputeQuery.countTotal();
+  const result = rawResult.map((d: any) => formatDispute(d));
   return { meta, result };
 };
 
@@ -176,8 +210,8 @@ const getDisputeDetailsFromDB = async (
   const query = isMatchById ? { disputeId: id } : { _id: id };
 
   const queryBuilder = Dispute.findOne({ ...query, isDeleted: false })
-    .populate('disputer', 'firstName lastName email phone image role')
-    .populate('respondent', 'firstName lastName email phone image role')
+    .populate('disputer', 'firstName lastName fullName email phone image role vendor')
+    .populate('respondent', 'firstName lastName fullName email phone image role vendor')
     .populate('closedBy', 'firstName lastName email role');
 
   // Only include internal adminNotes if user is admin or superAdmin
@@ -200,7 +234,7 @@ const getDisputeDetailsFromDB = async (
     throw new AppError(httpStatus.FORBIDDEN, 'Access denied to this dispute');
   }
 
-  return result;
+  return formatDispute(result);
 };
 
 // ── Admin: Update dispute status (Requires closingResponse when closing) ──

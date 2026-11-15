@@ -107,7 +107,7 @@ router.get(
     #swagger.tags = ['Promotion']
     #swagger.summary = 'Get promotion plans (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   PromotionControllers.getAllPromotionPlans,
 );
 
@@ -117,7 +117,7 @@ router.get(
     #swagger.tags = ['Promotion']
     #swagger.summary = 'Get single promotion plan (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   PromotionControllers.getSinglePromotionPlan,
 );
 
@@ -184,7 +184,7 @@ router.get(
     #swagger.tags = ['Promotion']
     #swagger.summary = 'Get vendor purchased promotions list (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   PromotionControllers.adminGetAllPromotions,
 );
 
@@ -201,7 +201,7 @@ router.patch(
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   PromotionControllers.adminUpdatePaymentStatus,
 );
 
@@ -212,7 +212,7 @@ router.patch(
     #swagger.tags = ['Promotion']
     #swagger.summary = 'Toggle vendor promotion status (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   PromotionControllers.adminToggleVendorPromotionIsActive,
 );
 

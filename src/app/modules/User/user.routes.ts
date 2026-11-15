@@ -17,7 +17,7 @@ router.get('/',
     #swagger.summary = 'Get all users'
     #swagger.description = 'Fetch a list of all registered users (Admin / SuperAdmin).'
   */
-  auth('admin', 'superAdmin'),
+  auth('admin', 'superAdmin', 'operationsAdmin'),
   UserControllers.getAllUsers
 );
 

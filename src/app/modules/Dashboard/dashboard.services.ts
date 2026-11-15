@@ -18,6 +18,7 @@ import { Dispute } from '../Dispute/dispute.model';
 import { AdvisorBooking } from '../Advisor/advisor.model';
 import { Banner, BannerSlot } from '../Banner/banner.model';
 import { expireOverdueBanners } from '../Banner/banner.services';
+import { ServiceCategory } from '../ServiceCategory/category.model';
 import {
   IDashboardResult,
   IDashboardKPI,
@@ -844,74 +845,169 @@ const getAdminVendorPerformanceStatsFromDB = async () => {
   const [
     totalVendors,
     totalVendorsLastMonth,
-    totalLeads,
-    totalLeadsLastMonth,
+    totalLeadsAgg,
+    totalLeadsLastMonthAgg,
     profileStrengthAvgResult,
     profileStrengthAvgLastMonthResult,
-    topCategoryResult,
+    categoryQuotesAgg,
+    categoryServicesAgg,
   ] = await Promise.all([
-    User.countDocuments({ role: 'vendor', isDeleted: false }),
-    User.countDocuments({ role: 'vendor', isDeleted: false, createdAt: { $lt: startOfThisMonth } }),
-    Promise.all([
-      LeadClick.countDocuments({ type: { $in: ['phone', 'whatsapp'] } }),
-      EventQuote.countDocuments()
-    ]).then(([clicks, quotes]) => clicks + quotes),
-    Promise.all([
-      LeadClick.countDocuments({ type: { $in: ['phone', 'whatsapp'] }, createdAt: { $lt: startOfThisMonth } }),
-      EventQuote.countDocuments({ createdAt: { $lt: startOfThisMonth } })
-    ]).then(([clicks, quotes]) => clicks + quotes),
+    User.countDocuments({ role: 'vendor', isDeleted: { $ne: true } }),
+    User.countDocuments({ role: 'vendor', isDeleted: { $ne: true }, createdAt: { $lt: startOfThisMonth } }),
+    // Align totalLeads with the exact sum of list totalLeads across all non-deleted vendors
     User.aggregate([
-      { $match: { role: 'vendor', isDeleted: false } },
-      { $group: { _id: null, avgScore: { $avg: '$vendor.profileScore' } } }
-    ]),
-    User.aggregate([
-      { $match: { role: 'vendor', isDeleted: false, createdAt: { $lt: startOfThisMonth } } },
-      { $group: { _id: null, avgScore: { $avg: '$vendor.profileScore' } } }
-    ]),
-    VendorService.aggregate([
-      { $match: { isDeleted: false, isActive: true } },
-      { $group: { _id: '$category', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 1 },
+      { $match: { role: 'vendor', isDeleted: { $ne: true } } },
       {
         $lookup: {
-          from: 'categories',
+          from: 'leadclicks',
           localField: '_id',
-          foreignField: '_id',
-          as: 'categoryDoc'
-        }
+          foreignField: 'vendor',
+          as: 'clicks',
+        },
       },
-      { $unwind: { path: '$categoryDoc', preserveNullAndEmptyArrays: true } }
-    ])
+      {
+        $lookup: {
+          from: 'eventquotes',
+          localField: '_id',
+          foreignField: 'vendor',
+          as: 'quotes',
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: {
+            $sum: { $add: [{ $size: '$clicks' }, { $size: '$quotes' }] },
+          },
+        },
+      },
+    ]),
+    User.aggregate([
+      { $match: { role: 'vendor', isDeleted: { $ne: true } } },
+      {
+        $lookup: {
+          from: 'leadclicks',
+          let: { vendorId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$vendor', '$$vendorId'] },
+                createdAt: { $lt: startOfThisMonth },
+              },
+            },
+          ],
+          as: 'clicks',
+        },
+      },
+      {
+        $lookup: {
+          from: 'eventquotes',
+          let: { vendorId: '$_id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ['$vendor', '$$vendorId'] },
+                createdAt: { $lt: startOfThisMonth },
+              },
+            },
+          ],
+          as: 'quotes',
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          total: {
+            $sum: { $add: [{ $size: '$clicks' }, { $size: '$quotes' }] },
+          },
+        },
+      },
+    ]),
+    User.aggregate([
+      { $match: { role: 'vendor', isDeleted: { $ne: true } } },
+      { $group: { _id: null, avgScore: { $avg: '$vendor.profileScore' } } },
+    ]),
+    User.aggregate([
+      { $match: { role: 'vendor', isDeleted: { $ne: true }, createdAt: { $lt: startOfThisMonth } } },
+      { $group: { _id: null, avgScore: { $avg: '$vendor.profileScore' } } },
+    ]),
+    // Compute won and total quotes by category from eventrequests
+    EventQuote.aggregate([
+      {
+        $lookup: {
+          from: 'eventrequests',
+          localField: 'eventRequest',
+          foreignField: '_id',
+          as: 'request',
+        },
+      },
+      { $unwind: '$request' },
+      {
+        $group: {
+          _id: '$request.serviceCategory',
+          totalQuotes: { $sum: 1 },
+          wonQuotes: {
+            $sum: {
+              $cond: [{ $in: ['$status', ['accepted', 'won']] }, 1, 0],
+            },
+          },
+        },
+      },
+    ]),
+    // Active VendorServices grouped by category (for fallback and ranking)
+    VendorService.aggregate([
+      { $match: { isDeleted: false, isActive: true } },
+      { $group: { _id: '$category', serviceCount: { $sum: 1 } } },
+      { $sort: { serviceCount: -1 } },
+    ]),
   ]);
+
+  const totalLeads = totalLeadsAgg[0]?.total || 0;
+  const totalLeadsLastMonth = totalLeadsLastMonthAgg[0]?.total || 0;
 
   const avgProfileStrength = Math.round(profileStrengthAvgResult[0]?.avgScore || 0);
   const avgProfileStrengthLastMonth = Math.round(profileStrengthAvgLastMonthResult[0]?.avgScore || 0);
   const profileDiff = avgProfileStrength - avgProfileStrengthLastMonth;
   const profileChange = `${profileDiff >= 0 ? '+' : ''}${profileDiff}% from last month`;
 
+  // Determine top category from vendor service categories + won/total quotes
+  let topCategoryId: any = null;
   let topCategoryName = 'N/A';
   let conversionRateStr = '0%';
 
-  if (topCategoryResult.length > 0) {
-    const rawCat = topCategoryResult[0];
-    topCategoryName = rawCat.categoryDoc?.name || (typeof rawCat._id === 'string' ? rawCat._id : 'N/A');
+  if (categoryQuotesAgg.length > 0) {
+    // Sort by wonQuotes desc, then conversionRate desc, then totalQuotes desc
+    const sortedQuotes = [...categoryQuotesAgg].sort((a, b) => {
+      if (b.wonQuotes !== a.wonQuotes) return b.wonQuotes - a.wonQuotes;
+      const rateA = a.totalQuotes > 0 ? a.wonQuotes / a.totalQuotes : 0;
+      const rateB = b.totalQuotes > 0 ? b.wonQuotes / b.totalQuotes : 0;
+      if (rateB !== rateA) return rateB - rateA;
+      return b.totalQuotes - a.totalQuotes;
+    });
 
-    if (rawCat._id) {
-      const topCatServices = await VendorService.find({ category: rawCat._id, isDeleted: false }).select('_id').lean();
-      const serviceIds = topCatServices.map(s => s._id);
+    const bestQuoteCat = sortedQuotes[0];
+    if (bestQuoteCat?._id) {
+      topCategoryId = bestQuoteCat._id;
+      const rate = bestQuoteCat.totalQuotes > 0 
+        ? Math.round((bestQuoteCat.wonQuotes / bestQuoteCat.totalQuotes) * 100)
+        : 0;
+      conversionRateStr = `${rate}%`;
+    }
+  }
 
-      if (serviceIds.length > 0) {
-        const [totalCatQuotes, wonCatQuotes] = await Promise.all([
-          EventQuote.countDocuments({ service: { $in: serviceIds } }),
-          EventQuote.countDocuments({ service: { $in: serviceIds }, status: { $in: ['accepted', 'won'] } })
-        ]);
+  // If no category from quotes, use the top category from vendor services
+  if (!topCategoryId && categoryServicesAgg.length > 0) {
+    const bestServiceCat = categoryServicesAgg[0];
+    if (bestServiceCat?._id) {
+      topCategoryId = bestServiceCat._id;
+      conversionRateStr = '0%';
+    }
+  }
 
-        if (totalCatQuotes > 0) {
-          const rate = Math.round((wonCatQuotes / totalCatQuotes) * 100);
-          conversionRateStr = `${rate}%`;
-        }
-      }
+  if (topCategoryId) {
+    const catDoc = await ServiceCategory.findById(topCategoryId).select('name');
+    if (catDoc?.name) {
+      topCategoryName = catDoc.name;
     }
   }
 
@@ -956,6 +1052,7 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
       { firstName: { $regex: searchTerm, $options: 'i' } },
       { lastName: { $regex: searchTerm, $options: 'i' } },
       { email: { $regex: searchTerm, $options: 'i' } },
+      { 'vendor.businessName': { $regex: searchTerm, $options: 'i' } },
     ];
   }
 
@@ -1141,12 +1238,47 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
       }
     },
     ...aggregationPipeline.slice(3),
-    { $sort: { performanceScore: -1 } },
+    { $sort: { wonLeads: -1, conversionRate: -1, totalLeads: -1, profileStrength: -1 } },
     { $limit: 3 },
     {
       $project: {
         firstName: 1,
         lastName: 1,
+        fullName: 1,
+        businessName: {
+          $ifNull: [
+            '$vendor.businessName',
+            {
+              $trim: {
+                input: {
+                  $concat: [
+                    { $ifNull: ['$firstName', ''] },
+                    ' ',
+                    { $ifNull: ['$lastName', ''] }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        vendor: {
+          businessName: {
+            $ifNull: [
+              '$vendor.businessName',
+              {
+                $trim: {
+                  input: {
+                    $concat: [
+                      { $ifNull: ['$firstName', ''] },
+                      ' ',
+                      { $ifNull: ['$lastName', ''] }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
         image: 1,
         totalLeads: 1,
         wonLeads: 1,
@@ -1170,6 +1302,41 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
       $project: {
         firstName: 1,
         lastName: 1,
+        fullName: 1,
+        businessName: {
+          $ifNull: [
+            '$vendor.businessName',
+            {
+              $trim: {
+                input: {
+                  $concat: [
+                    { $ifNull: ['$firstName', ''] },
+                    ' ',
+                    { $ifNull: ['$lastName', ''] }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        vendor: {
+          businessName: {
+            $ifNull: [
+              '$vendor.businessName',
+              {
+                $trim: {
+                  input: {
+                    $concat: [
+                      { $ifNull: ['$firstName', ''] },
+                      ' ',
+                      { $ifNull: ['$lastName', ''] }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
         email: 1,
         phoneNumber: 1,
         image: 1,
@@ -1194,6 +1361,40 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
   ]);
   const total = countResult[0]?.total || 0;
 
+  const formattedVendors = vendors.map((v: any) => {
+    const bName =
+      v.businessName ||
+      v.vendor?.businessName ||
+      v.fullName ||
+      `${v.firstName || ''} ${v.lastName || ''}`.trim() ||
+      'Vendor';
+    return {
+      ...v,
+      businessName: bName,
+      vendor: {
+        ...(v.vendor || {}),
+        businessName: bName,
+      },
+    };
+  });
+
+  const formattedTopPerformers = topPerformers.map((v: any) => {
+    const bName =
+      v.businessName ||
+      v.vendor?.businessName ||
+      v.fullName ||
+      `${v.firstName || ''} ${v.lastName || ''}`.trim() ||
+      'Vendor';
+    return {
+      ...v,
+      businessName: bName,
+      vendor: {
+        ...(v.vendor || {}),
+        businessName: bName,
+      },
+    };
+  });
+
   // Add the 4 top cards statistics here
   const stats = await getAdminVendorPerformanceStatsFromDB();
 
@@ -1205,8 +1406,8 @@ const getAdminVendorPerformanceListFromDB = async (query: Record<string, unknown
       total,
       totalPages: Math.ceil(total / limit)
     },
-    vendors,
-    topPerformers
+    vendors: formattedVendors,
+    topPerformers: formattedTopPerformers
   };
 };
 

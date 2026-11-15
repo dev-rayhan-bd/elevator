@@ -71,10 +71,33 @@ const loginAdminFromDB = async (payload: { identifier: string; password: string 
 
 
 const createAdminInDB = async (payload: any) => {
-  const isExist = await Admin.findOne({ $or: [{ email: payload.email }, { phone: payload.phone }] });
+  const email = payload.email ? payload.email.toLowerCase() : '';
+  const isExist = await Admin.findOne({
+    $or: [{ email }, { phone: payload.phone }],
+  });
   if (isExist) throw new AppError(httpStatus.CONFLICT, 'Email or Phone already registered as Admin');
-  // Force role to 'admin' — superAdmin cannot be created via API
-  payload.role = 'admin';
+
+  // Handle single fullName input from Admin UI
+  if (payload.fullName && (!payload.firstName || !payload.lastName)) {
+    const parts = payload.fullName.trim().split(/\s+/);
+    payload.firstName = payload.firstName || parts[0] || 'Admin';
+    payload.lastName = payload.lastName || parts.slice(1).join(' ') || 'User';
+  } else {
+    payload.firstName = payload.firstName || 'Admin';
+    payload.lastName = payload.lastName || 'User';
+  }
+
+  // Accept valid admin roles: superAdmin | operationsAdmin | contentModerator | admin
+  const validRoles = ['superAdmin', 'operationsAdmin', 'contentModerator', 'admin'];
+  if (payload.role && !validRoles.includes(payload.role)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Invalid admin role. Allowed roles: ${validRoles.join(', ')}`,
+    );
+  }
+  payload.role = payload.role || 'operationsAdmin';
+  payload.email = email;
+
   return await Admin.create(payload);
 };
 

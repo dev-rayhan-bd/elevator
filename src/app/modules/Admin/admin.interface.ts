@@ -1,6 +1,10 @@
 import { Model } from 'mongoose';
 
-export type TAdminRole = 'admin' | 'superAdmin';
+export type TAdminRole =
+  | 'admin'
+  | 'superAdmin'
+  | 'operationsAdmin'
+  | 'contentModerator';
 
 export interface TAdmin {
   firstName: string;

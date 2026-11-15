@@ -63,7 +63,7 @@ router.patch('/update-profile',
     #swagger.tags = ['Admin']
     #swagger.summary = 'Update Admin Profile'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin, USER_ROLE.contentModerator),
   upload.single('image') as any,
   AdminControllers.updateProfile
 );
@@ -81,7 +81,7 @@ router.post('/change-password',
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin, USER_ROLE.contentModerator),
   validateRequest(AdminValidation.changePasswordSchema),
   AdminControllers.changePassword
 );
@@ -91,7 +91,7 @@ router.get('/me',
     #swagger.tags = ['Admin']
     #swagger.summary = 'Get current Admin details'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin, USER_ROLE.contentModerator),
   AdminControllers.getMe
 );
 
@@ -100,7 +100,7 @@ router.get('/pending-vendors',
     #swagger.tags = ['Admin']
     #swagger.summary = 'Get pending vendor applications'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   AdminControllers.getPendingVendors
 );
 
@@ -117,7 +117,7 @@ router.patch('/approve-vendor/:id',
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   validateRequest(AdminValidation.approveRejectVendorSchema),
   AdminControllers.approveVendor
 );
@@ -134,11 +134,12 @@ router.post('/create-admin',
         $lastName: 'User',
         $email: 'newadmin@example.com',
         $phone: '01800000000',
-        $password: 'password123'
+        $password: 'password123',
+        role: 'operationsAdmin'
       }
     }
   */
-  auth(USER_ROLE.superAdmin),
+  auth(USER_ROLE.superAdmin, USER_ROLE.admin),
   validateRequest(AdminValidation.createAdminSchema),
   AdminControllers.createAdmin
 );
@@ -161,7 +162,7 @@ router.patch('/block-unblock/:id',
     #swagger.tags = ['Admin']
     #swagger.summary = 'Block or unblock user'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   AdminControllers.blockUnblockUser
 );
 
@@ -171,7 +172,7 @@ router.delete('/:id',
     #swagger.tags = ['Admin']
     #swagger.summary = 'Delete admin account'
   */
-  auth(USER_ROLE.superAdmin),
+  auth(USER_ROLE.superAdmin, USER_ROLE.admin),
   AdminControllers.deleteAdmin
 );
 
@@ -180,7 +181,7 @@ router.patch('/block-unblock-admin/:id',
     #swagger.tags = ['Admin']
     #swagger.summary = 'Block or unblock admin account'
   */
-  auth(USER_ROLE.superAdmin),
+  auth(USER_ROLE.superAdmin, USER_ROLE.admin),
   AdminControllers.blockUnblockAdmin
 );
 
@@ -198,7 +199,7 @@ router.get('/dashboard',
     #swagger.tags = ['Admin']
     #swagger.summary = 'Get admin dashboard statistics'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   AdminControllers.getAdminDashboard
 );
 

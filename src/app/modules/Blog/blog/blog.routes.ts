@@ -53,7 +53,7 @@ router.post(
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.contentModerator),
   uploadFields,
   BlogControllers.createBlog,
 );
@@ -71,7 +71,7 @@ router.patch(
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.contentModerator),
   uploadFields,
   BlogControllers.updateBlog,
 );
@@ -82,7 +82,7 @@ router.delete(
     #swagger.tags = ['Blog']
     #swagger.summary = 'Delete blog post (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.contentModerator),
   BlogControllers.deleteBlog,
 );
 

@@ -484,7 +484,7 @@ const getActivePromotionsFromDB = async (query: Record<string, unknown>) => {
       startDate: { $lte: now },
       endDate: { $gte: now },
     })
-      .populate('vendor', 'firstName lastName fullName email image vendor.businessName')
+      .populate('vendor', 'firstName lastName fullName email image lat long vendor')
       .populate('service', 'title images pricingType price')
       .populate('plan', 'promotionCategory durationTitle durationDays isPopular')
       .sort('-createdAt'),
@@ -495,17 +495,59 @@ const getActivePromotionsFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .fields();
 
-  const result = await promotionQuery.modelQuery;
+  const rawResult = await promotionQuery.modelQuery;
   const meta = await promotionQuery.countTotal();
+
+  const result = rawResult.map((item: any) => {
+    const promo = item.toObject ? item.toObject() : { ...item };
+    if (promo.vendor && typeof promo.vendor === 'object') {
+      const bName =
+        promo.vendor.vendor?.businessName ||
+        promo.vendor.businessName ||
+        promo.vendor.fullName ||
+        `${promo.vendor.firstName || ''} ${promo.vendor.lastName || ''}`.trim() ||
+        'Vendor';
+      promo.vendor.businessName = bName;
+      promo.businessName = bName;
+      if (promo.vendor.vendor) {
+        promo.vendor.vendor.businessName = bName;
+      }
+      if (!promo.vendor.email && promo.vendor.vendor?.email) {
+        promo.vendor.email = promo.vendor.vendor.email;
+      }
+    }
+    return promo;
+  });
+
   return { meta, result };
 };
 
 const adminGetAllPromotionsFromDB = async (query: Record<string, unknown>) => {
   await expireOverduePromotions();
 
+  // ── Auto-sync: If vendor is verified, ensure their verified promotion is paid and active ──
+  try {
+    const pendingVerifiedPromos = await VendorPromotion.find({
+      promotionCategory: 'verified',
+      $or: [{ paymentStatus: 'pending' }, { isActive: false }, { status: 'pending' }],
+    });
+
+    for (const promo of pendingVerifiedPromos) {
+      const vendorUser = await User.findById(promo.vendor).select('vendor.isVerifiedBadge');
+      if (vendorUser?.vendor?.isVerifiedBadge) {
+        promo.paymentStatus = 'paid';
+        promo.status = 'active';
+        promo.isActive = true;
+        await promo.save();
+      }
+    }
+  } catch (err) {
+    console.error('Error auto-syncing verified promotions:', err);
+  }
+
   const promotionQuery = new QueryBuilder(
     VendorPromotion.find()
-      .populate('vendor', 'firstName lastName fullName email image')
+      .populate('vendor', 'firstName lastName fullName email image lat long vendor')
       .populate('service', 'title images')
       .populate('plan', 'promotionCategory durationTitle durationDays isPopular'),
     query,
@@ -515,8 +557,30 @@ const adminGetAllPromotionsFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .fields();
 
-  const result = await promotionQuery.modelQuery;
+  const rawResult = await promotionQuery.modelQuery;
   const meta = await promotionQuery.countTotal();
+
+  const result = rawResult.map((item: any) => {
+    const promo = item.toObject ? item.toObject() : { ...item };
+    if (promo.vendor && typeof promo.vendor === 'object') {
+      const bName =
+        promo.vendor.vendor?.businessName ||
+        promo.vendor.businessName ||
+        promo.vendor.fullName ||
+        `${promo.vendor.firstName || ''} ${promo.vendor.lastName || ''}`.trim() ||
+        'Vendor';
+      promo.vendor.businessName = bName;
+      promo.businessName = bName;
+      if (promo.vendor.vendor) {
+        promo.vendor.vendor.businessName = bName;
+      }
+      if (!promo.vendor.email && promo.vendor.vendor?.email) {
+        promo.vendor.email = promo.vendor.vendor.email;
+      }
+    }
+    return promo;
+  });
+
   return { meta, result };
 };
 
@@ -532,6 +596,18 @@ const adminUpdatePaymentStatusInDB = async (
 
   // ── Sync user flags based on payment status ──
   if (paymentStatus === 'paid') {
+    if (promotion.status === 'pending') {
+      const now = new Date();
+      const originalDuration =
+        promotion.endDate.getTime() - promotion.startDate.getTime();
+      promotion.startDate = now;
+      promotion.endDate = new Date(
+        now.getTime() + (originalDuration > 0 ? originalDuration : 30 * 24 * 60 * 60 * 1000),
+      );
+      promotion.status = 'active';
+    }
+    promotion.isActive = true;
+
     // Set flag when payment is confirmed
     if (category === 'sponsored') {
       await User.findByIdAndUpdate(vendorId, { isSponsored: true });
@@ -539,11 +615,16 @@ const adminUpdatePaymentStatusInDB = async (
       await User.findByIdAndUpdate(vendorId, { isFeatured: true });
     } else if (category === 'verified') {
       await User.findByIdAndUpdate(vendorId, { 'vendor.isVerifiedBadge': true });
+      await Verification.findOneAndUpdate(
+        { vendor: vendorId, status: 'pending' },
+        { status: 'verified', verifiedAt: new Date() },
+      );
     }
 
     // Trigger visibility score recalculation for Ads & Promotion task
     void UserServices.calculateAndUpdateVisibilityScore(vendorId.toString());
   } else if (paymentStatus === 'refunded' && promotion.paymentStatus === 'paid') {
+    promotion.isActive = false;
     // Revert flag when payment is refunded (only if no other active promotion of same category)
     const otherActive = await VendorPromotion.countDocuments({
       vendor: vendorId,

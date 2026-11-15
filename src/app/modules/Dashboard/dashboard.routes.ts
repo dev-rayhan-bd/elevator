@@ -41,7 +41,7 @@ router.get(
 // GET /dashboard/admin
 router.get(
   '/admin',
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   DashboardControllers.getAdminDashboard,
 );
 
@@ -49,7 +49,7 @@ router.get(
 // GET /dashboard/admin/vendor-performance-stats
 router.get(
   '/admin/vendor-performance-stats',
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   DashboardControllers.getAdminVendorPerformanceStats,
 );
 
@@ -57,7 +57,7 @@ router.get(
 // GET /dashboard/admin/vendor-performance-list
 router.get(
   '/admin/vendor-performance-list',
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   DashboardControllers.getAdminVendorPerformanceList,
 );
 

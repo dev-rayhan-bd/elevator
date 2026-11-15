@@ -85,7 +85,10 @@ const auth = (...requiredRoles: string[]) => {
     let user = null;
 
 
-    if (role === 'admin' || role === 'superAdmin') {
+    const adminRoles = ['admin', 'superAdmin', 'operationsAdmin', 'contentModerator'];
+    const isAdminUser = adminRoles.includes(role);
+
+    if (isAdminUser) {
       user = await Admin.findById(userId); 
     } else {
       user = await User.isUserExistsById(userId);
@@ -95,22 +98,30 @@ const auth = (...requiredRoles: string[]) => {
       throw new AppError(httpStatus.NOT_FOUND, 'This user is not found !');
     }
 
-
     if (user.status === 'blocked') {
       throw new AppError(httpStatus.FORBIDDEN, 'This user is blocked !');
     }
 
-
     if (
-        role !== 'admin' && role !== 'superAdmin' &&
+        !isAdminUser &&
         (user as any).passwordChangedAt &&
         User.isJWTIssuedBeforePasswordChanged((user as any).passwordChangedAt, iat as number)
     ) {
         throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized !');
     }
 
-    if (requiredRoles.length && !requiredRoles.includes(role)) {
-      throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized !');
+    if (requiredRoles.length) {
+      const isLegacyAdminOrSuper = role === 'admin' || role === 'superAdmin';
+      const requiresAdmin = requiredRoles.some((r) => adminRoles.includes(r));
+
+      // SuperAdmin and legacy admin have full access to all admin-level routes
+      const isAuthorized =
+        requiredRoles.includes(role) ||
+        (isLegacyAdminOrSuper && requiresAdmin);
+
+      if (!isAuthorized) {
+        throw new AppError(httpStatus.UNAUTHORIZED, 'You are not authorized !');
+      }
     }
 
     req.user = decoded;

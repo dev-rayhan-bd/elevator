@@ -12,7 +12,11 @@ const adminSchema = new Schema<TAdmin, TAdminModel, IAdminMethods>(
     phone: { type: String, required: true, unique: true },
     password: { type: String, required: true, select: 0 },
     image: { type: String, default: '' },
-    role: { type: String, enum: ['admin', 'superAdmin'], default: 'admin' },
+    role: {
+      type: String,
+      enum: ['admin', 'superAdmin', 'operationsAdmin', 'contentModerator'],
+      default: 'admin',
+    },
     status: { type: String, enum: ['active', 'blocked'], default: 'active' },
     isDeleted: { type: Boolean, default: false },
  otp: { type: String, select: 0 },     

@@ -39,7 +39,7 @@ router.get('/admin/all',
     #swagger.tags = ['InspirationCategory']
     #swagger.summary = 'Get all inspiration categories (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.contentModerator),
   InspirationCategoryControllers.getAdminInspirationCategories,
 );
 

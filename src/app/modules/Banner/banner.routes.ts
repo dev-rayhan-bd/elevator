@@ -187,7 +187,7 @@ router.post(
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   uploadImage,
   (req: any, res: any, next: any) => {
     if (req.body.data) req.body = JSON.parse(req.body.data);
@@ -204,7 +204,7 @@ router.get(
     #swagger.summary = 'Get all banners (Admin)'
     #swagger.parameters['createdByType'] = { in: 'query', description: 'Filter banners by creator: admin or vendor', type: 'string' }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   BannerControllers.adminGetAllBanners,
 );
 
@@ -214,7 +214,7 @@ router.get(
     #swagger.tags = ['Banner']
     #swagger.summary = 'Get banner details by ID (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   BannerControllers.adminGetSingleBanner,
 );
 
@@ -224,7 +224,7 @@ router.patch(
     #swagger.tags = ['Banner']
     #swagger.summary = 'Update banner details (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   uploadImage,
   (req: any, res: any, next: any) => {
     if (req.body.data) req.body = JSON.parse(req.body.data);
@@ -247,7 +247,7 @@ router.patch(
       }
     }
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   validateRequest(BannerValidations.updateBannerStatusSchema),
   BannerControllers.adminUpdateBannerStatus,
 );
@@ -259,7 +259,7 @@ router.patch(
     #swagger.tags = ['Banner']
     #swagger.summary = 'Toggle banner active status (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   BannerControllers.adminToggleBannerIsActive,
 );
 
@@ -270,7 +270,7 @@ router.delete(
     #swagger.tags = ['Banner']
     #swagger.summary = 'Soft delete banner (Admin)'
   */
-  auth(USER_ROLE.admin, USER_ROLE.superAdmin),
+  auth(USER_ROLE.admin, USER_ROLE.superAdmin, USER_ROLE.operationsAdmin),
   BannerControllers.adminDeleteBanner,
 );
 
