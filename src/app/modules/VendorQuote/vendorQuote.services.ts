@@ -176,7 +176,14 @@ const getQuoteDetailsFromDB = async (userId: string, role: string, quoteId: stri
     throw new AppError(httpStatus.FORBIDDEN, 'Unauthorized to view this quote!');
   }
 
-  return sortOffersDescending(quote);
+  const quoteObj: any = quote.toObject ? quote.toObject() : { ...quote };
+
+  // Hide customer's phone number from vendor (protect user privacy on quotation requests)
+  if (isVendor && !isUser && quoteObj.user && typeof quoteObj.user === 'object') {
+    delete quoteObj.user.phone;
+  }
+
+  return sortOffersDescending(quoteObj);
 };
 
 // ── User: Accept quote → auto-won (both sides see "won") ──
@@ -255,11 +262,17 @@ const getVendorQuotesFromDB = async (vendorId: string, query: Record<string, unk
   const status = query.status as string;
 
   const filter: any = { vendor: vendorId, isDeleted: false };
-  if (status) filter.status = status;
+  if (status) {
+    if (status === 'closed') {
+      filter.status = { $in: ['won', 'lost', 'declined'] };
+    } else {
+      filter.status = status;
+    }
+  }
 
   const [quotes, total, stats] = await Promise.all([
     VendorQuote.find(filter)
-      .populate('user', 'firstName lastName image email phone')
+      .populate('user', 'firstName lastName image email')
       .populate('service', 'title images pricingType')
       .populate('eventType', 'name')
       .populate('offers.sender', 'firstName lastName image')
@@ -288,11 +301,13 @@ const getVendorQuotesFromDB = async (vendorId: string, query: Record<string, unk
     won: 0,
     lost: 0,
     expired: 0,
+    closed: 0,
   };
   for (const s of stats) {
     statsMap[s._id] = s.count;
     statsMap.total += s.count;
   }
+  statsMap.closed = (statsMap.won || 0) + (statsMap.lost || 0) + (statsMap.declined || 0);
 
   quotes.forEach((q) => sortOffersDescending(q));
 

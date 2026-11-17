@@ -13,6 +13,8 @@ export interface IDashboardKPI {
   whatsappClicks: number;
   messageClicks: number;
   totalClicks: number;
+  profileScore?: number;
+  profileStrength?: number;
 }
 
 export interface IMonthlyBid {
@@ -47,6 +49,8 @@ export interface IDashboardResult {
   bidsTrend: IMonthlyBid[];
   packageDistribution: IPackageDistribution[];
   upcomingEvents: IUpcomingEvent[];
+  profileScore?: number;
+  profileStrength?: number;
 }
 
 export interface IMetricCard<T = number | string> {

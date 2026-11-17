@@ -112,8 +112,36 @@ const sendQuoteIntoDB = async (vendorId: string, payload: {
  * Vendor: Get my bids (all quotes I've sent)
  */
 const getMyBidsFromDB = async (vendorId: string, query: Record<string, unknown>) => {
+  const queryObj = { ...query };
+  const requestedStatus = ((queryObj.displayStatus || queryObj.status || queryObj.tab) as string)?.toLowerCase();
+
+  const filter: any = { vendor: new Types.ObjectId(vendorId) };
+
+  if (requestedStatus) {
+    if (requestedStatus === 'all' || requestedStatus === 'all bids') {
+      delete queryObj.status;
+      delete queryObj.displayStatus;
+      delete queryObj.tab;
+    } else if (requestedStatus === 'closed') {
+      filter.status = { $in: ['won', 'lost', 'declined', 'closed'] };
+      delete queryObj.status;
+      delete queryObj.displayStatus;
+      delete queryObj.tab;
+    } else if (requestedStatus === 'won') {
+      filter.status = 'won';
+      delete queryObj.status;
+      delete queryObj.displayStatus;
+      delete queryObj.tab;
+    } else if (requestedStatus === 'negotiating' || requestedStatus === 'in negotiation') {
+      filter.status = { $in: ['pending', 'countered'] };
+      delete queryObj.status;
+      delete queryObj.displayStatus;
+      delete queryObj.tab;
+    }
+  }
+
   const serviceQuery = new QueryBuilder(
-    EventQuote.find({ vendor: new Types.ObjectId(vendorId) })
+    EventQuote.find(filter)
       .populate({
         path: 'eventRequest',
         select: 'eventType eventDate guestCount budgetMin budgetMax area serviceCategory additionalDetails status',
@@ -121,19 +149,76 @@ const getMyBidsFromDB = async (vendorId: string, query: Record<string, unknown>)
           { path: 'eventType', select: 'name image' },
           { path: 'area', select: 'name region' },
           { path: 'serviceCategory', select: 'name image' },
-          { path: 'user', select: 'firstName lastName image' },
+          { path: 'user', select: 'firstName lastName image email' },
         ],
       })
       .sort('-createdAt'),
-    query,
+    queryObj,
   )
     .filter()
     .paginate()
     .fields();
 
-  const result = await serviceQuery.modelQuery;
+  const rawResult = await serviceQuery.modelQuery;
   const meta = await serviceQuery.countTotal();
-  return { meta, result };
+
+  // Tab stats for vendor (All Bids, Closed, In Negotiation)
+  const allVendorQuotes = await EventQuote.find({ vendor: new Types.ObjectId(vendorId) }).select('status');
+  const stats = {
+    all: allVendorQuotes.length,
+    inNegotiation: allVendorQuotes.filter((q) => ['pending', 'countered'].includes(q.status)).length,
+    closed: allVendorQuotes.filter((q) => ['won', 'lost', 'declined'].includes(q.status)).length,
+    won: allVendorQuotes.filter((q) => q.status === 'won').length,
+  };
+
+  const result = rawResult.map((item: any) => {
+    const doc = item.toObject ? item.toObject() : { ...item };
+    const reqStatus = doc.eventRequest?.status;
+
+    let statusText = doc.status;
+    let displayStatus = doc.displayStatus || 'active';
+
+    if (reqStatus === 'closed') {
+      displayStatus = 'closed';
+      if (doc.status === 'won') {
+        statusText = 'Won';
+      } else {
+        statusText = 'Closed by User';
+      }
+    } else if (reqStatus === 'cancelled') {
+      displayStatus = 'closed';
+      statusText = 'Cancelled by User';
+    } else if (reqStatus === 'expired' || doc.status === 'expired') {
+      displayStatus = 'expired';
+      statusText = 'Expired';
+    } else if (doc.status === 'countered') {
+      statusText = 'In Negotiation';
+      displayStatus = 'active';
+    } else if (doc.status === 'pending') {
+      statusText = 'Pending';
+      displayStatus = 'active';
+    } else if (doc.status === 'won') {
+      statusText = 'Won';
+      displayStatus = 'closed';
+    } else if (doc.status === 'lost' || doc.status === 'declined') {
+      statusText = 'Closed by User';
+      displayStatus = 'closed';
+    }
+
+    doc.displayStatus = displayStatus;
+    doc.statusText = statusText;
+    doc.statusBadge = statusText;
+
+    // Auto-heal quote status in DB if request was marked closed/completed by user
+    if (reqStatus === 'closed' && ['pending', 'countered'].includes(doc.status)) {
+      void EventQuote.findByIdAndUpdate(doc._id, { status: 'lost' });
+      doc.status = 'lost';
+    }
+
+    return doc;
+  });
+
+  return { meta, stats, result };
 };
 
 /**
@@ -150,11 +235,38 @@ const getSingleBidFromDB = async (vendorId: string, quoteId: string) => {
         { path: 'eventType', select: 'name image' },
         { path: 'area', select: 'name region' },
         { path: 'serviceCategory', select: 'name image' },
-        { path: 'user', select: 'firstName lastName image email phone' },
+        { path: 'user', select: 'firstName lastName image email' },
       ],
     });
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Bid not found');
-  return sortOffersDescending(result);
+
+  const doc: any = result.toObject ? result.toObject() : { ...result };
+  const reqStatus = doc.eventRequest?.status;
+
+  if (reqStatus === 'closed') {
+    doc.displayStatus = 'closed';
+    doc.statusText = doc.status === 'won' ? 'Won' : 'Closed by User';
+  } else if (reqStatus === 'cancelled') {
+    doc.displayStatus = 'closed';
+    doc.statusText = 'Cancelled by User';
+  } else if (reqStatus === 'expired' || doc.status === 'expired') {
+    doc.displayStatus = 'expired';
+    doc.statusText = 'Expired';
+  } else if (doc.status === 'countered') {
+    doc.statusText = 'In Negotiation';
+  } else if (doc.status === 'pending') {
+    doc.statusText = 'Pending';
+  }
+
+  doc.statusBadge = doc.statusText;
+
+  // Auto-heal if needed
+  if (reqStatus === 'closed' && ['pending', 'countered'].includes(doc.status)) {
+    void EventQuote.findByIdAndUpdate(doc._id, { status: 'lost' });
+    doc.status = 'lost';
+  }
+
+  return sortOffersDescending(doc);
 };
 
 /**

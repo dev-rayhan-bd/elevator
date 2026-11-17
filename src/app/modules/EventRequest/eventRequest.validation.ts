@@ -30,8 +30,10 @@ export const createEventRequestSchema = z.object({
 
 export const updateEventRequestStatusSchema = z.object({
   body: z.object({
-    status: z.enum(['active', 'closed', 'cancelled', 'expired'], {
-      required_error: 'Status is required',
-    }),
+    status: z
+      .enum(['active', 'closed', 'cancelled', 'expired', 'completed'], {
+        required_error: 'Status is required',
+      })
+      .transform((val) => (val === 'completed' ? 'closed' : val)),
   }),
 });

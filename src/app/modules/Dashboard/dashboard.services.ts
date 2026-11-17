@@ -69,6 +69,7 @@ const getVendorDashboard = async (
     bidsTrend,
     upcomingEvents,
     packageDistribution,
+    vendorUser,
   ] = await Promise.all([
     // 1. LEADS — VendorQuote count
     getLeadsCount(vid),
@@ -96,7 +97,12 @@ const getVendorDashboard = async (
 
     // 9. PACKAGE DISTRIBUTION — ServicePackage → VendorQuote join
     getPackageDistribution(vendorId),
+
+    // 10. VENDOR PROFILE SCORE / STRENGTH
+    User.findById(vid).select('vendor.profileScore vendor.isVerifiedBadge'),
   ]);
+
+  const profileScore = vendorUser?.vendor?.profileScore ?? 0;
 
   // ════════════════════════════════════════════════════════════
   //  Assemble final dashboard object
@@ -112,9 +118,18 @@ const getVendorDashboard = async (
     whatsappClicks: clickStats.whatsapp,
     messageClicks: clickStats.message,
     totalClicks: clickStats.phone + clickStats.whatsapp + clickStats.message,
+    profileScore,
+    profileStrength: profileScore,
   };
 
-  return { kpi, bidsTrend, packageDistribution, upcomingEvents };
+  return {
+    kpi,
+    bidsTrend,
+    packageDistribution,
+    upcomingEvents,
+    profileScore,
+    profileStrength: profileScore,
+  };
 };
 
 // ════════════════════════════════════════════════════════════
@@ -821,6 +836,8 @@ const getVendorSponsoredStatsFromDB = async (vendorId: string) => {
       activeDays: 0,
       additionalViews: 0,
       extraLeads: 0,
+      newImpressions: 0,
+      newLeads: 0,
     };
   }
 
@@ -828,11 +845,16 @@ const getVendorSponsoredStatsFromDB = async (vendorId: string) => {
   const diffTime = Math.abs(now.getTime() - start.getTime());
   const activeDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
+  const impressions = activePromo.impressions || 0;
+  const clicks = activePromo.clicks || 0;
+
   return {
     isActive: true,
     activeDays,
-    additionalViews: activePromo.impressions || 0,
-    extraLeads: activePromo.clicks || 0,
+    additionalViews: impressions,
+    extraLeads: clicks,
+    newImpressions: impressions,
+    newLeads: clicks,
     plan: activePromo.plan,
     endDate: activePromo.endDate,
   };

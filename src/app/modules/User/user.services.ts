@@ -132,6 +132,14 @@ const getMeFromDB = async (userId: string, role: string) => {
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'User profile not found!');
   }
+  if (result && (result as any).role === 'vendor' && (result as any).vendor) {
+    const doc: any = result.toObject ? result.toObject() : { ...result };
+    const score = doc.vendor?.profileScore ?? 0;
+    if (doc.vendor) {
+      doc.vendor.profileStrength = score;
+    }
+    return doc;
+  }
   return result;
 };
 

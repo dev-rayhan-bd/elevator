@@ -238,7 +238,26 @@ const getEventRequestDetailForVendorFromDB = async (requestId: string) => {
     );
   }
 
-  return result;
+  const doc: any = result.toObject ? result.toObject() : { ...result };
+  if (doc.status === 'closed') {
+    doc.statusText = 'Closed by User';
+    doc.statusBadge = 'Closed by User';
+    doc.displayStatus = 'closed';
+  } else if (doc.status === 'cancelled') {
+    doc.statusText = 'Cancelled by User';
+    doc.statusBadge = 'Cancelled by User';
+    doc.displayStatus = 'cancelled';
+  } else if (doc.status === 'expired') {
+    doc.statusText = 'Expired';
+    doc.statusBadge = 'Expired';
+    doc.displayStatus = 'expired';
+  } else {
+    doc.statusText = 'Active';
+    doc.statusBadge = 'Active';
+    doc.displayStatus = 'active';
+  }
+
+  return doc;
 };
 
 /**
@@ -267,6 +286,47 @@ const updateEventRequestStatusFromDB = async (
   // Prevent changing already closed/cancelled requests
   if (eventRequest.status === 'closed' || eventRequest.status === 'cancelled') {
     throw new AppError(httpStatus.BAD_REQUEST, `This event request is already ${eventRequest.status}`);
+  }
+
+  // If closing / completing, close all associated quotes and notify vendors
+  if (status === 'closed' || status === 'completed') {
+    status = 'closed';
+
+    // 1. If any quote was accepted, mark it won
+    await EventQuote.updateMany(
+      { eventRequest: eventRequest._id, status: 'accepted' },
+      { status: 'won' },
+    );
+
+    // 2. All pending or countered quotes are automatically closed / lost
+    const openQuotes = await EventQuote.find({
+      eventRequest: eventRequest._id,
+      status: { $in: ['pending', 'countered'] },
+    });
+
+    await EventQuote.updateMany(
+      { eventRequest: eventRequest._id, status: { $in: ['pending', 'countered'] } },
+      { status: 'lost' },
+    );
+
+    // Notify all vendors that requirement has been completed and quotes are closed
+    for (const quote of openQuotes) {
+      sendNotification(
+        quote.vendor.toString(),
+        'Event Requirement Completed',
+        `The client has marked their event requirement as completed. Your quotation for PKR ${quote.quoteAmount.toLocaleString()} has been closed.`,
+        'request_closed',
+        { eventRequestId: eventRequest._id.toString(), quoteId: quote._id.toString(), action: 'request_closed' }
+      );
+    }
+
+    sendNotification(
+      userId,
+      'Event Requirement Completed 🎉',
+      'Your event requirement has been marked as completed. All related quotations are now closed.',
+      'request_completed',
+      { eventRequestId: eventRequest._id.toString(), action: 'request_completed' }
+    );
   }
 
   // If cancelling, decline all associated quotes and notify vendors
