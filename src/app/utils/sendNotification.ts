@@ -47,6 +47,7 @@ export const sendNotification = async (
       title,
       message,
       type,
+      actionLink: data?.actionLink,
       data,
     });
 

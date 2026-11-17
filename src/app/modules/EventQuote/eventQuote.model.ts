@@ -19,7 +19,7 @@ const eventQuoteSchema = new Schema<TEventQuote>(
     message: { type: String, trim: true },
     status: {
       type: String,
-      enum: ['pending', 'countered', 'accepted', 'declined', 'won', 'lost'],
+      enum: ['pending', 'countered', 'accepted', 'declined', 'won', 'lost', 'expired'],
       default: 'pending',
     },
     counterOffer: {
@@ -37,8 +37,11 @@ const eventQuoteSchema = new Schema<TEventQuote>(
   },
 );
 
-// Virtual field to map internal status to simple user-friendly displayStatus ('active' | 'closed')
+// Virtual field to map internal status to simple user-friendly displayStatus ('active' | 'closed' | 'expired')
 eventQuoteSchema.virtual('displayStatus').get(function (this: TEventQuote) {
+  if (this.status === 'expired') {
+    return 'expired';
+  }
   if (['pending', 'countered'].includes(this.status)) {
     return 'active';
   }

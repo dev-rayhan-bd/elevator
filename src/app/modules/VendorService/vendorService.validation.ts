@@ -170,13 +170,16 @@ export const adminReviewServiceSchema = z.object({
         required_error: 'Status is required (approved or rejected)',
       }),
       rejectionReason: z.string().optional(),
+      comments: z.string().optional(),
+      reason: z.string().optional(),
     })
+    .transform((data) => ({
+      status: data.status,
+      rejectionReason: (data.rejectionReason || data.comments || data.reason || '').trim(),
+    }))
     .refine(
       (data) => {
-        if (
-          data.status === 'rejected' &&
-          (!data.rejectionReason || data.rejectionReason.trim().length === 0)
-        ) {
+        if (data.status === 'rejected' && (!data.rejectionReason || data.rejectionReason.length === 0)) {
           return false;
         }
         return true;

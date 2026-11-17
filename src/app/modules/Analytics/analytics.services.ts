@@ -252,32 +252,71 @@ function adsPerformanceRaw(rows: any[], now: Date): IAdsPerformanceRow[] {
 // ═══════════════════════════════════════════════════
 
 /**
+ * Compute start date based on dynamic period query param
+ *  - 'today': from start of today
+ *  - '7d' / '7days': last 7 days
+ *  - 'all' / 'all_time': all time (null = no filter)
+ *  - '30d' / '30days' (default): last 30 days
+ */
+function getPeriodStartDate(period?: string): Date | null {
+  const now = new Date();
+  switch (period?.toLowerCase()) {
+    case 'today': {
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    }
+    case '7d':
+    case '7days': {
+      return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
+    case 'all':
+    case 'all_time': {
+      return null;
+    }
+    case '30d':
+    case '30days':
+    default: {
+      // Default to 30 days
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+  }
+}
+
+/**
  * getVendorPerformance
  *
  * Returns:
- *  1. Top Performing Packages — top 5 by bookings + revenue
- *  2. Top Performing Services — top 5 by views + inquiries
- *  3. Contact Button Clicks — summary + recent click activity table
+ *  1. Top Performing Packages — top 5 by bookings + revenue (within period)
+ *  2. Top Performing Services — top 5 by views + inquiries (within period)
+ *  3. Contact Button Clicks — summary + recent click activity table (within period, default: 30d)
  */
-const getVendorPerformance = async (vendorId: string): Promise<IPerformanceResult> => {
+const getVendorPerformance = async (
+  vendorId: string,
+  period?: string,
+): Promise<IPerformanceResult> => {
   const vid = new Types.ObjectId(vendorId);
+  const startDate = getPeriodStartDate(period);
+  const normalizedPeriod =
+    period?.toLowerCase() === 'all' || period?.toLowerCase() === 'all_time'
+      ? 'all'
+      : (period?.toLowerCase() || '30d');
 
   // ═══ Run all queries in parallel ═══
   const [packages, services, clickSummary, recentClicks] = await Promise.all([
     // 1. Top Performing Packages
-    getTopPackages(vid),
+    getTopPackages(vid, startDate),
 
     // 2. Top Performing Services
-    getTopServices(vid),
+    getTopServices(vid, startDate),
 
     // 3. Contact Clicks Summary
-    getClickSummary(vid),
+    getClickSummary(vid, startDate),
 
-    // 4. Recent Click Activity (last 50)
-    getRecentClicks(vid),
+    // 4. Recent Click Activity (last 50 within period)
+    getRecentClicks(vid, startDate),
   ]);
 
   return {
+    period: normalizedPeriod,
     topPackages: packages,
     topServices: services,
     contactClicks: {
@@ -288,7 +327,10 @@ const getVendorPerformance = async (vendorId: string): Promise<IPerformanceResul
 };
 
 // ── Top Packages: aggregate views + inquiries per package ──
-async function getTopPackages(vendorId: Types.ObjectId): Promise<ITopPackage[]> {
+async function getTopPackages(
+  vendorId: Types.ObjectId,
+  startDate: Date | null,
+): Promise<ITopPackage[]> {
   // Get all active packages for this vendor
   const packages = await ServicePackage.find({ vendor: vendorId, isActive: true }).lean();
 
@@ -306,37 +348,50 @@ async function getTopPackages(vendorId: Types.ObjectId): Promise<ITopPackage[]> 
         viewConditions.push({ service: { $in: serviceIds } });
       }
 
+      const viewFilter: Record<string, any> = {
+        $or: viewConditions,
+        user: { $ne: vendorId },
+      };
+      if (startDate) {
+        viewFilter.createdAt = { $gte: startDate };
+      }
+
+      const quoteFilter: Record<string, any> = {
+        vendor: vendorId,
+        service: { $in: serviceIds },
+        isDeleted: false,
+      };
+      if (startDate) {
+        quoteFilter.createdAt = { $gte: startDate };
+      }
+
+      const wonQuoteMatch: Record<string, any> = {
+        vendor: vendorId,
+        service: { $in: serviceIds },
+        status: 'won',
+        isDeleted: false,
+      };
+      if (startDate) {
+        wonQuoteMatch.updatedAt = { $gte: startDate };
+      }
+
+      const leadFilter: Record<string, any> = {
+        vendor: vendorId,
+        ...(serviceIds.length > 0
+          ? { $or: [{ service: { $in: serviceIds } }, { pageSource: 'package_details' }] }
+          : { pageSource: 'package_details' }),
+      };
+      if (startDate) {
+        leadFilter.createdAt = { $gte: startDate };
+      }
+
       const [viewCount, quoteCount, leadCount, wonQuoteAgg] = await Promise.all([
-        ServiceView.countDocuments({
-          $or: viewConditions,
-          user: { $ne: vendorId },
-        }),
-        serviceIds.length > 0
-          ? VendorQuote.countDocuments({
-              vendor: vendorId,
-              service: { $in: serviceIds },
-              isDeleted: false,
-            })
-          : 0,
-        serviceIds.length > 0
-          ? LeadClick.countDocuments({
-              vendor: vendorId,
-              $or: [{ service: { $in: serviceIds } }, { pageSource: 'package_details' }],
-            })
-          : LeadClick.countDocuments({
-              vendor: vendorId,
-              pageSource: 'package_details',
-            }),
+        ServiceView.countDocuments(viewFilter),
+        serviceIds.length > 0 ? VendorQuote.countDocuments(quoteFilter) : 0,
+        LeadClick.countDocuments(leadFilter),
         serviceIds.length > 0
           ? VendorQuote.aggregate([
-              {
-                $match: {
-                  vendor: vendorId,
-                  service: { $in: serviceIds },
-                  status: 'won',
-                  isDeleted: false,
-                },
-              },
+              { $match: wonQuoteMatch },
               {
                 $group: {
                   _id: null,
@@ -371,7 +426,28 @@ async function getTopPackages(vendorId: Types.ObjectId): Promise<ITopPackage[]> 
 }
 
 // ── Top Services: aggregate views + inquiries per service ──
-async function getTopServices(vendorId: Types.ObjectId): Promise<ITopService[]> {
+async function getTopServices(
+  vendorId: Types.ObjectId,
+  startDate: Date | null,
+): Promise<ITopService[]> {
+  const viewMatch: Record<string, any> = {
+    $expr: { $eq: ['$service', '$$serviceId'] },
+    user: { $ne: vendorId },
+  };
+  const quoteMatch: Record<string, any> = {
+    $expr: { $eq: ['$service', '$$serviceId'] },
+    isDeleted: false,
+  };
+  const leadMatch: Record<string, any> = {
+    $expr: { $eq: ['$service', '$$serviceId'] },
+  };
+
+  if (startDate) {
+    viewMatch.createdAt = { $gte: startDate };
+    quoteMatch.createdAt = { $gte: startDate };
+    leadMatch.createdAt = { $gte: startDate };
+  }
+
   const results = await VendorService.aggregate([
     { $match: { vendor: vendorId, isActive: true, isDraft: false } },
 
@@ -381,12 +457,7 @@ async function getTopServices(vendorId: Types.ObjectId): Promise<ITopService[]> 
         from: 'serviceviews',
         let: { serviceId: '$_id' },
         pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ['$service', '$$serviceId'] },
-              user: { $ne: vendorId },
-            },
-          },
+          { $match: viewMatch },
           {
             $group: {
               _id: null,
@@ -404,12 +475,7 @@ async function getTopServices(vendorId: Types.ObjectId): Promise<ITopService[]> 
         from: 'vendorquotes',
         let: { serviceId: '$_id' },
         pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ['$service', '$$serviceId'] },
-              isDeleted: false,
-            },
-          },
+          { $match: quoteMatch },
           { $count: 'count' },
         ],
         as: 'quoteData',
@@ -422,11 +488,7 @@ async function getTopServices(vendorId: Types.ObjectId): Promise<ITopService[]> 
         from: 'leadclicks',
         let: { serviceId: '$_id' },
         pipeline: [
-          {
-            $match: {
-              $expr: { $eq: ['$service', '$$serviceId'] },
-            },
-          },
+          { $match: leadMatch },
           { $count: 'count' },
         ],
         as: 'leadData',
@@ -467,16 +529,31 @@ async function getTopServices(vendorId: Types.ObjectId): Promise<ITopService[]> 
   }));
 }
 
-// ── Click Summary: aggregate by type ──
-async function getClickSummary(vendorId: Types.ObjectId): Promise<IClickSummary> {
-  const agg = await LeadClick.aggregate([
-    { $match: { vendor: vendorId } },
-    {
-      $group: {
-        _id: '$type',
-        count: { $sum: 1 },
+// ── Click Summary: aggregate by type + profile/service views (filtered by period) ──
+async function getClickSummary(
+  vendorId: Types.ObjectId,
+  startDate: Date | null,
+): Promise<IClickSummary> {
+  const matchFilter: Record<string, any> = { vendor: vendorId };
+  const viewFilter: Record<string, any> = { vendor: vendorId };
+
+  if (startDate) {
+    matchFilter.createdAt = { $gte: startDate };
+    viewFilter.createdAt = { $gte: startDate };
+  }
+
+  const [agg, profileViews, serviceViews] = await Promise.all([
+    LeadClick.aggregate([
+      { $match: matchFilter },
+      {
+        $group: {
+          _id: '$type',
+          count: { $sum: 1 },
+        },
       },
-    },
+    ]),
+    ServiceView.countDocuments({ ...viewFilter, type: 'profile' }),
+    ServiceView.countDocuments({ ...viewFilter, type: 'service' }),
   ]);
 
   const typeMap = new Map<string, number>();
@@ -491,13 +568,23 @@ async function getClickSummary(vendorId: Types.ObjectId): Promise<IClickSummary>
     whatsappClicks,
     messageClicks,
     totalClicks: phoneClicks + whatsappClicks + messageClicks,
+    profileViews,
+    serviceViews,
   };
 }
 
-// ── Recent Clicks: last 50 with user details ──
-async function getRecentClicks(vendorId: Types.ObjectId): Promise<IRecentClick[]> {
+// ── Recent Clicks: last 50 with user details (filtered by period) ──
+async function getRecentClicks(
+  vendorId: Types.ObjectId,
+  startDate: Date | null,
+): Promise<IRecentClick[]> {
+  const matchFilter: Record<string, any> = { vendor: vendorId };
+  if (startDate) {
+    matchFilter.createdAt = { $gte: startDate };
+  }
+
   const results = await LeadClick.aggregate([
-    { $match: { vendor: vendorId } },
+    { $match: matchFilter },
     { $sort: { createdAt: -1 } },
     { $limit: 50 },
 
@@ -560,9 +647,13 @@ async function getRecentClicks(vendorId: Types.ObjectId): Promise<IRecentClick[]
   }));
 }
 
-const getTopPerformingPackages = async (vendorId: string): Promise<ITopPackage[]> => {
+const getTopPerformingPackages = async (
+  vendorId: string,
+  period?: string,
+): Promise<ITopPackage[]> => {
   const vid = new Types.ObjectId(vendorId);
-  return getTopPackages(vid);
+  const startDate = getPeriodStartDate(period);
+  return getTopPackages(vid, startDate);
 };
 
 export const AnalyticsServices = {

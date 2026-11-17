@@ -6,6 +6,12 @@ import { TServicePackage } from './package.interface';
 import { VendorService } from '../VendorService/vendorService.model';
 import { UserServices } from '../User/user.services';
 
+const PACKAGE_ORDER_MAP: Record<string, number> = {
+  basic: 1,
+  standard: 2,
+  premium: 3,
+};
+
 /**
  * Get all packages of the logged-in vendor with features (VendorService) populated,
  * along with stats: total packages, active packages, total services count
@@ -18,7 +24,15 @@ const getMyPackagesFromDB = async (vendorId: string) => {
       path: 'features',
       select: 'title price duration images isActive',
     })
-    .sort({ packageType: 1 });
+    .sort({ order: 1 });
+
+  // In-memory sort ensures deterministic Basic -> Standard -> Premium ordering
+  // even for existing legacy records that don't have order field set yet
+  packages.sort((a, b) => {
+    const orderA = PACKAGE_ORDER_MAP[a.packageType] ?? 99;
+    const orderB = PACKAGE_ORDER_MAP[b.packageType] ?? 99;
+    return orderA - orderB;
+  });
 
   // ── Compute stats ──
   const totalPackages = packages.length;
@@ -52,7 +66,14 @@ const getPublicVendorPackagesFromDB = async (vendorId: string) => {
       match: { isActive: true },
       select: 'title price duration images',
     })
-    .sort({ packageType: 1 });
+    .sort({ order: 1 });
+
+  result.sort((a, b) => {
+    const orderA = PACKAGE_ORDER_MAP[a.packageType] ?? 99;
+    const orderB = PACKAGE_ORDER_MAP[b.packageType] ?? 99;
+    return orderA - orderB;
+  });
+
   return result;
 };
 
@@ -110,6 +131,7 @@ const createPackageIntoDB = async (
 
   const packageData = {
     ...payload,
+    order: PACKAGE_ORDER_MAP[payload.packageType] ?? 1,
     vendor: new Types.ObjectId(vendorId) as any,
   };
 
@@ -148,7 +170,12 @@ const updatePackageInDB = async (
     );
   }
 
-  const result = await ServicePackage.findByIdAndUpdate(packageId, payload, {
+  const updatePayload = { ...payload };
+  if (payload.packageType) {
+    updatePayload.order = PACKAGE_ORDER_MAP[payload.packageType] ?? 1;
+  }
+
+  const result = await ServicePackage.findByIdAndUpdate(packageId, updatePayload, {
     new: true,
     runValidators: true,
   });

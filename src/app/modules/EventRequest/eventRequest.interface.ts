@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 
-export type TEventRequestStatus = 'active' | 'closed' | 'cancelled';
+export type TEventRequestStatus = 'active' | 'closed' | 'cancelled' | 'expired';
 
 export interface TEventRequest {
   user: Types.ObjectId;

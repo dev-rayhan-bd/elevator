@@ -29,7 +29,22 @@ const formatVerificationDetails = (verification: any) => {
       ].filter((url): url is string => typeof url === 'string' && url.trim().length > 0),
     ),
   );
+
+  // If still empty, check if documents are stored on vendor user profile
+  if (allDocs.length === 0) {
+    const userDocs = v.vendor?.vendor?.documents || v.vendor?.documents;
+    if (Array.isArray(userDocs) && userDocs.length > 0) {
+      allDocs.push(
+        ...userDocs.filter(
+          (url: any) => typeof url === 'string' && url.trim().length > 0,
+        ),
+      );
+    }
+  }
+
   v.documents = allDocs;
+  if (!v.cnicFront && allDocs.length >= 1) v.cnicFront = allDocs[0];
+  if (!v.cnicBack && allDocs.length >= 2) v.cnicBack = allDocs[1];
 
   // Compose submitted verification fields for admin review
   const detailsParts: string[] = [];
@@ -171,13 +186,16 @@ const submitVerificationIntoDB = async (
     });
   }
 
-  // Also update user's profile with submitted verification details if provided
-  if (payload.businessName || payload.ownerName || payload.fullAddress || payload.registeredPhone) {
-    const updateObj: Record<string, any> = {};
-    if (payload.businessName) updateObj['vendor.businessName'] = payload.businessName;
-    if (payload.ownerName) updateObj['vendor.ownerName'] = payload.ownerName;
-    if (payload.fullAddress) updateObj['vendor.location.address'] = payload.fullAddress;
-    if (payload.registeredPhone) updateObj['vendor.whatsappNumber'] = payload.registeredPhone;
+  // Also update user's profile documents & details if provided
+  const updateObj: Record<string, any> = {};
+  if (savedRecord.documents && savedRecord.documents.length > 0) {
+    updateObj['vendor.documents'] = savedRecord.documents;
+  }
+  if (payload.businessName) updateObj['vendor.businessName'] = payload.businessName;
+  if (payload.ownerName) updateObj['vendor.ownerName'] = payload.ownerName;
+  if (payload.fullAddress) updateObj['vendor.location.address'] = payload.fullAddress;
+  if (payload.registeredPhone) updateObj['vendor.whatsappNumber'] = payload.registeredPhone;
+  if (Object.keys(updateObj).length > 0) {
     await User.findByIdAndUpdate(vendorId, { $set: updateObj });
   }
 
@@ -190,8 +208,8 @@ const submitVerificationIntoDB = async (
     'Vendor';
 
   sendNotificationToAdmins(
-    'New Vendor Verification Request 🛡️',
-    `${businessName} has submitted verification documents.`,
+    'Vendor Verification Request 🛡️',
+    `${businessName} has submitted/updated verification documents.`,
     'vendor_verification',
     { verificationId: savedRecord._id.toString(), vendorId, businessName },
   );

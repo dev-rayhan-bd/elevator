@@ -8,9 +8,53 @@ import { User } from '../User/user.model';
 import { sendNotification, sendNotificationToMultipleUsers } from '../../utils/sendNotification';
 
 /**
+ * Automatically expire any active event requests whose eventDate has passed.
+ * Also expires associated active (pending/countered) quotations.
+ */
+export const expireOverdueEventRequests = async () => {
+  const now = new Date();
+  const overdueRequests = await EventRequest.find({
+    status: 'active',
+    eventDate: { $lt: now },
+  }).select('_id');
+
+  if (overdueRequests.length === 0) {
+    return { expiredRequestsCount: 0, expiredQuotesCount: 0 };
+  }
+
+  const overdueIds = overdueRequests.map((r) => r._id);
+
+  const requestResult = await EventRequest.updateMany(
+    { _id: { $in: overdueIds } },
+    { $set: { status: 'expired' } },
+  );
+
+  const quoteResult = await EventQuote.updateMany(
+    {
+      eventRequest: { $in: overdueIds },
+      status: { $in: ['pending', 'countered'] },
+    },
+    { $set: { status: 'expired' } },
+  );
+
+  return {
+    expiredRequestsCount: requestResult.modifiedCount,
+    expiredQuotesCount: quoteResult.modifiedCount,
+  };
+};
+
+/**
  * User: Create a new event request (post requirement)
  */
 const createEventRequestIntoDB = async (userId: string, payload: Record<string, unknown>) => {
+  const eventDateObj = new Date(payload.eventDate as string);
+  if (isNaN(eventDateObj.getTime())) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid event date');
+  }
+  if (eventDateObj < new Date()) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Event date cannot be in the past');
+  }
+
   const estimatedBudget =
     payload.estimatedBudget !== undefined && payload.estimatedBudget !== null
       ? Number(payload.estimatedBudget)
@@ -34,7 +78,7 @@ const createEventRequestIntoDB = async (userId: string, payload: Record<string, 
   const requestData = {
     user: new Types.ObjectId(userId),
     eventType: payload.eventType ? new Types.ObjectId(payload.eventType as string) : undefined,
-    eventDate: new Date(payload.eventDate as string),
+    eventDate: eventDateObj,
     guestCount: payload.guestCount ? Number(payload.guestCount) : undefined,
     budgetMin,
     budgetMax,
@@ -76,6 +120,9 @@ const createEventRequestIntoDB = async (userId: string, payload: Record<string, 
  * User: Get my own event requests
  */
 const getMyEventRequestsFromDB = async (userId: string, query: Record<string, unknown>) => {
+  // Ensure any past-due active requests are automatically marked as expired
+  await expireOverdueEventRequests();
+
   const serviceQuery = new QueryBuilder(
     EventRequest.find({ user: new Types.ObjectId(userId) })
       .populate('eventType', 'name image')
@@ -126,6 +173,16 @@ const getSingleEventRequestFromDB = async (userId: string, requestId: string) =>
     .populate('serviceCategory', 'name image');
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Event request not found');
 
+  // Check if event date has passed and auto-expire if still active
+  if (result.status === 'active' && new Date(result.eventDate) < new Date()) {
+    result.status = 'expired';
+    await result.save();
+    await EventQuote.updateMany(
+      { eventRequest: result._id, status: { $in: ['pending', 'countered'] } },
+      { $set: { status: 'expired' } },
+    );
+  }
+
   const quotesCount = await EventQuote.countDocuments({
     eventRequest: new Types.ObjectId(requestId),
   });
@@ -135,10 +192,14 @@ const getSingleEventRequestFromDB = async (userId: string, requestId: string) =>
 
 /**
  * Vendor: Get all active event requests (for "All Posts" / bidding page)
+ * Automatically excludes all expired event requests (eventDate in the past)
  */
 const getAllActiveEventRequestsFromDB = async (query: Record<string, unknown>) => {
+  await expireOverdueEventRequests();
+
+  const now = new Date();
   const serviceQuery = new QueryBuilder(
-    EventRequest.find({ status: 'active' })
+    EventRequest.find({ status: 'active', eventDate: { $gte: now } })
       .populate('user', 'firstName lastName image')
       .populate('eventType', 'name image')
       .populate('area', 'name region')
@@ -166,6 +227,17 @@ const getEventRequestDetailForVendorFromDB = async (requestId: string) => {
     .populate('area', 'name region')
     .populate('serviceCategory', 'name image');
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Event request not found');
+
+  // Auto-expire check
+  if (result.status === 'active' && new Date(result.eventDate) < new Date()) {
+    result.status = 'expired';
+    await result.save();
+    await EventQuote.updateMany(
+      { eventRequest: result._id, status: { $in: ['pending', 'countered'] } },
+      { $set: { status: 'expired' } },
+    );
+  }
+
   return result;
 };
 
@@ -182,6 +254,15 @@ const updateEventRequestStatusFromDB = async (
     user: new Types.ObjectId(userId),
   });
   if (!eventRequest) throw new AppError(httpStatus.NOT_FOUND, 'Event request not found or unauthorized');
+
+  // Check if already expired or date has passed
+  if (eventRequest.status === 'expired' || new Date(eventRequest.eventDate) < new Date()) {
+    if (eventRequest.status !== 'expired') {
+      eventRequest.status = 'expired';
+      await eventRequest.save();
+    }
+    throw new AppError(httpStatus.BAD_REQUEST, 'This event request has expired and cannot be modified');
+  }
 
   // Prevent changing already closed/cancelled requests
   if (eventRequest.status === 'closed' || eventRequest.status === 'cancelled') {
@@ -236,12 +317,14 @@ const getAdminRequirementsFromDB = async (query: Record<string, unknown>) => {
     activeRequirements,
     closedRequirements,
     cancelledRequirements,
+    expiredRequirements,
     totalQuotationsReceived,
   ] = await Promise.all([
     EventRequest.countDocuments(),
     EventRequest.countDocuments({ status: 'active' }),
     EventRequest.countDocuments({ status: 'closed' }),
     EventRequest.countDocuments({ status: 'cancelled' }),
+    EventRequest.countDocuments({ status: 'expired' }),
     EventQuote.countDocuments(),
   ]);
 
@@ -419,6 +502,7 @@ const getAdminRequirementsFromDB = async (query: Record<string, unknown>) => {
       activeRequirements,
       closedRequirements,
       cancelledRequirements,
+      expiredRequirements,
       totalQuotationsReceived,
     },
     meta: {
@@ -432,6 +516,7 @@ const getAdminRequirementsFromDB = async (query: Record<string, unknown>) => {
 };
 
 export const EventRequestServices = {
+  expireOverdueEventRequests,
   createEventRequestIntoDB,
   getMyEventRequestsFromDB,
   getSingleEventRequestFromDB,

@@ -1056,9 +1056,22 @@ const deleteVendorServiceFromDB = async (vendorId: string, serviceId: string) =>
 
 const adminToggleServiceStatusInDB = async (
   serviceId: string,
-  updates: { isFeatured?: boolean; isActive?: boolean },
+  updates: Record<string, any>,
 ) => {
-  const result = await VendorService.findByIdAndUpdate(serviceId, updates, {
+  const updatePayload: Record<string, any> = { ...updates };
+  if (updates.status === 'rejected') {
+    updatePayload.isActive = false;
+    const reason = updates.rejectionReason || updates.comments || updates.reason;
+    if (reason) {
+      updatePayload.rejectionReason = String(reason).trim();
+    }
+  } else if (updates.status === 'approved') {
+    updatePayload.isActive = true;
+    updatePayload.rejectionReason = undefined;
+    updatePayload.approvedAt = new Date();
+  }
+
+  const result = await VendorService.findByIdAndUpdate(serviceId, updatePayload, {
     new: true,
   });
   if (!result) throw new AppError(httpStatus.NOT_FOUND, 'Service not found');
@@ -1085,6 +1098,8 @@ const adminReviewServiceInDB = async (
     );
   }
 
+  const reasonText = (payload.rejectionReason || '').trim();
+
   if (payload.status === 'approved') {
     service.status = 'approved';
     service.isActive = true;
@@ -1094,7 +1109,7 @@ const adminReviewServiceInDB = async (
   } else if (payload.status === 'rejected') {
     service.status = 'rejected';
     service.isActive = false;
-    service.rejectionReason = payload.rejectionReason;
+    service.rejectionReason = reasonText;
     service.approvedAt = undefined;
     service.approvedBy = undefined;
   }
@@ -1118,11 +1133,11 @@ const adminReviewServiceInDB = async (
       void sendNotification(
         service.vendor.toString(),
         'Service Rejected',
-        `Your service "${service.title || 'Service'}" was rejected. Reason: ${payload.rejectionReason || 'Does not meet listing guidelines.'}`,
+        `Your service "${service.title || 'Service'}" was rejected. Reason: ${reasonText || 'Does not meet listing guidelines.'}`,
         'service',
         {
           serviceId: service._id.toString(),
-          rejectionReason: payload.rejectionReason || '',
+          rejectionReason: reasonText,
         },
       );
     }

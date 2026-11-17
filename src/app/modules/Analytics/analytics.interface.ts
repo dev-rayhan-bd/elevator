@@ -51,6 +51,8 @@ export interface IClickSummary {
   whatsappClicks: number;
   messageClicks: number;
   totalClicks: number;
+  profileViews?: number;
+  serviceViews?: number;
 }
 
 // ── Recent Click Activity Row ──
@@ -65,6 +67,7 @@ export interface IRecentClick {
 
 // ── Performance result ──
 export interface IPerformanceResult {
+  period?: string;
   topPackages: ITopPackage[];
   topServices: ITopService[];
   contactClicks: {

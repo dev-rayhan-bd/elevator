@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 
-export type TVendorQuoteStatus = 'pending' | 'countered' | 'accepted' | 'declined' | 'won' | 'lost';
+export type TVendorQuoteStatus = 'pending' | 'countered' | 'accepted' | 'declined' | 'won' | 'lost' | 'expired';
 export type TQuotePricingType = 'fixed' | 'starting from' | 'per head';
 
 export interface TVendorQuoteOffer {
@@ -22,7 +22,7 @@ export interface TVendorQuote {
   message: string;
   budget?: number;
   status: TVendorQuoteStatus;
-  displayStatus?: 'active' | 'closed';
+  displayStatus?: 'active' | 'closed' | 'expired';
   offers: TVendorQuoteOffer[];
   finalAmount?: number;
   isDeleted: boolean;

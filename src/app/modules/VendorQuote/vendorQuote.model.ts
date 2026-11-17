@@ -18,7 +18,7 @@ const vendorQuoteSchema = new Schema<TVendorQuote>(
     budget: { type: Number, min: 0 },
     status: {
       type: String,
-      enum: ['pending', 'countered', 'accepted', 'declined', 'won', 'lost'],
+      enum: ['pending', 'countered', 'accepted', 'declined', 'won', 'lost', 'expired'],
       default: 'pending',
     },
     offers: [
@@ -40,8 +40,11 @@ const vendorQuoteSchema = new Schema<TVendorQuote>(
   },
 );
 
-// Virtual field to map internal status to simple user-friendly displayStatus ('active' | 'closed')
+// Virtual field to map internal status to simple user-friendly displayStatus ('active' | 'closed' | 'expired')
 vendorQuoteSchema.virtual('displayStatus').get(function (this: TVendorQuote) {
+  if (this.status === 'expired') {
+    return 'expired';
+  }
   if (['pending', 'countered'].includes(this.status)) {
     return 'active';
   }

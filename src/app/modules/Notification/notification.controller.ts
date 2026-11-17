@@ -54,15 +54,18 @@ const broadcastNotification = catchAsync(async (req: Request, res: Response) => 
   }
 
   // Parse FormData — supports both JSON body and FormData with 'data' field
-  const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
-  const { title, message, target, actionLink } = rawData;
+  const rawData =
+    typeof req.body.data === 'string'
+      ? JSON.parse(req.body.data)
+      : (req.body.data || req.body);
+  const { title, message, target, targetRole, targetAudience, actionLink } = rawData;
 
   const result = await NotificationServices.sendBroadcastNotification({
     title,
     message,
-    image: imageUrl,
-    target,
-    actionLink,
+    image: imageUrl || rawData.image,
+    target: target || targetRole || targetAudience,
+    actionLink: actionLink || rawData.link,
   });
   sendResponse(res, {
     statusCode: httpStatus.OK,

@@ -31,8 +31,9 @@ const getVendorAnalytics = catchAsync(async (req, res) => {
  */
 const getVendorPerformance = catchAsync(async (req, res) => {
   const vendorId = req.user.userId;
+  const period = req.query.period as string | undefined;
 
-  const result = await AnalyticsServices.getVendorPerformance(vendorId);
+  const result = await AnalyticsServices.getVendorPerformance(vendorId, period);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -48,8 +49,9 @@ const getVendorPerformance = catchAsync(async (req, res) => {
  */
 const getTopPerformingPackages = catchAsync(async (req, res) => {
   const vendorId = req.user.userId;
+  const period = req.query.period as string | undefined;
 
-  const result = await AnalyticsServices.getTopPerformingPackages(vendorId);
+  const result = await AnalyticsServices.getTopPerformingPackages(vendorId, period);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

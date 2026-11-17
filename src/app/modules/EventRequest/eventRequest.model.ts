@@ -15,7 +15,7 @@ const eventRequestSchema = new Schema<TEventRequest>(
     referenceImages: [{ type: String }],
     status: {
       type: String,
-      enum: ['active', 'closed', 'cancelled'],
+      enum: ['active', 'closed', 'cancelled', 'expired'],
       default: 'active',
     },
   },

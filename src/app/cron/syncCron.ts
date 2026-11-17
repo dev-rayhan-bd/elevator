@@ -2,6 +2,8 @@ import cron from 'node-cron';
 import { expireOverduePromotions } from '../modules/Promotion/promotion.services';
 import { expireOverdueBanners } from '../modules/Banner/banner.services';
 import { UserServices } from '../modules/User/user.services';
+import { expireOverdueEventRequests } from '../modules/EventRequest/eventRequest.services';
+import { expireOverdueVendorQuotes } from '../modules/VendorQuote/vendorQuote.services';
 
 // ══════════════════════════════════════════════
 //  SCHEDULED CRON JOBS
@@ -10,6 +12,21 @@ import { UserServices } from '../modules/User/user.services';
 // ══════════════════════════════════════════════
 
 export const startCronJobs = () => {
+  // ── Event Requests & Custom Quotes Expiry: Every day at 00:00 ──
+  cron.schedule('0 0 * * *', async () => {
+    console.log('⏰ [CRON] Running EventRequest & VendorQuote expiry check...');
+    try {
+      const eventReqResult = await expireOverdueEventRequests();
+      console.log(
+        `✅ [CRON] EventRequests expired: ${eventReqResult.expiredRequestsCount}, associated quotes expired: ${eventReqResult.expiredQuotesCount}`,
+      );
+      const vendorQuoteResult = await expireOverdueVendorQuotes();
+      console.log(`✅ [CRON] VendorQuotes expired: ${vendorQuoteResult}`);
+    } catch (error) {
+      console.error('❌ [CRON] EventRequest/VendorQuote expiry error:', error);
+    }
+  });
+
   // ── Promotion Expiry: Every day at 00:00 ──
   cron.schedule('0 0 * * *', async () => {
     console.log('⏰ [CRON] Running promotion expiry check...');

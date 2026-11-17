@@ -73,12 +73,15 @@ interface BroadcastPayload {
   title: string;
   message: string;
   image?: string;
-  target: 'all' | 'users' | 'vendors';
+  target?: string;
+  targetRole?: string;
+  targetAudience?: string;
   actionLink?: string;
 }
 
 const sendBroadcastNotification = async (payload: BroadcastPayload) => {
-  const { title, message, target } = payload;
+  const { title, message } = payload;
+  const rawTarget = (payload.target || payload.targetRole || payload.targetAudience || 'all').toLowerCase();
 
   // Build query based on target
   const filter: Record<string, unknown> = {
@@ -86,12 +89,12 @@ const sendBroadcastNotification = async (payload: BroadcastPayload) => {
     isDeleted: false,
   };
 
-  if (target === 'users') {
+  if (rawTarget === 'users' || rawTarget === 'user') {
     filter.role = 'user';
-  } else if (target === 'vendors') {
+  } else if (rawTarget === 'vendors' || rawTarget === 'vendor') {
     filter.role = 'vendor';
   }
-  // target === 'all' → no role filter (includes users, vendors, admins etc.)
+  // 'all' or 'everyone' → no role filter (all active users & vendors)
 
   const totalUsers = await User.countDocuments(filter);
   if (totalUsers === 0) {
@@ -116,7 +119,7 @@ const sendBroadcastNotification = async (payload: BroadcastPayload) => {
 
     await Promise.all(
       userIds.map((id) =>
-        sendNotification(id, title, message, 'promotional', data),
+        sendNotification(id, title, message, 'broadcast', data),
       ),
     );
 

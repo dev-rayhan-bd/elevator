@@ -1,6 +1,6 @@
 import { Types } from 'mongoose';
 
-export type TQuoteStatus = 'pending' | 'countered' | 'accepted' | 'declined' | 'won' | 'lost';
+export type TQuoteStatus = 'pending' | 'countered' | 'accepted' | 'declined' | 'won' | 'lost' | 'expired';
 
 export interface TQuoteOffer {
   amount: number;
@@ -15,7 +15,7 @@ export interface TEventQuote {
   quoteAmount: number;
   message?: string;
   status: TQuoteStatus;
-  displayStatus?: 'active' | 'closed';
+  displayStatus?: 'active' | 'closed' | 'expired';
   // Latest counter-offer (when status is 'countered')
   counterOffer?: {
     amount: number;

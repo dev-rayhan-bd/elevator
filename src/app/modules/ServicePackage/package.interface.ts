@@ -12,4 +12,5 @@ export interface TServicePackage {
   // revisions: number;
   features: Types.ObjectId[];
   isActive: boolean;
+  order?: number;
 }

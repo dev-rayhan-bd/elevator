@@ -13,6 +13,16 @@ const uploadDocs = upload.any() as unknown as RequestHandler;
 //  VENDOR ROUTES
 // ══════════════════════════════════════════════
 
+// Helper middleware for parsing JSON in req.body.data if sent via FormData
+const parseDataMiddleware = (req: any, res: any, next: any) => {
+  if (typeof req.body.data === 'string') {
+    try {
+      req.body = { ...req.body, ...JSON.parse(req.body.data) };
+    } catch (e) {}
+  }
+  next();
+};
+
 // Submit verification request (multipart supported)
 router.post(
   '/',
@@ -32,14 +42,71 @@ router.post(
   */
   auth(USER_ROLE.vendor),
   uploadDocs,
-  (req: any, res: any, next: any) => {
-    if (typeof req.body.data === 'string') {
-      try {
-        req.body = { ...req.body, ...JSON.parse(req.body.data) };
-      } catch (e) {}
-    }
-    next();
-  },
+  parseDataMiddleware,
+  validateRequest(VerificationValidations.submitVerificationSchema),
+  VerificationControllers.submitVerification,
+);
+
+// Update / Resubmit verification request (supports PATCH, PUT, and /resubmit aliases)
+router.patch(
+  '/',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  parseDataMiddleware,
+  validateRequest(VerificationValidations.submitVerificationSchema),
+  VerificationControllers.submitVerification,
+);
+
+router.put(
+  '/',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  parseDataMiddleware,
+  validateRequest(VerificationValidations.submitVerificationSchema),
+  VerificationControllers.submitVerification,
+);
+
+router.post(
+  '/resubmit',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  parseDataMiddleware,
+  validateRequest(VerificationValidations.submitVerificationSchema),
+  VerificationControllers.submitVerification,
+);
+
+router.patch(
+  '/resubmit',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  parseDataMiddleware,
+  validateRequest(VerificationValidations.submitVerificationSchema),
+  VerificationControllers.submitVerification,
+);
+
+router.put(
+  '/resubmit',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  parseDataMiddleware,
+  validateRequest(VerificationValidations.submitVerificationSchema),
+  VerificationControllers.submitVerification,
+);
+
+router.patch(
+  '/my-verification',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  parseDataMiddleware,
+  validateRequest(VerificationValidations.submitVerificationSchema),
+  VerificationControllers.submitVerification,
+);
+
+router.put(
+  '/my-verification',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  parseDataMiddleware,
   validateRequest(VerificationValidations.submitVerificationSchema),
   VerificationControllers.submitVerification,
 );

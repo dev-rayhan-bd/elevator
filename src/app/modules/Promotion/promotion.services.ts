@@ -278,19 +278,40 @@ const purchasePromotionIntoDB = async (
 const purchaseVerifiedPromotionIntoDB = async (
   vendorId: string,
   payload: { 
-    planId: string; 
-    documents: string[];
+    planId?: string; 
+    documents?: string[];
     cnicFront?: string;
     cnicBack?: string;
+    ntn?: string;
+    incorporationCertificate?: string;
     businessName?: string;
     fullAddress?: string;
     ownerName?: string;
     registeredPhone?: string;
+    notes?: string;
   },
 ) => {
-  const plan = await PromotionPlan.findById(payload.planId);
+  let plan: any;
+  if (payload.planId) {
+    plan = await PromotionPlan.findById(payload.planId);
+  }
+  if (!plan) {
+    const existingPromo = await VendorPromotion.findOne({
+      vendor: new Types.ObjectId(vendorId),
+      promotionCategory: 'verified',
+      status: 'pending',
+    }).populate('plan');
+    if (existingPromo && existingPromo.plan) {
+      plan = existingPromo.plan;
+    } else {
+      plan = await PromotionPlan.findOne({
+        promotionCategory: 'verified',
+        isActive: true,
+      });
+    }
+  }
   if (!plan || !plan.isActive) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Promotion plan not found or inactive');
+    throw new AppError(httpStatus.NOT_FOUND, 'Verified promotion plan not found or inactive');
   }
 
   // Only 'verified' category allowed here
@@ -301,19 +322,16 @@ const purchaseVerifiedPromotionIntoDB = async (
     );
   }
 
-  // Note: For 'Paid Individual Verification', documents are optional.
-  // The vendor pays 6000 PKR to be verified individually.
-
-  // Duplicate check — also block if there's a pending review
+  // Duplicate check — block if active; allow updating documents if pending
   const existingVerified = await VendorPromotion.findOne({
     vendor: new Types.ObjectId(vendorId),
     promotionCategory: 'verified',
     status: { $in: ['pending', 'active'] },
   });
-  if (existingVerified) {
+  if (existingVerified && existingVerified.status === 'active') {
     throw new AppError(
       httpStatus.CONFLICT,
-      `You already have a ${existingVerified.status} verified promotion request`,
+      'You already have an active verified badge promotion',
     );
   }
 
@@ -337,14 +355,35 @@ const purchaseVerifiedPromotionIntoDB = async (
     isPostCreated: false,
   };
 
-  const vendorPromotion = await VendorPromotion.create(promotionData);
+  let vendorPromotion: any;
+  if (existingVerified && existingVerified.status === 'pending') {
+    existingVerified.plan = plan._id;
+    existingVerified.price = plan.price;
+    existingVerified.startDate = now;
+    existingVerified.endDate = endDate;
+    await existingVerified.save();
+    vendorPromotion = existingVerified;
+  } else {
+    vendorPromotion = await VendorPromotion.create(promotionData);
+  }
 
   // ── Create/update Verification record (documents stored in Verification model) ──
+  const docs = Array.from(
+    new Set(
+      [
+        ...(payload.documents || []),
+        payload.cnicFront,
+        payload.cnicBack,
+        payload.ntn,
+        payload.incorporationCertificate,
+      ].filter((u): u is string => typeof u === 'string' && u.trim().length > 0),
+    ),
+  );
+
   const existingVerification = await Verification.findOne({ vendor: vendorId });
-  const docs = payload.documents || [];
-  const notesText = docs.length > 0 
+  const notesText = payload.notes || (docs.length > 0 
     ? 'Submitted via verified promotion purchase with documents' 
-    : 'Paid Individual Verification (No Documents)';
+    : 'Paid Individual Verification (No Documents)');
 
   if (existingVerification) {
     if (docs.length > 0) {
@@ -352,19 +391,32 @@ const purchaseVerifiedPromotionIntoDB = async (
     }
     if (payload.cnicFront) existingVerification.cnicFront = payload.cnicFront;
     if (payload.cnicBack) existingVerification.cnicBack = payload.cnicBack;
+    if (payload.ntn) existingVerification.ntn = payload.ntn;
+    if (payload.incorporationCertificate)
+      existingVerification.incorporationCertificate = payload.incorporationCertificate;
     
     if (payload.businessName) existingVerification.businessName = payload.businessName;
     if (payload.fullAddress) existingVerification.fullAddress = payload.fullAddress;
     if (payload.ownerName) existingVerification.ownerName = payload.ownerName;
     if (payload.registeredPhone) existingVerification.registeredPhone = payload.registeredPhone;
+    if (payload.notes) existingVerification.notes = payload.notes;
+
+    existingVerification.documents = Array.from(
+      new Set(
+        [
+          ...(existingVerification.documents || []),
+          existingVerification.cnicFront,
+          existingVerification.cnicBack,
+          existingVerification.ntn,
+          existingVerification.incorporationCertificate,
+        ].filter((u): u is string => typeof u === 'string' && u.trim().length > 0),
+      ),
+    );
 
     existingVerification.status = 'pending';
     existingVerification.rejectedReason = undefined;
     existingVerification.verifiedBy = undefined;
     existingVerification.verifiedAt = undefined;
-    if (docs.length === 0 && !payload.cnicFront && !payload.cnicBack) {
-      existingVerification.notes = notesText;
-    }
     await existingVerification.save();
   } else {
     await Verification.create({
@@ -372,12 +424,28 @@ const purchaseVerifiedPromotionIntoDB = async (
       documents: docs,
       cnicFront: payload.cnicFront,
       cnicBack: payload.cnicBack,
+      ntn: payload.ntn,
+      incorporationCertificate: payload.incorporationCertificate,
       businessName: payload.businessName,
       fullAddress: payload.fullAddress,
       ownerName: payload.ownerName,
       registeredPhone: payload.registeredPhone,
       notes: notesText,
+      status: 'pending',
     });
+  }
+
+  // Also update user's profile documents & details
+  const updateObj: Record<string, any> = {};
+  if (docs.length > 0) {
+    updateObj['vendor.documents'] = docs;
+  }
+  if (payload.businessName) updateObj['vendor.businessName'] = payload.businessName;
+  if (payload.ownerName) updateObj['vendor.ownerName'] = payload.ownerName;
+  if (payload.fullAddress) updateObj['vendor.location.address'] = payload.fullAddress;
+  if (payload.registeredPhone) updateObj['vendor.whatsappNumber'] = payload.registeredPhone;
+  if (Object.keys(updateObj).length > 0) {
+    await User.findByIdAndUpdate(vendorId, { $set: updateObj });
   }
 
   // Notify admins of new verified promotion request pending approval

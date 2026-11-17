@@ -31,6 +31,13 @@ const sendQuoteIntoDB = async (vendorId: string, payload: {
   if (eventRequest.status === 'cancelled') {
     throw new AppError(httpStatus.BAD_REQUEST, 'This event request has been cancelled and is no longer accepting quotes');
   }
+  if (eventRequest.status === 'expired' || new Date(eventRequest.eventDate) < new Date()) {
+    if (eventRequest.status !== 'expired') {
+      eventRequest.status = 'expired';
+      await eventRequest.save();
+    }
+    throw new AppError(httpStatus.BAD_REQUEST, 'This event request has expired and is no longer accepting quotations');
+  }
   if (eventRequest.status !== 'active') {
     throw new AppError(httpStatus.BAD_REQUEST, 'This event request is no longer active');
   }
@@ -170,6 +177,9 @@ const getQuotesForMyRequestsFromDB = async (userId: string, query: Record<string
     } else if (requestedStatus === 'closed') {
       filter.status = { $in: ['won', 'lost', 'declined', 'accepted'] };
       delete queryObj.status;
+    } else if (requestedStatus === 'expired') {
+      filter.status = 'expired';
+      delete queryObj.status;
     }
   }
 
@@ -252,6 +262,19 @@ const sendCounterOfferFromDB = async (
     }
   }
 
+  // Check if expired or eventDate has passed
+  if (quote.status === 'expired' || eventRequest.status === 'expired' || new Date(eventRequest.eventDate) < new Date()) {
+    if (quote.status !== 'expired') {
+      quote.status = 'expired';
+      await quote.save();
+    }
+    if (eventRequest.status !== 'expired') {
+      eventRequest.status = 'expired';
+      await eventRequest.save();
+    }
+    throw new AppError(httpStatus.BAD_REQUEST, 'This event request has expired. Further negotiations are disabled');
+  }
+
   // Must be in a counterable status
   if (!['pending', 'countered'].includes(quote.status)) {
     throw new AppError(httpStatus.BAD_REQUEST, 'This quote can no longer be countered');
@@ -312,6 +335,19 @@ const updateQuoteStatusFromDB = async (
   const eventRequest = await EventRequest.findById(quote.eventRequest);
   if (!eventRequest || eventRequest.user.toString() !== userId) {
     throw new AppError(httpStatus.FORBIDDEN, 'Unauthorized access');
+  }
+
+  // Check if expired or eventDate has passed
+  if (quote.status === 'expired' || eventRequest.status === 'expired' || new Date(eventRequest.eventDate) < new Date()) {
+    if (quote.status !== 'expired') {
+      quote.status = 'expired';
+      await quote.save();
+    }
+    if (eventRequest.status !== 'expired') {
+      eventRequest.status = 'expired';
+      await eventRequest.save();
+    }
+    throw new AppError(httpStatus.BAD_REQUEST, 'This event request has expired and quotations can no longer be processed');
   }
 
   if (!['pending', 'countered'].includes(quote.status)) {

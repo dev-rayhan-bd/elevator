@@ -37,25 +37,37 @@ const submitVerification = catchAsync(async (req: Request, res: Response) => {
   }
 
   // Upload files to Cloudinary if present
+  const allFiles: Express.Multer.File[] = [];
   if (req.files) {
-    const fileList: Express.Multer.File[] = Array.isArray(req.files)
-      ? req.files
-      : Object.values(req.files).flat();
+    if (Array.isArray(req.files)) {
+      allFiles.push(...req.files);
+    } else {
+      allFiles.push(...Object.values(req.files).flat());
+    }
+  }
+  if (req.file) {
+    allFiles.push(req.file);
+  }
 
-    for (const file of fileList) {
-      const url = await uploadImage(req, file);
-      allDocUrls.push(url);
+  for (const file of allFiles) {
+    const url = await uploadImage(req, file);
+    allDocUrls.push(url);
 
-      const field = file.fieldname;
-      if (field === 'cnicFront' || field === 'cnic_front') {
-        payload.cnicFront = url;
-      } else if (field === 'cnicBack' || field === 'cnic_back') {
-        payload.cnicBack = url;
-      } else if (field === 'ntn') {
-        payload.ntn = url;
-      } else if (field === 'incorporationCertificate' || field === 'incorporation_certificate') {
-        payload.incorporationCertificate = url;
-      }
+    const fLower = (file.fieldname || '').toLowerCase();
+    if (fLower === 'cnicfront' || fLower === 'cnic_front' || fLower.includes('front')) {
+      payload.cnicFront = url;
+    } else if (fLower === 'cnicback' || fLower === 'cnic_back' || fLower.includes('back')) {
+      payload.cnicBack = url;
+    } else if (fLower === 'ntn' || fLower.includes('ntn') || fLower.includes('tax')) {
+      payload.ntn = url;
+    } else if (
+      fLower === 'incorporationcertificate' ||
+      fLower === 'incorporation_certificate' ||
+      fLower.includes('incorporation') ||
+      fLower.includes('certificate') ||
+      fLower.includes('license')
+    ) {
+      payload.incorporationCertificate = url;
     }
   }
 
@@ -66,27 +78,18 @@ const submitVerification = catchAsync(async (req: Request, res: Response) => {
     }
   });
 
+  if (!payload.cnicFront && allDocUrls.length >= 1) payload.cnicFront = allDocUrls[0];
+  if (!payload.cnicBack && allDocUrls.length >= 2) payload.cnicBack = allDocUrls[1];
+
   // Persist all uploaded files (cnicFront, cnicBack, ntn, incorporationCertificate) and ALSO fill documents[] with those URLs
   payload.documents = Array.from(new Set(allDocUrls));
-
-  // Ensure at least some document or specific field was provided
-  const hasSpecificDocs =
-    payload.cnicFront ||
-    payload.cnicBack ||
-    payload.ntn ||
-    payload.incorporationCertificate ||
-    payload.documents.length > 0;
-
-  if (!hasSpecificDocs) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'At least one verification document is required');
-  }
 
   const result = await VerificationServices.submitVerificationIntoDB(
     vendorId,
     payload,
   );
   sendResponse(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     success: true,
     message: 'Verification request submitted successfully',
     data: result,

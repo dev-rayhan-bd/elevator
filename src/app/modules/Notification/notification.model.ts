@@ -15,10 +15,11 @@ const notificationSchema = new Schema({
       'quote_milestone', 'lead_alert', 'price_drop', 'profile_score_nudge',
       'new_inspiration', 'advisor_offer', 'new_requirement',
       'request_cancelled', 'request_closed', 'promotional', 'chat_message',
-      'banner_submission', 'service', 'promotion_pending'
+      'banner_submission', 'service', 'promotion_pending', 'broadcast'
     ], 
     default: 'general' 
   },
+  actionLink: { type: String },
   isRead: { type: Boolean, default: false },
   /** Optional structured payload for deep-linking and client logic */
   data: { type: Schema.Types.Mixed, default: {} },

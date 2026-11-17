@@ -220,11 +220,10 @@ const deleteVendorService = catchAsync(async (req, res) => {
 });
 
 const adminToggleServiceStatus = catchAsync(async (req, res) => {
-  const { isFeatured, isActive } = req.body;
-  const result = await VendorServiceServices.adminToggleServiceStatusInDB(req.params.id, {
-    isFeatured,
-    isActive,
-  });
+  const result = await VendorServiceServices.adminToggleServiceStatusInDB(
+    req.params.id,
+    req.body,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

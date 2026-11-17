@@ -17,8 +17,35 @@ const sortOffersDescending = <T extends { offers?: any[] }>(quote: T): T => {
   return quote;
 };
 
+/**
+ * Automatically expire any pending or countered vendor quotes whose eventDate has passed.
+ */
+export const expireOverdueVendorQuotes = async () => {
+  const now = new Date();
+  const result = await VendorQuote.updateMany(
+    {
+      status: { $in: ['pending', 'countered'] },
+      eventDate: { $lt: now },
+      isDeleted: false,
+    },
+    { $set: { status: 'expired' } },
+  );
+  return result.modifiedCount;
+};
+
 // ── User: Send quote request to vendor ──
 const sendQuoteInDB = async (userId: string, payload: Partial<TVendorQuote>) => {
+  // Validate event date is not in the past
+  if (payload.eventDate) {
+    const eventDateObj = new Date(payload.eventDate as any);
+    if (isNaN(eventDateObj.getTime())) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Invalid event date');
+    }
+    if (eventDateObj < new Date()) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Event date cannot be in the past');
+    }
+  }
+
   // Verify service exists and get vendor ID + pricingType
   const service = await VendorService.findById(payload.service);
   if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Service not found!');
@@ -81,6 +108,9 @@ const sendQuoteInDB = async (userId: string, payload: Partial<TVendorQuote>) => 
 
 // ── User: Get all my sent quotes ──
 const getMyQuotesFromDB = async (userId: string, query: Record<string, unknown>) => {
+  // Ensure overdue quotes are automatically marked as expired
+  await expireOverdueVendorQuotes();
+
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -93,6 +123,8 @@ const getMyQuotesFromDB = async (userId: string, query: Record<string, unknown>)
       filter.status = { $in: ['pending', 'countered'] };
     } else if (requestedStatus === 'closed') {
       filter.status = { $in: ['won', 'lost', 'declined', 'accepted'] };
+    } else if (requestedStatus === 'expired') {
+      filter.status = 'expired';
     } else {
       filter.status = requestedStatus;
     }
@@ -129,6 +161,12 @@ const getQuoteDetailsFromDB = async (userId: string, role: string, quoteId: stri
 
   if (!quote) throw new AppError(httpStatus.NOT_FOUND, 'Quote not found!');
 
+  // Auto-expire check
+  if (['pending', 'countered'].includes(quote.status) && new Date(quote.eventDate) < new Date()) {
+    quote.status = 'expired';
+    await quote.save();
+  }
+
   // Ensure the requester is either the user or vendor of this quote
   const userIdStr = userId;
   const isUser = quote.user._id.toString() === userIdStr;
@@ -145,6 +183,15 @@ const getQuoteDetailsFromDB = async (userId: string, role: string, quoteId: stri
 const acceptQuoteInDB = async (userId: string, quoteId: string) => {
   const quote = await VendorQuote.findOne({ _id: quoteId, user: userId, isDeleted: false });
   if (!quote) throw new AppError(httpStatus.NOT_FOUND, 'Quote not found or unauthorized!');
+
+  // Check if expired or eventDate has passed
+  if (quote.status === 'expired' || new Date(quote.eventDate) < new Date()) {
+    if (quote.status !== 'expired') {
+      quote.status = 'expired';
+      await quote.save();
+    }
+    throw new AppError(httpStatus.BAD_REQUEST, 'This quote request has expired and cannot be accepted.');
+  }
 
   if (!['countered', 'pending'].includes(quote.status)) {
     throw new AppError(httpStatus.BAD_REQUEST, `Cannot accept quote with status "${quote.status}".`);
@@ -174,6 +221,10 @@ const declineQuoteInDB = async (userId: string, quoteId: string) => {
   const quote = await VendorQuote.findOne({ _id: quoteId, user: userId, isDeleted: false });
   if (!quote) throw new AppError(httpStatus.NOT_FOUND, 'Quote not found or unauthorized!');
 
+  if (quote.status === 'expired') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'This quote request has already expired.');
+  }
+
   if (quote.status === 'accepted' || quote.status === 'won' || quote.status === 'declined') {
     throw new AppError(httpStatus.BAD_REQUEST, `Cannot decline quote with status "${quote.status}".`);
   }
@@ -194,6 +245,9 @@ const declineQuoteInDB = async (userId: string, quoteId: string) => {
 
 // ── Vendor: Get all quotes for my services + stats ──
 const getVendorQuotesFromDB = async (vendorId: string, query: Record<string, unknown>) => {
+  // Ensure overdue quotes are automatically marked as expired
+  await expireOverdueVendorQuotes();
+
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
   const skip = (page - 1) * limit;
@@ -233,6 +287,7 @@ const getVendorQuotesFromDB = async (vendorId: string, query: Record<string, unk
     declined: 0,
     won: 0,
     lost: 0,
+    expired: 0,
   };
   for (const s of stats) {
     statsMap[s._id] = s.count;
@@ -252,6 +307,15 @@ const getVendorQuotesFromDB = async (vendorId: string, query: Record<string, unk
 const counterQuoteInDB = async (vendorId: string, quoteId: string, amount: number, message?: string, pricingType?: string) => {
   const quote = await VendorQuote.findOne({ _id: quoteId, vendor: vendorId, isDeleted: false });
   if (!quote) throw new AppError(httpStatus.NOT_FOUND, 'Quote not found or unauthorized!');
+
+  // Check if expired or eventDate has passed
+  if (quote.status === 'expired' || new Date(quote.eventDate) < new Date()) {
+    if (quote.status !== 'expired') {
+      quote.status = 'expired';
+      await quote.save();
+    }
+    throw new AppError(httpStatus.BAD_REQUEST, 'This quote request has expired. Further negotiations are disabled.');
+  }
 
   if (!['pending', 'countered'].includes(quote.status)) {
     throw new AppError(httpStatus.BAD_REQUEST, `Cannot counter quote with status "${quote.status}".`);
@@ -284,6 +348,15 @@ const userCounterQuoteInDB = async (userId: string, quoteId: string, amount: num
   const quote = await VendorQuote.findOne({ _id: quoteId, user: userId, isDeleted: false });
   if (!quote) throw new AppError(httpStatus.NOT_FOUND, 'Quote not found or unauthorized!');
 
+  // Check if expired or eventDate has passed
+  if (quote.status === 'expired' || new Date(quote.eventDate) < new Date()) {
+    if (quote.status !== 'expired') {
+      quote.status = 'expired';
+      await quote.save();
+    }
+    throw new AppError(httpStatus.BAD_REQUEST, 'This quote request has expired. Further negotiations are disabled.');
+  }
+
   if (quote.status !== 'countered') {
     throw new AppError(httpStatus.BAD_REQUEST, `Cannot counter quote with status "${quote.status}".`);
   }
@@ -314,6 +387,15 @@ const userCounterQuoteInDB = async (userId: string, quoteId: string, amount: num
 const winQuoteInDB = async (vendorId: string, quoteId: string) => {
   const quote = await VendorQuote.findOne({ _id: quoteId, vendor: vendorId, isDeleted: false });
   if (!quote) throw new AppError(httpStatus.NOT_FOUND, 'Quote not found or unauthorized!');
+
+  // Check if expired or eventDate has passed
+  if (quote.status === 'expired' || new Date(quote.eventDate) < new Date()) {
+    if (quote.status !== 'expired') {
+      quote.status = 'expired';
+      await quote.save();
+    }
+    throw new AppError(httpStatus.BAD_REQUEST, 'This quote request has expired and cannot be accepted.');
+  }
 
   if (quote.status === 'won') {
     return quote; // already won, no-op
@@ -346,6 +428,10 @@ const loseQuoteInDB = async (vendorId: string, quoteId: string) => {
   const quote = await VendorQuote.findOne({ _id: quoteId, vendor: vendorId, isDeleted: false });
   if (!quote) throw new AppError(httpStatus.NOT_FOUND, 'Quote not found or unauthorized!');
 
+  if (quote.status === 'expired') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'This quote request has already expired.');
+  }
+
   if (['won', 'declined'].includes(quote.status)) {
     throw new AppError(httpStatus.BAD_REQUEST, `Cannot close quote with status "${quote.status}".`);
   }
@@ -365,6 +451,7 @@ const loseQuoteInDB = async (vendorId: string, quoteId: string) => {
 };
 
 export const VendorQuoteServices = {
+  expireOverdueVendorQuotes,
   sendQuoteInDB,
   getMyQuotesFromDB,
   getQuoteDetailsFromDB,

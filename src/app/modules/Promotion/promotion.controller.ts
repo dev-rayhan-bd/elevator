@@ -87,33 +87,75 @@ const purchaseVerifiedPromotion = catchAsync(async (req: Request, res: Response)
   const vendorId = (req as any).user.userId;
 
   // Handle multipart: parse JSON from data field if present
-  const rawData = req.body.data ? JSON.parse(req.body.data) : req.body;
+  let rawData = req.body;
+  if (req.body.data) {
+    try {
+      rawData = typeof req.body.data === 'string' ? JSON.parse(req.body.data) : req.body.data;
+    } catch (e) {
+      rawData = req.body;
+    }
+  }
+
+  const payload: any = { ...req.body, ...rawData };
+  const allDocUrls: string[] = [];
+
+  // If initial documents passed in body
+  if (payload.documents) {
+    if (Array.isArray(payload.documents)) {
+      payload.documents.forEach((d: any) => {
+        if (typeof d === 'string' && d.trim()) allDocUrls.push(d.trim());
+      });
+    } else if (typeof payload.documents === 'string' && payload.documents.trim()) {
+      allDocUrls.push(payload.documents.trim());
+    }
+  }
 
   // Upload files to Cloudinary if present
-  const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
-  const payload = { ...rawData };
-
-  if (files) {
-    // Process distinct fields
-    if (files.cnicFront && files.cnicFront.length > 0) {
-      payload.cnicFront = await uploadImage(req, files.cnicFront[0]);
+  const allFiles: Express.Multer.File[] = [];
+  if (req.files) {
+    if (Array.isArray(req.files)) {
+      allFiles.push(...req.files);
+    } else {
+      allFiles.push(...Object.values(req.files).flat());
     }
-    if (files.cnicBack && files.cnicBack.length > 0) {
-      payload.cnicBack = await uploadImage(req, files.cnicBack[0]);
-    }
-
-    // Process fallback/extra documents array
-    const uploadedUrls: string[] = [];
-    if (files.documents && files.documents.length > 0) {
-      for (const file of files.documents) {
-        const url = await uploadImage(req, file);
-        uploadedUrls.push(url);
-      }
-    }
-    payload.documents = [...(rawData.documents || []), ...uploadedUrls];
-  } else {
-    payload.documents = rawData.documents || [];
   }
+  if (req.file) {
+    allFiles.push(req.file);
+  }
+
+  for (const file of allFiles) {
+    const url = await uploadImage(req, file);
+    allDocUrls.push(url);
+
+    const fLower = (file.fieldname || '').toLowerCase();
+    if (fLower === 'cnicfront' || fLower === 'cnic_front' || fLower.includes('front')) {
+      payload.cnicFront = url;
+    } else if (fLower === 'cnicback' || fLower === 'cnic_back' || fLower.includes('back')) {
+      payload.cnicBack = url;
+    } else if (fLower === 'ntn' || fLower.includes('ntn') || fLower.includes('tax')) {
+      payload.ntn = url;
+    } else if (
+      fLower === 'incorporationcertificate' ||
+      fLower === 'incorporation_certificate' ||
+      fLower.includes('incorporation') ||
+      fLower.includes('certificate') ||
+      fLower.includes('license')
+    ) {
+      payload.incorporationCertificate = url;
+    }
+  }
+
+  // Also include distinct fields if already passed as string URLs in payload
+  ['cnicFront', 'cnicBack', 'ntn', 'incorporationCertificate'].forEach((f) => {
+    if (typeof payload[f] === 'string' && payload[f].trim()) {
+      allDocUrls.push(payload[f].trim());
+    }
+  });
+
+  if (!payload.cnicFront && allDocUrls.length >= 1) payload.cnicFront = allDocUrls[0];
+  if (!payload.cnicBack && allDocUrls.length >= 2) payload.cnicBack = allDocUrls[1];
+
+  payload.documents = Array.from(new Set(allDocUrls));
 
   const result = await PromotionServices.purchaseVerifiedPromotionIntoDB(
     vendorId,
@@ -122,16 +164,19 @@ const purchaseVerifiedPromotion = catchAsync(async (req: Request, res: Response)
       documents: payload.documents,
       cnicFront: payload.cnicFront,
       cnicBack: payload.cnicBack,
-      businessName: rawData.businessName,
-      fullAddress: rawData.fullAddress,
-      ownerName: rawData.ownerName,
-      registeredPhone: rawData.registeredPhone,
+      ntn: payload.ntn,
+      incorporationCertificate: payload.incorporationCertificate,
+      businessName: payload.businessName || rawData.businessName,
+      fullAddress: payload.fullAddress || rawData.fullAddress,
+      ownerName: payload.ownerName || rawData.ownerName,
+      registeredPhone: payload.registeredPhone || rawData.registeredPhone,
+      notes: payload.notes || rawData.notes,
     },
   );
   sendResponse(res, {
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     success: true,
-    message: 'Verified promotion purchased successfully. Awaiting admin review.',
+    message: 'Verified promotion request submitted successfully. Awaiting admin review.',
     data: result,
   });
 });

@@ -7,11 +7,7 @@ import { PromotionControllers } from './promotion.controller';
 import { PromotionValidations } from './promotion.validation';
 
 const router = express.Router();
-const uploadDocs = upload.fields([
-  { name: 'cnicFront', maxCount: 1 },
-  { name: 'cnicBack', maxCount: 1 },
-  { name: 'documents', maxCount: 10 }
-]) as unknown as RequestHandler;
+const uploadDocs = upload.any() as unknown as RequestHandler;
 
 // ══════════════════════════════════════════════
 //  PUBLIC ROUTES
@@ -63,13 +59,48 @@ router.post(
   PromotionControllers.purchasePromotion,
 );
 
-// Purchase verified promotion (requires document upload)
+// Purchase verified promotion (requires document upload; also supports update/resubmit)
 router.post(
   '/purchase-verified',
   /*
     #swagger.tags = ['Promotion']
     #swagger.summary = 'Purchase verified badge promotion (Vendor)'
   */
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  PromotionControllers.purchaseVerifiedPromotion,
+);
+
+router.patch(
+  '/purchase-verified',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  PromotionControllers.purchaseVerifiedPromotion,
+);
+
+router.put(
+  '/purchase-verified',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  PromotionControllers.purchaseVerifiedPromotion,
+);
+
+router.post(
+  '/resubmit-verified',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  PromotionControllers.purchaseVerifiedPromotion,
+);
+
+router.patch(
+  '/resubmit-verified',
+  auth(USER_ROLE.vendor),
+  uploadDocs,
+  PromotionControllers.purchaseVerifiedPromotion,
+);
+
+router.put(
+  '/resubmit-verified',
   auth(USER_ROLE.vendor),
   uploadDocs,
   PromotionControllers.purchaseVerifiedPromotion,
