@@ -1,18 +1,35 @@
 import { z } from 'zod';
 
-const sendQuoteValidationSchema = z.object({
-  service: z.string({ required_error: 'Service ID is required' }),
-  eventType: z.string().optional(),
-  pricingType: z.enum(['fixed', 'starting from', 'per head']).optional(),
-  eventDate: z.string({ required_error: 'Event date is required' }),
-  guestCount: z.number().min(1, 'Guest count must be at least 1').optional().nullable(),
-  message: z.string().min(1, 'Requirement details cannot be empty').optional(),
-  description: z.string().min(1, 'Requirement details cannot be empty').optional(),
-  budget: z.number().min(0, 'Budget cannot be negative').optional().nullable(),
-}).refine(
-  (data) => !!(data.message?.trim() || data.description?.trim()),
-  { message: 'Requirement details is required', path: ['message'] },
-);
+const sendQuoteValidationSchema = z
+  .object({
+    service: z.string().optional().nullable(),
+    serviceId: z.string().optional().nullable(),
+    eventType: z.string().optional().nullable(),
+    eventTypeId: z.string().optional().nullable(),
+    pricingType: z.string().optional().nullable(),
+    eventDate: z.any().optional(),
+    guestCount: z.union([z.number(), z.string()]).optional().nullable(),
+    message: z.string().optional().nullable(),
+    description: z.string().optional().nullable(),
+    requirementDetails: z.string().optional().nullable(),
+    details: z.string().optional().nullable(),
+    budget: z.union([z.number(), z.string()]).optional().nullable(),
+    estimatedBudget: z.union([z.number(), z.string()]).optional().nullable(),
+  })
+  .refine(
+    (data) => !!(data.service?.trim() || data.serviceId?.trim()),
+    { message: 'Service ID is required', path: ['service'] },
+  )
+  .refine(
+    (data) =>
+      !!(
+        data.message?.trim() ||
+        data.description?.trim() ||
+        data.requirementDetails?.trim() ||
+        data.details?.trim()
+      ),
+    { message: 'Requirement details cannot be empty', path: ['requirementDetails'] },
+  );
 
 const counterOfferValidationSchema = z.object({
 

@@ -34,12 +34,17 @@ const createInspirationIntoDB = async (payload: Record<string, unknown>) => {
     }).select('_id');
 
     if (activeUsers.length > 0) {
+      const inspoTitle = payload.title ? `${payload.title}` : 'New Wedding Inspiration Available';
       sendNotificationToMultipleUsers(
         activeUsers.map((u) => u._id.toString()),
-        '📸 Fresh Wedding Inspo Inside!',
-        'Tap to get inspired!',
+        inspoTitle,
+        'Explore new creative ideas, decor trends, and vendor inspirations for your event on WePlan.',
         'new_inspiration',
-        { inspirationId: result._id.toString(), action: 'new_inspiration' },
+        {
+          inspirationId: result._id.toString(),
+          action: 'new_inspiration',
+          actionLink: '/inspiration',
+        },
       );
     }
   } catch (error) {

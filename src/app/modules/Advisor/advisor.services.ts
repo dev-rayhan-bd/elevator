@@ -9,6 +9,7 @@ import {
 } from './advisor.model';
 import { User } from '../User/user.model';
 import { getEmailTemplate } from '../../utils/emailTemplate';
+import { sendNotification, sendNotificationToAdmins } from '../../utils/sendNotification';
 import PDFDocument from 'pdfkit';
 
 // ══════════════════════════════════════════════
@@ -133,6 +134,32 @@ const createBookingIntoDB = async (userId: string, payload: any) => {
   };
 
   const result = await AdvisorBooking.create(bookingData);
+
+  // Notify User and Admins
+  const serviceName = service.name || 'WePlan Expert Service';
+  try {
+    void sendNotification(
+      userId,
+      'Expert Service Request Submitted',
+      `Your request for ${serviceName} has been received. Our team will review and assign an expert vendor shortly.`,
+      'booking_update',
+      {
+        bookingId: result._id.toString(),
+        actionLink: '/dashboard',
+      },
+    );
+
+    void sendNotificationToAdmins(
+      'New Expert Service Booking',
+      `${payload.fullName || 'A customer'} submitted a new ${serviceName} request.`,
+      'booking_update',
+      {
+        bookingId: result._id.toString(),
+      },
+    );
+  } catch (err) {
+    console.error('Failed to send booking notification:', err);
+  }
 
   return result.populate([
     { path: 'advisorService', select: 'name description price' },
@@ -421,6 +448,46 @@ const assignAssociateToBookingInDB = async (
   if (b.assignedAssociate) {
     b.assignedAssociate = formatAssignedAssociate(b.assignedAssociate);
   }
+
+  // ── Notify User and Assigned Vendor on assignment ──
+  try {
+    const associateName =
+      b.assignedAssociate?.businessName ||
+      b.assignedAssociate?.fullName ||
+      `${associate.firstName || ''} ${associate.lastName || ''}`.trim() ||
+      'A vendor';
+    const serviceName = b.advisorService?.name || 'WePlan Expert Service';
+
+    // Notify User
+    void sendNotification(
+      booking.user.toString(),
+      'Vendor Assigned to Your Request!',
+      `${associateName} has been assigned to your ${serviceName} request.`,
+      'booking_update',
+      {
+        bookingId: booking._id.toString(),
+        associateId: associateId,
+        action: 'vendor_assigned',
+        actionLink: '/dashboard',
+      },
+    );
+
+    // Notify Assigned Vendor
+    void sendNotification(
+      associateId,
+      'New Request Assignment!',
+      `You have been assigned to a ${serviceName} request for ${booking.fullName || 'a client'}.`,
+      'booking_update',
+      {
+        bookingId: booking._id.toString(),
+        action: 'new_assignment',
+        actionLink: '/dashboard',
+      },
+    );
+  } catch (notifyErr) {
+    console.error('Failed to send notification on assign associate:', notifyErr);
+  }
+
   return b;
 };
 
@@ -475,6 +542,54 @@ const adminUpdateBookingStatusInDB = async (
   if (b.assignedAssociate) {
     b.assignedAssociate = formatAssignedAssociate(b.assignedAssociate);
   }
+
+  // ── Notify User about status update ──
+  try {
+    const serviceName = b.advisorService?.name || 'WePlan Expert Service';
+    let title = 'Request Status Updated';
+    let message = `Your ${serviceName} request status has been updated to ${payload.status.replace('_', ' ')}.`;
+
+    if (payload.status === 'in_progress') {
+      title = 'Request In Progress';
+      message = `Your ${serviceName} request is now in progress with your assigned vendor.`;
+    } else if (payload.status === 'completed') {
+      title = 'Request Completed!';
+      message = `Your ${serviceName} request has been marked as completed. Thank you for using WePlan!`;
+    } else if (payload.status === 'cancelled') {
+      title = 'Request Cancelled';
+      message = `Your ${serviceName} request has been cancelled. Reason: ${payload.cancellationReason || 'No reason specified'}.`;
+    }
+
+    void sendNotification(
+      booking.user.toString(),
+      title,
+      message,
+      'booking_update',
+      {
+        bookingId: booking._id.toString(),
+        status: payload.status,
+        actionLink: '/dashboard',
+      },
+    );
+
+    // If an associate vendor is assigned, notify them too
+    if (booking.assignedAssociate) {
+      void sendNotification(
+        booking.assignedAssociate.toString(),
+        `Booking Status: ${payload.status.replace('_', ' ')}`,
+        `The ${serviceName} booking for ${booking.fullName || 'client'} has been updated to ${payload.status.replace('_', ' ')}.`,
+        'booking_update',
+        {
+          bookingId: booking._id.toString(),
+          status: payload.status,
+          actionLink: '/dashboard',
+        },
+      );
+    }
+  } catch (notifyErr) {
+    console.error('Failed to send notification on status update:', notifyErr);
+  }
+
   return b;
 };
 

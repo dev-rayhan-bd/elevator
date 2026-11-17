@@ -6,30 +6,49 @@ import { User } from '../User/user.model';
 import { VendorService } from '../VendorService/vendorService.model';
 import { sendNotification } from '../../utils/sendNotification';
 import { VendorQuote } from '../VendorQuote/vendorQuote.model';
+import { LeadClick } from '../VendorService/leadClick.model';
+import { Conversation } from '../Chat/chat.model';
 
-// ── Create Review (one per user per service, purchase-gated) ──
+// ── Create Review (one per user per service, interaction-gated) ──
 const createReviewInDB = async (payload: TReview) => {
   const service = await VendorService.findById(payload.service);
   if (!service) {
     throw new AppError(httpStatus.NOT_FOUND, 'Service not found!');
   }
 
-  // Ensure the user has purchased this service
-  const purchase = await VendorQuote.findOne({
-    user: payload.user,
-    service: payload.service,
-    status: { $in: ['accepted', 'won'] },
-    isDeleted: false,
-  });
-  if (!purchase) {
-    throw new AppError(
-      httpStatus.FORBIDDEN,
-      'You can only review a service you have purchased.',
-    );
-  }
-
   // Auto-detect vendor from the service — frontend doesn't send vendor ID
   const vendorId = service.vendor;
+
+  // Review eligibility check:
+  // Must have performed at least one of these actions on the service/vendor:
+  // 1. Clicked WhatsApp (LeadClick type='whatsapp')
+  // 2. Clicked Call/Phone (LeadClick type='phone')
+  // 3. Used the Chat option (LeadClick type='message' OR Conversation between user & vendor)
+  // 4. Submitted a Custom Quote Request (VendorQuote)
+  const [hasLeadClick, hasQuote, hasChat] = await Promise.all([
+    LeadClick.exists({
+      user: payload.user,
+      $or: [{ service: payload.service }, { vendor: vendorId }],
+      type: { $in: ['whatsapp', 'phone', 'message'] },
+    }),
+    VendorQuote.exists({
+      user: payload.user,
+      service: payload.service,
+      isDeleted: false,
+    }),
+    Conversation.exists({
+      participants: { $all: [payload.user, vendorId] },
+    }),
+  ]);
+
+  const isEligible = Boolean(hasLeadClick || hasQuote || hasChat);
+
+  if (!isEligible) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Your review cannot be submitted at this time because it does not meet our review eligibility requirements.',
+    );
+  }
 
   const existing = await Review.findOne({
     user: payload.user,

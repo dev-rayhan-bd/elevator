@@ -12,16 +12,16 @@ import { expireOverdueVendorQuotes } from '../modules/VendorQuote/vendorQuote.se
 // ══════════════════════════════════════════════
 
 export const startCronJobs = () => {
-  // ── Event Requests & Custom Quotes Expiry: Every day at 00:00 ──
-  cron.schedule('0 0 * * *', async () => {
-    console.log('⏰ [CRON] Running EventRequest & VendorQuote expiry check...');
+  // ── Event Requests & Custom Quotes Expiry: Runs every 30 minutes ──
+  cron.schedule('*/30 * * * *', async () => {
     try {
       const eventReqResult = await expireOverdueEventRequests();
-      console.log(
-        `✅ [CRON] EventRequests expired: ${eventReqResult.expiredRequestsCount}, associated quotes expired: ${eventReqResult.expiredQuotesCount}`,
-      );
       const vendorQuoteResult = await expireOverdueVendorQuotes();
-      console.log(`✅ [CRON] VendorQuotes expired: ${vendorQuoteResult}`);
+      if (eventReqResult.expiredRequestsCount > 0 || vendorQuoteResult > 0) {
+        console.log(
+          `✅ [CRON] Auto-expired: ${eventReqResult.expiredRequestsCount} EventRequests, ${eventReqResult.expiredQuotesCount} EventQuotes, ${vendorQuoteResult} VendorQuotes`,
+        );
+      }
     } catch (error) {
       console.error('❌ [CRON] EventRequest/VendorQuote expiry error:', error);
     }

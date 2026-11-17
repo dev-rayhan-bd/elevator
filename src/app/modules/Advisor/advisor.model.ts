@@ -68,6 +68,7 @@ const advisorBookingSchema = new Schema<IAdvisorBooking>(
   { timestamps: true },
 );
 
+advisorBookingSchema.index({ user: 1, createdAt: -1 });
 advisorBookingSchema.index({ advisorService: 1, status: 1 });
 advisorBookingSchema.index({ status: 1, createdAt: -1 });
 advisorBookingSchema.index({ assignedAssociate: 1, status: 1 });

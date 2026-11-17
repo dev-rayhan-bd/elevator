@@ -28,27 +28,41 @@ router.get(
   NotificationControllers.getUnreadCount
 );
 
- //(Mark All as Read)
-router.patch(
-  '/mark-all-read',
-  /*
-    #swagger.tags = ['Notification']
-    #swagger.summary = 'Mark all notifications as read'
-  */
+ // ── Mark All as Read (supporting patch, put, post & common route aliases) ──
+const markAllHandlers = [
   auth(USER_ROLE.user, USER_ROLE.vendor, USER_ROLE.superAdmin, USER_ROLE.admin),
-  NotificationControllers.markAllAsRead
-);
+  NotificationControllers.markAllAsRead,
+];
 
+router.patch('/mark-all-read', ...markAllHandlers);
+router.put('/mark-all-read', ...markAllHandlers);
+router.post('/mark-all-read', ...markAllHandlers);
 
-router.patch(
-  '/mark-read/:id',
-  /*
-    #swagger.tags = ['Notification']
-    #swagger.summary = 'Mark single notification as read'
-  */
+router.patch('/mark-all-as-read', ...markAllHandlers);
+router.put('/mark-all-as-read', ...markAllHandlers);
+router.post('/mark-all-as-read', ...markAllHandlers);
+
+router.patch('/mark-as-read', ...markAllHandlers);
+router.put('/mark-as-read', ...markAllHandlers);
+router.post('/mark-as-read', ...markAllHandlers);
+
+// ── Mark Single as Read (supporting patch, put, post & common route aliases) ──
+const markSingleHandlers = [
   auth(USER_ROLE.user, USER_ROLE.vendor, USER_ROLE.superAdmin, USER_ROLE.admin),
-  NotificationControllers.markSingleAsRead
-);
+  NotificationControllers.markSingleAsRead,
+];
+
+router.patch('/mark-read/:id', ...markSingleHandlers);
+router.put('/mark-read/:id', ...markSingleHandlers);
+router.post('/mark-read/:id', ...markSingleHandlers);
+
+router.patch('/mark-as-read/:id', ...markSingleHandlers);
+router.put('/mark-as-read/:id', ...markSingleHandlers);
+router.post('/mark-as-read/:id', ...markSingleHandlers);
+
+router.patch('/:id/read', ...markSingleHandlers);
+router.put('/:id/read', ...markSingleHandlers);
+router.post('/:id/read', ...markSingleHandlers);
 
 // ── Admin: Broadcast Notification (FormData with image upload) ──
 router.post(

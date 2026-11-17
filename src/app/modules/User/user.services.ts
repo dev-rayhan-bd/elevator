@@ -86,6 +86,7 @@ const applyToBecomeVendor = async (userId: string, vendorData: any) => {
   const result = await User.findByIdAndUpdate(
     userId,
     {
+      role: 'vendor',
       status: 'pending',
       vendor: {
         ...vendorData,

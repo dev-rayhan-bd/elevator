@@ -25,4 +25,8 @@ const notificationSchema = new Schema({
   data: { type: Schema.Types.Mixed, default: {} },
 }, { timestamps: true });
 
+// ── Indexes for fast user dashboard notifications retrieval & unread count ──
+notificationSchema.index({ user: 1, createdAt: -1 });
+notificationSchema.index({ user: 1, isRead: 1 });
+
 export const NotificationModel = model('Notification', notificationSchema);

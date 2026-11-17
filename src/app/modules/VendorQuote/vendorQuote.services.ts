@@ -5,6 +5,7 @@ import { VendorQuote } from './vendorQuote.model';
 import { TVendorQuote } from './vendorQuote.interface';
 import { User } from '../User/user.model';
 import { VendorService } from '../VendorService/vendorService.model';
+import { EventType } from '../EventType/eventType.model';
 import { sendNotification } from '../../utils/sendNotification';
 
 // Helper to sort offers descending so newest activity is at index 0 (latest activity at the top)
@@ -34,20 +35,20 @@ export const expireOverdueVendorQuotes = async () => {
 };
 
 // ── User: Send quote request to vendor ──
-const sendQuoteInDB = async (userId: string, payload: Partial<TVendorQuote>) => {
-  // Validate event date is not in the past
-  if (payload.eventDate) {
-    const eventDateObj = new Date(payload.eventDate as any);
-    if (isNaN(eventDateObj.getTime())) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'Invalid event date');
-    }
-    if (eventDateObj < new Date()) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'Event date cannot be in the past');
-    }
+const sendQuoteInDB = async (userId: string, payload: any) => {
+  const serviceId = payload.service || payload.serviceId;
+  if (!serviceId) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Service ID is required');
+  }
+
+  // Validate event date
+  let eventDateObj = new Date(payload.eventDate);
+  if (isNaN(eventDateObj.getTime())) {
+    eventDateObj = new Date();
   }
 
   // Verify service exists and get vendor ID + pricingType
-  const service = await VendorService.findById(payload.service);
+  const service = await VendorService.findById(serviceId);
   if (!service) throw new AppError(httpStatus.NOT_FOUND, 'Service not found!');
 
   const vendorId = service.vendor;
@@ -56,20 +57,55 @@ const sendQuoteInDB = async (userId: string, payload: Partial<TVendorQuote>) => 
   // Check duplicate — user already has active quote for this service
   const existing = await VendorQuote.findOne({
     user: userId,
-    service: payload.service,
+    service: serviceId,
+    status: { $in: ['pending', 'countered', 'accepted'] },
     isDeleted: false,
   });
   if (existing) {
     throw new AppError(httpStatus.CONFLICT, 'You already have an active quote for this service.');
   }
 
-  const message = (payload.message || (payload as any).description || '').trim();
-  const eventTypeId = payload.eventType ? new Types.ObjectId(payload.eventType as any) : undefined;
+  const message = (
+    payload.message ||
+    payload.description ||
+    payload.requirementDetails ||
+    payload.details ||
+    ''
+  ).trim();
+
+  // Handle eventType (ObjectId or name)
+  let eventTypeId: Types.ObjectId | undefined;
+  const rawEventType = payload.eventType || payload.eventTypeId;
+  if (rawEventType) {
+    if (Types.ObjectId.isValid(rawEventType)) {
+      eventTypeId = new Types.ObjectId(rawEventType);
+    } else {
+      const etDoc = await EventType.findOne({
+        name: new RegExp(`^${rawEventType}$`, 'i'),
+      });
+      if (etDoc) eventTypeId = etDoc._id;
+    }
+  }
+
+  // Handle budget
+  let budget: number | undefined;
+  const rawBudget = payload.budget ?? payload.estimatedBudget;
+  if (rawBudget !== undefined && rawBudget !== null && rawBudget !== '') {
+    const num = Number(rawBudget);
+    if (!isNaN(num) && num >= 0) budget = num;
+  }
+
+  // Handle guestCount
+  let guestCount: number | undefined;
+  if (payload.guestCount !== undefined && payload.guestCount !== null && payload.guestCount !== '') {
+    const num = Number(payload.guestCount);
+    if (!isNaN(num) && num > 0) guestCount = num;
+  }
 
   const initialOffers: any[] = [];
-  if (typeof payload.budget === 'number' && payload.budget > 0) {
+  if (typeof budget === 'number' && budget > 0) {
     initialOffers.push({
-      amount: payload.budget,
+      amount: budget,
       message,
       sender: new Types.ObjectId(userId),
       pricingType,
@@ -78,14 +114,15 @@ const sendQuoteInDB = async (userId: string, payload: Partial<TVendorQuote>) => 
   }
 
   const quote = await VendorQuote.create({
-    ...payload,
     user: userId,
     vendor: vendorId,
+    service: serviceId,
     eventType: eventTypeId,
+    eventDate: eventDateObj,
     message,
     pricingType,
-    guestCount: payload.guestCount ? Number(payload.guestCount) : undefined,
-    budget: payload.budget !== undefined && payload.budget !== null ? Number(payload.budget) : undefined,
+    guestCount,
+    budget,
     status: 'pending',
     offers: initialOffers,
   });
